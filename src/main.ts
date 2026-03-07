@@ -5,6 +5,7 @@ import App from './App.vue'
 import {
   bindPlugin,
   closePanel,
+  initializeUiState,
 } from '@/features/search-replace/store'
 
 let pluginInstance: Plugin | null = null
@@ -15,9 +16,10 @@ export function getPlugin() {
   return pluginInstance
 }
 
-export function init(plugin: Plugin) {
+export async function init(plugin: Plugin) {
   pluginInstance = plugin
   bindPlugin(plugin)
+  await initializeUiState()
 
   if (hostElement) {
     return

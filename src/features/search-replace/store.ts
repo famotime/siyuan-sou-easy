@@ -18,6 +18,16 @@ import type {
   SearchOptions,
 } from './types'
 
+interface PanelPosition {
+  left: number
+  top: number
+}
+
+interface PersistedUiState {
+  panelPosition?: PanelPosition | null
+  replaceVisible?: boolean
+}
+
 const DEFAULT_OPTIONS: SearchOptions = {
   matchCase: false,
   wholeWord: false,
@@ -25,11 +35,16 @@ const DEFAULT_OPTIONS: SearchOptions = {
   includeCodeBlock: false,
 }
 
+const UI_STATE_STORAGE = 'ui-state.json'
+
 let refreshTimer = 0
+let persistTimer = 0
+let pluginInstance: Plugin | null = null
 
 export const searchReplaceState = reactive({
   visible: false,
   replaceVisible: true,
+  panelPosition: null as PanelPosition | null,
   query: '',
   replacement: '',
   options: { ...DEFAULT_OPTIONS },
@@ -41,7 +56,41 @@ export const searchReplaceState = reactive({
   busy: false,
 })
 
-export function bindPlugin(_plugin: Plugin) {
+export function bindPlugin(plugin: Plugin) {
+  pluginInstance = plugin
+}
+
+export async function initializeUiState() {
+  if (!pluginInstance) {
+    return
+  }
+
+  try {
+    const data = await pluginInstance.loadData(UI_STATE_STORAGE) as PersistedUiState | null
+    if (!data) {
+      return
+    }
+
+    searchReplaceState.replaceVisible = data.replaceVisible ?? searchReplaceState.replaceVisible
+    searchReplaceState.panelPosition = normalizePanelPosition(data.panelPosition)
+  } catch (error) {
+    console.warn('Failed to load search-replace UI state', error)
+  }
+}
+
+export function setPanelPosition(position: PanelPosition | null, persist = true) {
+  searchReplaceState.panelPosition = normalizePanelPosition(position)
+  if (persist) {
+    schedulePersistUiState()
+  }
+}
+
+export function persistPanelPosition() {
+  schedulePersistUiState(0)
+}
+
+export function resetStoredPanelPosition() {
+  setPanelPosition(null)
 }
 
 export function openPanel(forceVisible?: boolean, replaceVisible?: boolean) {
@@ -83,6 +132,7 @@ export function setReplacement(value: string) {
 
 export function toggleReplaceVisible() {
   searchReplaceState.replaceVisible = !searchReplaceState.replaceVisible
+  schedulePersistUiState()
 }
 
 export function toggleOption(option: keyof SearchOptions) {
@@ -272,6 +322,49 @@ function scheduleRefresh(delay = 120) {
   refreshTimer = window.setTimeout(() => {
     void refreshMatches()
   }, delay)
+}
+
+function schedulePersistUiState(delay = 180) {
+  if (!pluginInstance) {
+    return
+  }
+
+  window.clearTimeout(persistTimer)
+  persistTimer = window.setTimeout(() => {
+    void persistUiState()
+  }, delay)
+}
+
+async function persistUiState() {
+  if (!pluginInstance) {
+    return
+  }
+
+  const payload: PersistedUiState = {
+    panelPosition: normalizePanelPosition(searchReplaceState.panelPosition),
+    replaceVisible: searchReplaceState.replaceVisible,
+  }
+
+  try {
+    await pluginInstance.saveData(UI_STATE_STORAGE, payload)
+  } catch (error) {
+    console.warn('Failed to save search-replace UI state', error)
+  }
+}
+
+function normalizePanelPosition(position: PanelPosition | null | undefined) {
+  if (!position) {
+    return null
+  }
+
+  if (!Number.isFinite(position.left) || !Number.isFinite(position.top)) {
+    return null
+  }
+
+  return {
+    left: position.left,
+    top: position.top,
+  }
 }
 
 function revealCurrentMatch(context = getActiveEditorContext()) {

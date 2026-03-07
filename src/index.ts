@@ -54,7 +54,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
       this.isElectron = false
     }
 
-    init(this)
+    await init(this)
 
     this.addTopBar({
       icon: 'iconSearch',
@@ -66,7 +66,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
 
     this.addCommand({
       langKey: 'togglePanel',
-      hotkey: '',
+      hotkey: '⌘⇧F',
       callback: () => {
         openPanel(true)
       },
@@ -74,7 +74,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
 
     this.addCommand({
       langKey: 'toggleReplacePanel',
-      hotkey: '',
+      hotkey: '⌘⇧H',
       callback: () => {
         openPanel(true, true)
       },
