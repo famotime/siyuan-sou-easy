@@ -8,6 +8,7 @@
 - 上一项 / 下一项导航
 - 区分大小写、全词匹配、正则匹配
 - 替换当前、跳过当前、全部替换
+- 支持按当前命中的大小写形式调整替换文本
 - 顶栏入口与命令面板入口
 
 ## 当前实现边界
@@ -20,16 +21,18 @@
 
 - 产品文档：`docs/PRD.md`
 - 开发计划：`docs/development-plan.md`
+- 手工验证清单：`docs/manual-validation-checklist.md`
 
-## 构建
+## 开发与构建
 
 ```bash
-pnpm install
-pnpm build
+npm install
+npm run test
+npm run build
 ```
 
 如已配置 `.env` 中的 `VITE_SIYUAN_WORKSPACE_PATH`，开发时可使用：
 
 ```bash
-pnpm dev
+npm run dev
 ```

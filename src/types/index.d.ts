@@ -122,9 +122,6 @@ interface Window {
     ws: any;
     languages: any;
   };
-  _sy_plugin_sample: {
-    [key: string]: any;
-  };
 }
 
 

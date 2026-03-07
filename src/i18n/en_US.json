@@ -12,5 +12,11 @@
   "settingRememberPositionTitle": "Remember panel position",
   "settingRememberPositionDesc": "Save the dragged panel position and restore it next time.",
   "settingPreloadSelectionTitle": "Use selection as query",
-  "settingPreloadSelectionDesc": "When opening the panel, fill the search box with the current editor selection if any."
+  "settingPreloadSelectionDesc": "When opening the panel, fill the search box with the current editor selection if any.",
+  "settingIncludeCodeBlockTitle": "Search code blocks",
+  "settingIncludeCodeBlockDesc": "Include code blocks in the current document when computing search and replace matches.",
+  "settingDebugLogTitle": "Debug logging",
+  "settingDebugLogDesc": "Print extra search and replace diagnostics to the console when enabled.",
+  "settingPreserveCaseTitle": "Preserve case",
+  "settingPreserveCaseDesc": "Adjust replacement text to follow the matched text casing, for example foo→bar, FOO→BAR, Foo→Bar."
 }

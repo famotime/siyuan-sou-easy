@@ -2,6 +2,10 @@ import { reactive } from 'vue'
 import type { Plugin } from 'siyuan'
 import { showMessage } from 'siyuan'
 import {
+  debugLog,
+  setDebugLoggingEnabled,
+} from './debug'
+import {
   applyReplacementsToClone,
   clearSearchDecorations,
   collectSearchableBlocks,
@@ -15,6 +19,7 @@ import { updateDomBlock } from './kernel'
 import { findMatches } from './search-engine'
 import {
   DEFAULT_SETTINGS,
+  createSearchOptionsFromSettings,
   type PluginSettings,
 } from '@/settings'
 import type {
@@ -31,13 +36,6 @@ interface PersistedUiState {
   panelPosition?: PanelPosition | null
 }
 
-const DEFAULT_OPTIONS: SearchOptions = {
-  matchCase: false,
-  wholeWord: false,
-  useRegex: false,
-  includeCodeBlock: false,
-}
-
 const UI_STATE_STORAGE = 'ui-state.json'
 
 let refreshTimer = 0
@@ -51,7 +49,7 @@ export const searchReplaceState = reactive({
   settings: { ...DEFAULT_SETTINGS } as PluginSettings,
   query: '',
   replacement: '',
-  options: { ...DEFAULT_OPTIONS },
+  options: createSearchOptionsFromSettings(DEFAULT_SETTINGS) as SearchOptions,
   currentRootId: '',
   currentTitle: '',
   matches: [] as SearchMatch[],
@@ -85,6 +83,9 @@ export async function initializeUiState() {
 
 export function applyPluginSettings(settings: PluginSettings) {
   searchReplaceState.settings = { ...settings }
+  searchReplaceState.options.includeCodeBlock = settings.includeCodeBlock
+  setDebugLoggingEnabled(settings.debugLog)
+  debugLog('settings-updated', settings)
 
   if (!settings.rememberPanelPosition) {
     searchReplaceState.panelPosition = null
@@ -166,6 +167,7 @@ export function onEditorContextChanged() {
     return
   }
 
+  debugLog('editor-context-changed')
   scheduleRefresh(80)
 }
 
@@ -201,6 +203,8 @@ export async function replaceCurrent() {
     return
   }
 
+  debugLog('replace-current:start', match)
+
   const context = getActiveEditorContext()
   if (!context || context.rootId !== match.rootId) {
     await refreshMatches()
@@ -213,7 +217,9 @@ export async function replaceCurrent() {
     return
   }
 
-  const outcome = applyReplacementsToClone(blockElement, [match], searchReplaceState.replacement)
+  const outcome = applyReplacementsToClone(blockElement, [match], searchReplaceState.replacement, {
+    preserveCase: searchReplaceState.settings.preserveCase,
+  })
   if (!outcome.clone || outcome.appliedCount === 0) {
     showMessage('当前命中跨越复杂格式，暂不支持直接替换', 4000, 'error')
     return
@@ -229,6 +235,10 @@ export async function replaceCurrent() {
       searchReplaceState.currentIndex = Math.min(nextIndex, searchReplaceState.matches.length - 1)
       revealCurrentMatch()
     }
+    debugLog('replace-current:done', {
+      blockId: match.blockId,
+      nextIndex: searchReplaceState.currentIndex,
+    })
     showMessage('已替换当前命中', 2000, 'info')
   } finally {
     searchReplaceState.busy = false
@@ -239,6 +249,10 @@ export async function replaceAll() {
   if (!searchReplaceState.matches.length || searchReplaceState.busy) {
     return
   }
+
+  debugLog('replace-all:start', {
+    count: searchReplaceState.matches.length,
+  })
 
   const confirmed = window.confirm(`确定替换当前文档内的 ${searchReplaceState.matches.length} 处命中吗？`)
   if (!confirmed) {
@@ -275,7 +289,9 @@ export async function replaceAll() {
         continue
       }
 
-      const outcome = applyReplacementsToClone(blockElement, matches, searchReplaceState.replacement)
+      const outcome = applyReplacementsToClone(blockElement, matches, searchReplaceState.replacement, {
+        preserveCase: searchReplaceState.settings.preserveCase,
+      })
       if (!outcome.clone || outcome.appliedCount === 0) {
         skippedCount += matches.length
         continue
@@ -287,6 +303,10 @@ export async function replaceAll() {
     }
 
     await refreshMatches()
+    debugLog('replace-all:done', {
+      replacedCount,
+      skippedCount,
+    })
     showMessage(`替换完成：${replacedCount} 处，跳过 ${skippedCount} 处`, 4000, 'info')
   } finally {
     searchReplaceState.busy = false
@@ -324,6 +344,12 @@ async function refreshMatches() {
   const result = findMatches(blocks, searchReplaceState.query, searchReplaceState.options)
   searchReplaceState.error = result.error
   searchReplaceState.matches = result.matches
+  debugLog('refresh-matches', {
+    error: result.error,
+    matchCount: result.matches.length,
+    query: searchReplaceState.query,
+    rootId: context.rootId,
+  })
 
   if (!searchReplaceState.matches.length) {
     searchReplaceState.currentIndex = 0

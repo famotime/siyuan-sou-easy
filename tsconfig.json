@@ -43,6 +43,7 @@
   ],
   "include": [
     "tools/**/*.ts",
+    "tests/**/*.ts",
     "src/**/*.ts",
     "src/**/*.d.ts",
     "src/**/*.vue"

@@ -12,5 +12,11 @@
   "settingRememberPositionTitle": "记住面板位置",
   "settingRememberPositionDesc": "启用后会保存拖动后的位置，并在下次打开或重启后恢复。",
   "settingPreloadSelectionTitle": "优先使用选中文本",
-  "settingPreloadSelectionDesc": "打开面板时，若编辑器中已有选中文本，则自动填入查找框。"
+  "settingPreloadSelectionDesc": "打开面板时，若编辑器中已有选中文本，则自动填入查找框。",
+  "settingIncludeCodeBlockTitle": "搜索代码块",
+  "settingIncludeCodeBlockDesc": "启用后，当前文档中的代码块也会参与搜索与替换候选。",
+  "settingDebugLogTitle": "调试日志",
+  "settingDebugLogDesc": "启用后会在控制台输出搜索与替换过程中的辅助日志。",
+  "settingPreserveCaseTitle": "保留大小写",
+  "settingPreserveCaseDesc": "替换时按当前命中的大小写样式调整替换文本，例如 foo→bar、FOO→BAR、Foo→Bar。"
 }

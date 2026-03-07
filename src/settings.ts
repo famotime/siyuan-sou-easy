@@ -1,4 +1,5 @@
 import type { Plugin } from 'siyuan'
+import type { SearchOptions } from '@/features/search-replace/types'
 
 export interface PluginSettings {
   panelHotkey: string
@@ -6,6 +7,9 @@ export interface PluginSettings {
   defaultReplaceVisible: boolean
   rememberPanelPosition: boolean
   preloadSelection: boolean
+  includeCodeBlock: boolean
+  debugLog: boolean
+  preserveCase: boolean
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
@@ -14,6 +18,9 @@ export const DEFAULT_SETTINGS: PluginSettings = {
   defaultReplaceVisible: true,
   rememberPanelPosition: true,
   preloadSelection: true,
+  includeCodeBlock: false,
+  debugLog: false,
+  preserveCase: false,
 }
 
 const SETTINGS_STORAGE = 'settings.json'
@@ -45,6 +52,24 @@ export function normalizeSettings(settings?: Partial<PluginSettings> | null): Pl
     preloadSelection: typeof settings?.preloadSelection === 'boolean'
       ? settings.preloadSelection
       : DEFAULT_SETTINGS.preloadSelection,
+    includeCodeBlock: typeof settings?.includeCodeBlock === 'boolean'
+      ? settings.includeCodeBlock
+      : DEFAULT_SETTINGS.includeCodeBlock,
+    debugLog: typeof settings?.debugLog === 'boolean'
+      ? settings.debugLog
+      : DEFAULT_SETTINGS.debugLog,
+    preserveCase: typeof settings?.preserveCase === 'boolean'
+      ? settings.preserveCase
+      : DEFAULT_SETTINGS.preserveCase,
+  }
+}
+
+export function createSearchOptionsFromSettings(settings: PluginSettings): SearchOptions {
+  return {
+    matchCase: false,
+    wholeWord: false,
+    useRegex: false,
+    includeCodeBlock: settings.includeCodeBlock,
   }
 }
 

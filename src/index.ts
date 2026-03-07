@@ -167,6 +167,39 @@ export default class FriendlySearchReplacePlugin extends Plugin {
       }),
     })
 
+    setting.addItem({
+      title: this.i18n.settingIncludeCodeBlockTitle,
+      description: this.i18n.settingIncludeCodeBlockDesc,
+      createActionElement: () => this.createCheckbox(this.settingsData.includeCodeBlock, async (checked) => {
+        await this.applySettings({
+          ...this.settingsData,
+          includeCodeBlock: checked,
+        })
+      }),
+    })
+
+    setting.addItem({
+      title: this.i18n.settingDebugLogTitle,
+      description: this.i18n.settingDebugLogDesc,
+      createActionElement: () => this.createCheckbox(this.settingsData.debugLog, async (checked) => {
+        await this.applySettings({
+          ...this.settingsData,
+          debugLog: checked,
+        })
+      }),
+    })
+
+    setting.addItem({
+      title: this.i18n.settingPreserveCaseTitle,
+      description: this.i18n.settingPreserveCaseDesc,
+      createActionElement: () => this.createCheckbox(this.settingsData.preserveCase, async (checked) => {
+        await this.applySettings({
+          ...this.settingsData,
+          preserveCase: checked,
+        })
+      }),
+    })
+
     setting.open(this.name)
   }
 

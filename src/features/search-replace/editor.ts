@@ -1,3 +1,4 @@
+import { preserveReplacementCase } from './preserve-case'
 import type {
   EditorContext,
   ReplacementOutcome,
@@ -169,6 +170,7 @@ export function applyReplacementsToClone(
   blockElement: HTMLElement,
   replacements: Array<Pick<SearchMatch, 'start' | 'end' | 'matchedText'>>,
   replacementText: string,
+  options?: { preserveCase?: boolean },
 ): ReplacementOutcome {
   const clone = blockElement.cloneNode(true) as HTMLElement
   clone.classList.remove(MATCH_CLASS)
@@ -189,9 +191,13 @@ export function applyReplacementsToClone(
       return
     }
 
+    const nextReplacementText = options?.preserveCase
+      ? preserveReplacementCase(replacementText, replacement.matchedText)
+      : replacementText
+
     location.node.nodeValue = [
       text.slice(0, location.startOffset),
-      replacementText,
+      nextReplacementText,
       text.slice(location.endOffset),
     ].join('')
 
