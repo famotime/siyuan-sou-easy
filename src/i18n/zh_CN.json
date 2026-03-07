@@ -1,3 +1,6 @@
 {
-  "addTopBarIcon": "PluginSampleViteVue"
+  "addTopBarIcon": "更友好的查找替换",
+  "togglePanel": "打开查找面板",
+  "toggleReplacePanel": "打开替换面板",
+  "settingComingSoon": "设置面板即将提供"
 }

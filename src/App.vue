@@ -1,241 +1,229 @@
 <template>
-  <div class="plugin-app-main">
+  <div
+    v-if="state.visible"
+    class="sfsr-panel"
+    @keydown.esc.stop.prevent="closePanel"
+  >
+    <div class="sfsr-row">
+      <input
+        ref="findInputRef"
+        :value="state.query"
+        class="b3-text-field sfsr-input"
+        placeholder="查找"
+        @input="onFindInput"
+        @keydown.enter.prevent="onFindEnter"
+      />
 
-    <div class="demo">
-      <!-- Show text in siyuan at center -->
-      <div>Hello Siyuan.</div>
-
-
-      <div>
-        Use Siyuan Style components
-      </div>
-      <div class="row">
-        Checkbox:
-        <SyCheckbox
-          v-model="isChecked"
-        />
-        ({{ isChecked ? 'checked' : 'unchecked' }})
-      </div>
-      <div class="row">
-        <SyIcon
-          name="iconSiYuan"
-        />
-        <SyIcon
-          name="iconSiYuan"
-          size="20px"
-        />
-        <SyIcon
-          name="iconSiYuan"
-          size="30px"
-        />
-      </div>
-      <div class="col">
-        <SyInput
-          v-model="inputValue"
-        />
-        <div>
-          {{ inputValue }}
-        </div>
-      </div>
-      <div class="col">
-        <SySelect
-          v-model="selectValue"
-          :options="selectOptions"
-        />
-        <div>
-          selected value: {{ selectValue }}
-        </div>
-        <div>
-          selected text: {{ selectOptions.find(option => option.value === selectValue)?.text }}
-        </div>
-      </div>
-
-      <div class="col">
-        <SyTextarea
-          v-model="textareaValue"
-        />
-        <div>
-          {{ textareaValue }}
-        </div>
-      </div>
-      <SyButton
-        @click="showAllValues"
+      <button
+        :class="optionButtonClass(state.options.matchCase)"
+        class="sfsr-button"
+        title="区分大小写"
+        @click="toggleOption('matchCase')"
       >
-        Show All Values
-      </SyButton>
-      <SyButton
-        @click="openSetting"
+        Aa
+      </button>
+      <button
+        :class="optionButtonClass(state.options.wholeWord)"
+        class="sfsr-button"
+        title="全词匹配"
+        @click="toggleOption('wholeWord')"
       >
-        Open Setting
-      </SyButton>
+        ab
+      </button>
+      <button
+        :class="optionButtonClass(state.options.useRegex)"
+        class="sfsr-button"
+        title="使用正则"
+        @click="toggleOption('useRegex')"
+      >
+        .*
+      </button>
 
-      <Teleport
-        :to="statusRef"
-        v-if="statusRef"
+      <div class="sfsr-count">{{ counterText }}</div>
+
+      <button
+        class="sfsr-button"
+        title="上一项"
+        @click="goPrev"
       >
-        <SyIcon
-          name="iconHeart"
-          style="
-            color: green;
-          "
-        />
-      </Teleport>
+        ↑
+      </button>
+      <button
+        class="sfsr-button"
+        title="下一项"
+        @click="goNext"
+      >
+        ↓
+      </button>
+      <button
+        :class="optionButtonClass(state.replaceVisible)"
+        class="sfsr-button"
+        title="显示替换栏"
+        @click="toggleReplaceVisible"
+      >
+        替
+      </button>
+      <button
+        class="sfsr-button"
+        title="关闭"
+        @click="closePanel"
+      >
+        ×
+      </button>
+    </div>
+
+    <div
+      v-if="state.replaceVisible"
+      class="sfsr-row sfsr-row--secondary"
+    >
+      <input
+        ref="replaceInputRef"
+        :value="state.replacement"
+        class="b3-text-field sfsr-input"
+        placeholder="替换"
+        @input="onReplaceInput"
+        @keydown.enter.prevent="replaceCurrent"
+      />
+      <button
+        class="b3-button b3-button--outline sfsr-action"
+        :disabled="!canReplaceCurrent"
+        @click="replaceCurrent"
+      >
+        替换当前
+      </button>
+      <button
+        class="b3-button b3-button--outline sfsr-action"
+        :disabled="!state.matches.length"
+        @click="skipCurrent"
+      >
+        跳过
+      </button>
+      <button
+        class="b3-button b3-button--outline sfsr-action"
+        :disabled="!state.matches.length"
+        @click="replaceAll"
+      >
+        全部替换
+      </button>
+    </div>
+
+    <div
+      v-if="statusText"
+      class="sfsr-status"
+      :class="{ 'sfsr-status--error': Boolean(state.error) }"
+    >
+      {{ statusText }}
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import SyButton from '@/components/SiyuanTheme/SyButton.vue'
-import SyCheckbox from '@/components/SiyuanTheme/SyCheckbox.vue'
-import SyIcon from '@/components/SiyuanTheme/SyIcon.vue'
-import SyInput from '@/components/SiyuanTheme/SyInput.vue'
-import SySelect from '@/components/SiyuanTheme/SySelect.vue'
-import SyTextarea from '@/components/SiyuanTheme/SyTextarea.vue'
-import { usePlugin } from '@/main'
-import { onMounted, ref, watchEffect } from 'vue'
+import {
+  computed,
+  nextTick,
+  ref,
+  watch,
+} from 'vue'
+import {
+  closePanel,
+  getCurrentMatch,
+  goNext,
+  goPrev,
+  replaceAll,
+  replaceCurrent,
+  searchReplaceState as state,
+  setQuery,
+  setReplacement,
+  skipCurrent,
+  toggleOption,
+  toggleReplaceVisible,
+} from '@/features/search-replace/store'
 
+const findInputRef = ref<HTMLInputElement>()
+const replaceInputRef = ref<HTMLInputElement>()
 
-const isChecked = ref(false)
+const currentMatch = computed(() => getCurrentMatch())
+const counterText = computed(() => {
+  if (!state.query) {
+    return '0 of 0'
+  }
 
-const inputValue = ref('')
+  if (!state.matches.length) {
+    return '0 of 0'
+  }
 
-const selectValue = ref()
-const selectOptions = ref([
-  { value: '1', text: 'Option 1' },
-  { value: '2', text: 'Option 2' },
-  { value: '3', text: 'Option 3' },
-])
+  return `${state.currentIndex + 1} of ${state.matches.length}`
+})
 
-const textareaValue = ref('')
+const statusText = computed(() => {
+  if (state.error) {
+    return state.error
+  }
 
-const showAllValues = () => {
-  alert(`
-    isChecked: ${isChecked.value}
-    inputValue: ${inputValue.value}
-    selectValue: ${selectValue.value}
-    textareaValue: ${textareaValue.value}
-  `)
+  const parts: string[] = []
+  if (state.currentTitle) {
+    parts.push(`当前文档：${state.currentTitle}`)
+  }
+  if (currentMatch.value?.previewText) {
+    parts.push(currentMatch.value.previewText)
+  }
+  if (currentMatch.value && !currentMatch.value.replaceable) {
+    parts.push('当前命中跨越复杂格式，暂不支持直接替换')
+  }
+  return parts.join(' · ')
+})
+
+const canReplaceCurrent = computed(() => Boolean(currentMatch.value?.replaceable) && !state.busy)
+
+function optionButtonClass(active: boolean) {
+  return {
+    'sfsr-button--active': active,
+  }
 }
 
-const openSetting = () => {
-  alert('Need open plugin setting.')
+function onFindInput(event: Event) {
+  setQuery((event.target as HTMLInputElement).value)
 }
 
-const plugin = usePlugin()
-console.log('plugin is ', plugin)
+function onReplaceInput(event: Event) {
+  setReplacement((event.target as HTMLInputElement).value)
+}
 
+function onFindEnter(event: KeyboardEvent) {
+  if (event.shiftKey) {
+    goPrev()
+    return
+  }
 
-// add top bar button
-plugin.addTopBar({
-  icon: 'iconHeart',
-  title: 'Plugin Sample',
-  callback: () => {
-    alert('Hello Siyuan.')
+  goNext()
+}
+
+watch(
+  () => state.visible,
+  async (visible) => {
+    if (!visible) {
+      return
+    }
+
+    await nextTick()
+    findInputRef.value?.focus()
+    findInputRef.value?.select()
   },
-})
+)
 
-const statusRef = ref<HTMLDivElement>()
-watchEffect(() => {
-  console.log('statusRef is ', statusRef.value)
-})
-// two ways to add status bar
-onMounted(() => {
-  // 1. use Teleport in Vue way
-  // show as a green heart icon
-  const status = document.getElementById('status') as HTMLDivElement
-  if (status) {
-    // delay 5 seconds to bind statusRef
-    // avoid status is not ready
-    setTimeout(() => {
-      statusRef.value = status
-    }, 5000)
-  }
+watch(
+  () => state.replaceVisible,
+  async (visible) => {
+    if (!visible || !state.visible) {
+      return
+    }
 
+    await nextTick()
+    if (!state.replacement) {
+      return
+    }
 
-  // 2. use addStatusBar in siyuan plugin way
-  // show as a red heart icon
-  const tempStatus = document.createElement('div')
-  tempStatus.classList.add('temp-status')
-  tempStatus.innerHTML = `
-    <svg style="width: 12px; height: 12px; color: red;">
-      <use xlink:href="#iconHeart"></use>
-    </svg>
-  `
-
-  plugin.addStatusBar({
-    element: tempStatus,
-    position: 'right',
-  })
-})
-
-
-onMounted(() => {
-  window._sy_plugin_sample = {}
-  window._sy_plugin_sample.openSetting = openSetting
-})
+    replaceInputRef.value?.focus()
+  },
+)
 </script>
-
-
-<!-- 局部样式 -->
-<style lang="scss" scoped>
-.plugin-app-main {
-  width: 100%;
-  height: 100%;
-  max-height: 100vh;
-  box-sizing: border-box;
-  pointer-events: none;
-
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 4;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-wrap: nowrap;
-
-  .demo {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    pointer-events: auto;
-
-    z-index: 10;
-
-    background-color: var(--b3-theme-surface);
-    border-radius: var(--b3-border-radius);
-    border: 1px solid var(--b3-border-color);
-    padding: 16px;
-  }
-}
-</style>
-
-<!-- 全局样式 -->
-<style lang="scss">
-.plugin-sample-vite-vue-app {
-  width: 100vw;
-  height: 100dvh;
-  max-height: 100vh;
-  position: absolute;
-  top: 0px;
-  left: 0px;
-  pointer-events: none;
-  box-sizing: border-box;
-}
-
-.row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-}
-
-.col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-</style>

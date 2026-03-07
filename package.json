@@ -1,8 +1,8 @@
 {
-  "name": "plugin-sample-vite-vue",
+  "name": "siyuan-friendly-search-replace",
   "version": "0.0.1",
   "type": "module",
-  "description": "This is a sample plugin based on vite and vue for Siyuan (https://b3log.org/siyuan)",
+  "description": "A SiYuan plugin that adds VS Code style find-and-replace for the current document.",
   "author": "",
   "license": "MIT",
   "homepage": "",

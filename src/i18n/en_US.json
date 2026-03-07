@@ -1,3 +1,6 @@
 {
-  "addTopBarIcon": "PluginSampleViteVue"
+  "addTopBarIcon": "Friendly Search Replace",
+  "togglePanel": "Open find panel",
+  "toggleReplacePanel": "Open replace panel",
+  "settingComingSoon": "Settings panel is coming soon"
 }

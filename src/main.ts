@@ -1,37 +1,46 @@
-import {
-  Plugin,
-} from "siyuan";
+import type { App as VueApp } from 'vue'
 import { createApp } from 'vue'
+import type { Plugin } from 'siyuan'
 import App from './App.vue'
+import {
+  bindPlugin,
+  closePanel,
+} from '@/features/search-replace/store'
 
-let plugin = null
-export function usePlugin(pluginProps?: Plugin): Plugin {
-  console.log('usePlugin', pluginProps, plugin)
-  if (pluginProps) {
-    plugin = pluginProps
-  }
-  if (!plugin && !pluginProps) {
-    console.error('need bind plugin')
-  }
-  return plugin;
+let pluginInstance: Plugin | null = null
+let app: VueApp<Element> | null = null
+let hostElement: HTMLDivElement | null = null
+
+export function getPlugin() {
+  return pluginInstance
 }
 
-
-let app = null
 export function init(plugin: Plugin) {
-  // bind plugin hook
-  usePlugin(plugin);
+  pluginInstance = plugin
+  bindPlugin(plugin)
 
-  const div = document.createElement('div')
-  div.classList.toggle('plugin-sample-vite-vue-app')
-  div.id = this.name
+  if (hostElement) {
+    return
+  }
+
+  hostElement = document.createElement('div')
+  hostElement.id = 'siyuan-friendly-search-replace'
+  hostElement.className = 'sfsr-root'
+  document.body.appendChild(hostElement)
+
   app = createApp(App)
-  app.mount(div)
-  document.body.appendChild(div)
+  app.mount(hostElement)
 }
 
 export function destroy() {
-  app.unmount()
-  const div = document.getElementById(this.name)
-  document.body.removeChild(div)
+  closePanel()
+  app?.unmount()
+  app = null
+
+  if (hostElement?.parentElement) {
+    hostElement.parentElement.removeChild(hostElement)
+  }
+
+  hostElement = null
+  pluginInstance = null
 }

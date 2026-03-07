@@ -1,10 +1,10 @@
 {
-  "name": "plugin-sample-vite-vue",
-  "author": "wetoria",
-  "url": "https://github.com/Wetoria/plugin-sample-vite-vue",
+  "name": "siyuan-friendly-search-replace",
+  "author": "",
+  "url": "",
   "version": "0.0.1",
-  "minAppVersion": "2.10.14",
-  "disabledInPublish": true,
+  "minAppVersion": "3.5.7",
+  "disabledInPublish": false,
   "backends": [
     "all"
   ],
@@ -12,14 +12,14 @@
     "all"
   ],
   "displayName": {
-    "default": "plugin-sample-vite-vue",
-    "en_US": "plugin-sample-vite-vue",
-    "zh_CN": "plugin-sample-vite-vue"
+    "default": "Friendly Search Replace",
+    "en_US": "Friendly Search Replace",
+    "zh_CN": "更友好的查找替换"
   },
   "description": {
-    "default": "plugin-sample-vite-vue",
-    "en_US": "plugin-sample-vite-vue",
-    "zh_CN": "plugin-sample-vite-vue"
+    "default": "VS Code style find-and-replace for the current SiYuan document.",
+    "en_US": "VS Code style find-and-replace for the current SiYuan document.",
+    "zh_CN": "为思源当前文档提供更接近 VS Code 的逐条查找与替换体验。"
   },
   "readme": {
     "default": "README.md",
@@ -29,5 +29,9 @@
   "funding": {
     "custom": []
   },
-  "keywords": []
+  "keywords": [
+    "search",
+    "replace",
+    "editor"
+  ]
 }

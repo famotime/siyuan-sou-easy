@@ -1,65 +1,98 @@
 import {
   Plugin,
   getFrontend,
-} from "siyuan";
-import "@/index.scss";
+  showMessage,
+} from 'siyuan'
+import '@/index.scss'
 import PluginInfoString from '@/../plugin.json'
-import { destroy, init } from '@/main'
+import {
+  onEditorContextChanged,
+  openPanel,
+} from '@/features/search-replace/store'
+import {
+  destroy,
+  init,
+} from '@/main'
 
-let PluginInfo = {
+let pluginInfo = {
   version: '',
 }
-try {
-  PluginInfo = PluginInfoString
-} catch (err) {
-  console.log('Plugin info parse error: ', err)
-}
-const {
-  version,
-} = PluginInfo
 
-export default class PluginSample extends Plugin {
-  // Run as mobile
+try {
+  pluginInfo = PluginInfoString
+} catch (error) {
+  console.warn('Plugin info parse error', error)
+}
+
+const { version } = pluginInfo
+
+export default class FriendlySearchReplacePlugin extends Plugin {
   public isMobile: boolean
-  // Run in browser
   public isBrowser: boolean
-  // Run as local
   public isLocal: boolean
-  // Run in Electron
   public isElectron: boolean
-  // Run in window
   public isInWindow: boolean
   public platform: SyFrontendTypes
   public readonly version = version
 
+  private readonly handleEditorEvent = () => {
+    onEditorContextChanged()
+  }
+
   async onload() {
-    const frontEnd = getFrontend();
+    const frontEnd = getFrontend()
     this.platform = frontEnd as SyFrontendTypes
-    this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile"
+    this.isMobile = frontEnd === 'mobile' || frontEnd === 'browser-mobile'
     this.isBrowser = frontEnd.includes('browser')
-    this.isLocal =
-      location.href.includes('127.0.0.1')
-      || location.href.includes('localhost')
+    this.isLocal = location.href.includes('127.0.0.1') || location.href.includes('localhost')
     this.isInWindow = location.href.includes('window.html')
 
     try {
-      require("@electron/remote")
-        .require("@electron/remote/main")
+      require('@electron/remote').require('@electron/remote/main')
       this.isElectron = true
-    } catch (err) {
+    } catch {
       this.isElectron = false
     }
 
-    console.log('Plugin loaded, the plugin is ', this)
-
     init(this)
+
+    this.addTopBar({
+      icon: 'iconSearch',
+      title: this.i18n.addTopBarIcon,
+      callback: () => {
+        openPanel()
+      },
+    })
+
+    this.addCommand({
+      langKey: 'togglePanel',
+      hotkey: '',
+      callback: () => {
+        openPanel(true)
+      },
+    })
+
+    this.addCommand({
+      langKey: 'toggleReplacePanel',
+      hotkey: '',
+      callback: () => {
+        openPanel(true, true)
+      },
+    })
+
+    this.eventBus.on('switch-protyle', this.handleEditorEvent)
+    this.eventBus.on('loaded-protyle-static', this.handleEditorEvent)
+    this.eventBus.on('destroy-protyle', this.handleEditorEvent)
   }
 
   onunload() {
+    this.eventBus.off('switch-protyle', this.handleEditorEvent)
+    this.eventBus.off('loaded-protyle-static', this.handleEditorEvent)
+    this.eventBus.off('destroy-protyle', this.handleEditorEvent)
     destroy()
   }
 
   openSetting() {
-    window._sy_plugin_sample.openSetting()
+    showMessage(this.i18n.settingComingSoon, 3000, 'info')
   }
 }
