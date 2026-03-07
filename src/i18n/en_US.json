@@ -2,5 +2,15 @@
   "addTopBarIcon": "Friendly Search Replace",
   "togglePanel": "Open find panel",
   "toggleReplacePanel": "Open replace panel",
-  "settingComingSoon": "Settings panel is coming soon"
+  "settingSaved": "Settings saved",
+  "settingPanelHotkeyTitle": "Find panel hotkey",
+  "settingPanelHotkeyDesc": "Use SiYuan command hotkey format, for example ⌘⇧F. Changes apply immediately.",
+  "settingReplaceHotkeyTitle": "Replace panel hotkey",
+  "settingReplaceHotkeyDesc": "Used to open the panel with the replace row visible, for example ⌘⇧H.",
+  "settingDefaultReplaceVisibleTitle": "Open with replace row",
+  "settingDefaultReplaceVisibleDesc": "When opening from the find entry, show the replace row by default.",
+  "settingRememberPositionTitle": "Remember panel position",
+  "settingRememberPositionDesc": "Save the dragged panel position and restore it next time.",
+  "settingPreloadSelectionTitle": "Use selection as query",
+  "settingPreloadSelectionDesc": "When opening the panel, fill the search box with the current editor selection if any."
 }

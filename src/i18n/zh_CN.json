@@ -2,5 +2,15 @@
   "addTopBarIcon": "更友好的查找替换",
   "togglePanel": "打开查找面板",
   "toggleReplacePanel": "打开替换面板",
-  "settingComingSoon": "设置面板即将提供"
+  "settingSaved": "设置已保存",
+  "settingPanelHotkeyTitle": "查找面板快捷键",
+  "settingPanelHotkeyDesc": "使用思源命令快捷键格式，例如 ⌘⇧F。修改后立即生效。",
+  "settingReplaceHotkeyTitle": "替换面板快捷键",
+  "settingReplaceHotkeyDesc": "用于直接打开带替换栏的面板，例如 ⌘⇧H。",
+  "settingDefaultReplaceVisibleTitle": "默认展开替换栏",
+  "settingDefaultReplaceVisibleDesc": "通过查找入口打开面板时，是否默认显示替换输入区。",
+  "settingRememberPositionTitle": "记住面板位置",
+  "settingRememberPositionDesc": "启用后会保存拖动后的位置，并在下次打开或重启后恢复。",
+  "settingPreloadSelectionTitle": "优先使用选中文本",
+  "settingPreloadSelectionDesc": "打开面板时，若编辑器中已有选中文本，则自动填入查找框。"
 }
