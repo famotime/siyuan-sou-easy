@@ -1,70 +1,53 @@
-import { reactive } from 'vue'
 import type { Plugin } from 'siyuan'
 import { showMessage } from 'siyuan'
 import {
-  debugLog,
-  setDebugLoggingEnabled,
-} from './debug'
-import {
-  applyReplacementsToClone,
   clearSearchDecorations,
   collectSearchableBlocks,
-  createEditorContextFromElement,
-  findEditorContextByRootId,
-  getActiveEditorContext,
-  getBlockElement,
   getCurrentSelectionText,
   scrollMatchIntoView,
   syncSearchDecorations,
 } from './editor'
-import { updateDomBlock } from './kernel'
+import {
+  applyPreparedBlockReplacement,
+  groupMatchesByBlock,
+  prepareBlockReplacement,
+} from './store-replace'
+import {
+  normalizePanelPosition,
+  searchReplaceState,
+  type PanelPosition,
+} from './store-state'
+import {
+  createEditorContextTracker,
+  resolveLiveRefreshTarget,
+} from './store-context'
+import {
+  loadPersistedUiState,
+  savePersistedUiState,
+} from './store-ui-state'
+import {
+  debugLog,
+  setDebugLoggingEnabled,
+} from './debug'
 import { findMatches } from './search-engine'
 import {
-  DEFAULT_SETTINGS,
-  createSearchOptionsFromSettings,
   type PluginSettings,
 } from '@/settings'
 import type {
   EditorContext,
-  SearchMatch,
   SearchOptions,
 } from './types'
-
-interface PanelPosition {
-  left: number
-  top: number
-}
-
-interface PersistedUiState {
-  panelPosition?: PanelPosition | null
-}
-
-const UI_STATE_STORAGE = 'ui-state.json'
 
 let refreshTimer = 0
 let persistTimer = 0
 let pluginInstance: Plugin | null = null
-let lastEditorContext: EditorContext | null = null
-let lastHintedEditorContext: EditorContext | null = null
 let liveRefreshObserver: MutationObserver | null = null
 let liveRefreshTarget: HTMLElement | null = null
 let documentListenersBound = false
 
-export const searchReplaceState = reactive({
-  visible: false,
-  replaceVisible: DEFAULT_SETTINGS.defaultReplaceVisible,
-  panelPosition: null as PanelPosition | null,
-  settings: { ...DEFAULT_SETTINGS } as PluginSettings,
-  query: '',
-  replacement: '',
-  options: createSearchOptionsFromSettings(DEFAULT_SETTINGS) as SearchOptions,
-  currentRootId: '',
-  currentTitle: '',
-  matches: [] as SearchMatch[],
-  currentIndex: 0,
-  error: '',
-  busy: false,
-})
+const contextTracker = createEditorContextTracker()
+
+export { searchReplaceState }
 
 export function bindPlugin(plugin: Plugin) {
   pluginInstance = plugin
@@ -77,7 +60,7 @@ export function bindPlugin(plugin: Plugin) {
   document.addEventListener('focusin', handleDocumentFocusIn, true)
   document.addEventListener('input', handleDocumentInput, true)
   documentListenersBound = true
-  rememberEditorContext(getActiveEditorContext())
+  contextTracker.rememberActive()
 }
 
 export function unbindPlugin() {
@@ -90,28 +73,19 @@ export function unbindPlugin() {
   document.removeEventListener('focusin', handleDocumentFocusIn, true)
   document.removeEventListener('input', handleDocumentInput, true)
   documentListenersBound = false
-  lastEditorContext = null
-  lastHintedEditorContext = null
+  contextTracker.clear()
   pluginInstance = null
 }
 
 export async function initializeUiState() {
-  if (!pluginInstance) {
+  const data = await loadPersistedUiState(pluginInstance)
+  if (!data) {
     return
   }
 
-  try {
-    const data = await pluginInstance.loadData(UI_STATE_STORAGE) as PersistedUiState | null
-    if (!data) {
-      return
-    }
-
-    searchReplaceState.panelPosition = searchReplaceState.settings.rememberPanelPosition
-      ? normalizePanelPosition(data.panelPosition)
-      : null
-  } catch (error) {
-    console.warn('Failed to load search-replace UI state', error)
-  }
+  searchReplaceState.panelPosition = searchReplaceState.settings.rememberPanelPosition
+    ? data.panelPosition ?? null
+    : null
 }
 
 export function applyPluginSettings(settings: PluginSettings) {
@@ -152,7 +126,7 @@ export function openPanel(forceVisible?: boolean, replaceVisible?: boolean) {
     return
   }
 
-  rememberEditorContext(getActiveEditorContext())
+  contextTracker.rememberActive()
 
   if (typeof replaceVisible === 'boolean') {
     searchReplaceState.replaceVisible = replaceVisible
@@ -176,7 +150,7 @@ export function closePanel() {
   searchReplaceState.visible = false
   searchReplaceState.busy = false
   searchReplaceState.error = ''
-  lastEditorContext = null
+  contextTracker.clearResolved()
   disconnectLiveRefreshObserver()
   clearSearchDecorations()
 }
@@ -200,11 +174,10 @@ export function toggleOption(option: keyof SearchOptions) {
 }
 
 export function onEditorContextChanged(contextHint?: EditorContext | null) {
-  if (isUsableEditorContext(contextHint)) {
-    rememberHintedEditorContext(contextHint)
-    rememberEditorContext(contextHint)
-  } else {
-    rememberEditorContext(getActiveEditorContext())
+  const rememberedHinted = contextTracker.rememberHinted(contextHint ?? null)
+  const remembered = contextTracker.remember(contextHint ?? null)
+  if (!rememberedHinted && !remembered) {
+    contextTracker.rememberActive()
   }
 
   if (!searchReplaceState.visible) {
@@ -249,22 +222,25 @@ export async function replaceCurrent() {
 
   debugLog('replace-current:start', match)
 
-  const context = resolveEditorContext()
+  const context = contextTracker.resolve()
   if (!context || context.rootId !== match.rootId) {
     await refreshMatches()
     return
   }
 
-  const blockElement = getBlockElement(context, match.blockId)
-  if (!blockElement) {
+  const preparedReplacement = prepareBlockReplacement(
+    context,
+    match.blockId,
+    [match],
+    searchReplaceState.replacement,
+    { preserveCase: searchReplaceState.settings.preserveCase },
+  )
+  if (preparedReplacement.status === 'missing-block') {
     await refreshMatches()
     return
   }
 
-  const outcome = applyReplacementsToClone(blockElement, [match], searchReplaceState.replacement, {
-    preserveCase: searchReplaceState.settings.preserveCase,
-  })
-  if (!outcome.clone || outcome.appliedCount === 0) {
+  if (preparedReplacement.status === 'not-replaceable') {
     showMessage('当前命中跨越复杂格式，暂不支持直接替换', 4000, 'error')
     return
   }
@@ -273,7 +249,7 @@ export async function replaceCurrent() {
 
   try {
     searchReplaceState.busy = true
-    await updateDomBlock(match.blockId, outcome.clone.outerHTML)
+    await applyPreparedBlockReplacement(preparedReplacement)
     await refreshMatches()
     if (searchReplaceState.matches.length > 0) {
       searchReplaceState.currentIndex = Math.min(nextIndex, searchReplaceState.matches.length - 1)
@@ -303,23 +279,13 @@ export async function replaceAll() {
     return
   }
 
-  const context = resolveEditorContext()
+  const context = contextTracker.resolve()
   if (!context) {
     searchReplaceState.error = '未找到当前文档'
     return
   }
 
-  const groupedMatches = new Map<string, SearchMatch[]>()
-  searchReplaceState.matches.forEach((match) => {
-    if (match.rootId !== context.rootId) {
-      return
-    }
-
-    const group = groupedMatches.get(match.blockId) ?? []
-    group.push(match)
-    groupedMatches.set(match.blockId, group)
-  })
-
+  const groupedMatches = groupMatchesByBlock(searchReplaceState.matches, context.rootId)
   let replacedCount = 0
   let skippedCount = 0
 
@@ -327,23 +293,22 @@ export async function replaceAll() {
     searchReplaceState.busy = true
 
     for (const [blockId, matches] of groupedMatches) {
-      const blockElement = getBlockElement(context, blockId)
-      if (!blockElement) {
-        skippedCount += matches.length
+      const preparedReplacement = prepareBlockReplacement(
+        context,
+        blockId,
+        matches,
+        searchReplaceState.replacement,
+        { preserveCase: searchReplaceState.settings.preserveCase },
+      )
+
+      if (preparedReplacement.status === 'missing-block' || preparedReplacement.status === 'not-replaceable') {
+        skippedCount += preparedReplacement.matchCount
         continue
       }
 
-      const outcome = applyReplacementsToClone(blockElement, matches, searchReplaceState.replacement, {
-        preserveCase: searchReplaceState.settings.preserveCase,
-      })
-      if (!outcome.clone || outcome.appliedCount === 0) {
-        skippedCount += matches.length
-        continue
-      }
-
-      await updateDomBlock(blockId, outcome.clone.outerHTML)
-      replacedCount += outcome.appliedCount
-      skippedCount += Math.max(0, matches.length - outcome.appliedCount)
+      await applyPreparedBlockReplacement(preparedReplacement)
+      replacedCount += preparedReplacement.appliedCount
+      skippedCount += Math.max(0, preparedReplacement.matchCount - preparedReplacement.appliedCount)
     }
 
     await refreshMatches()
@@ -362,7 +327,7 @@ async function refreshMatches() {
     return
   }
 
-  const context = resolveEditorContext()
+  const context = contextTracker.resolve()
   syncLiveRefreshObserver(context)
   if (!context) {
     searchReplaceState.currentRootId = ''
@@ -407,76 +372,6 @@ async function refreshMatches() {
   }
 
   revealCurrentMatch(context)
-}
-
-function resolveEditorContext() {
-  const hintedContext = resolveHintedEditorContext()
-  if (hintedContext) {
-    lastEditorContext = hintedContext
-    return hintedContext
-  }
-
-  const activeContext = getActiveEditorContext()
-  if (isUsableEditorContext(activeContext)) {
-    lastEditorContext = activeContext
-    return activeContext
-  }
-
-  if (isUsableEditorContext(lastEditorContext)) {
-    return lastEditorContext
-  }
-
-  if (lastEditorContext?.rootId) {
-    const reconnectedContext = findEditorContextByRootId(lastEditorContext.rootId, lastEditorContext.title)
-    if (isUsableEditorContext(reconnectedContext)) {
-      lastEditorContext = reconnectedContext
-      return reconnectedContext
-    }
-  }
-
-  lastEditorContext = null
-  return null
-}
-
-function resolveHintedEditorContext() {
-  if (isUsableEditorContext(lastHintedEditorContext)) {
-    return lastHintedEditorContext
-  }
-
-  if (lastHintedEditorContext?.rootId) {
-    const reconnectedContext = findEditorContextByRootId(lastHintedEditorContext.rootId, lastHintedEditorContext.title)
-    if (isUsableEditorContext(reconnectedContext)) {
-      lastHintedEditorContext = reconnectedContext
-      return reconnectedContext
-    }
-  }
-
-  lastHintedEditorContext = null
-  return null
-}
-
-function rememberEditorContext(context: EditorContext | null) {
-  if (!isUsableEditorContext(context)) {
-    return
-  }
-
-  lastEditorContext = context
-}
-
-function rememberHintedEditorContext(context: EditorContext | null) {
-  if (!isUsableEditorContext(context)) {
-    return
-  }
-
-  lastHintedEditorContext = context
-}
-
-function isUsableEditorContext(context: EditorContext | null | undefined): context is EditorContext {
-  if (!context?.rootId || !context.protyle) {
-    return false
-  }
-
-  return !('isConnected' in context.protyle) || context.protyle.isConnected
 }
 
 function scheduleRefresh(delay = 120) {
@@ -524,41 +419,29 @@ function disconnectLiveRefreshObserver() {
   liveRefreshTarget = null
 }
 
-function resolveLiveRefreshTarget(context: EditorContext | null) {
-  if (!(context?.protyle instanceof HTMLElement)) {
-    return null
-  }
-
-  return context.protyle.querySelector<HTMLElement>('.protyle-wysiwyg') ?? context.protyle
-}
-
 function handleDocumentSelectionChange() {
-  rememberEditorContext(getActiveEditorContext())
+  contextTracker.rememberActive()
 }
 
 function handleDocumentFocusIn(event: FocusEvent) {
-  const target = event.target instanceof Element ? event.target : null
-  const protyle = target?.closest('.protyle')
-  const context = createEditorContextFromElement(protyle instanceof HTMLElement ? protyle : null)
-  rememberHintedEditorContext(context)
-  rememberEditorContext(context)
+  const context = contextTracker.createContextFromTarget(event.target)
+  contextTracker.rememberHinted(context)
+  contextTracker.remember(context)
 }
 
 function handleDocumentInput(event: Event) {
-  const target = event.target instanceof Element ? event.target : null
-  const protyle = target?.closest('.protyle')
-  const context = createEditorContextFromElement(protyle instanceof HTMLElement ? protyle : null)
+  const context = contextTracker.createContextFromTarget(event.target)
   if (!context) {
     return
   }
 
-  rememberHintedEditorContext(context)
-  rememberEditorContext(context)
+  contextTracker.rememberHinted(context)
+  contextTracker.remember(context)
   if (!searchReplaceState.visible || searchReplaceState.busy) {
     return
   }
 
-  const resolvedContext = resolveEditorContext()
+  const resolvedContext = contextTracker.resolve()
   if (!resolvedContext || resolvedContext.protyle !== context.protyle) {
     return
   }
@@ -579,37 +462,10 @@ function schedulePersistUiState(delay = 180) {
 }
 
 async function persistUiState() {
-  if (!pluginInstance) {
-    return
-  }
-
-  const payload: PersistedUiState = {
-    panelPosition: normalizePanelPosition(searchReplaceState.panelPosition),
-  }
-
-  try {
-    await pluginInstance.saveData(UI_STATE_STORAGE, payload)
-  } catch (error) {
-    console.warn('Failed to save search-replace UI state', error)
-  }
+  await savePersistedUiState(pluginInstance, searchReplaceState.panelPosition)
 }
 
-function normalizePanelPosition(position: PanelPosition | null | undefined) {
-  if (!position) {
-    return null
-  }
-
-  if (!Number.isFinite(position.left) || !Number.isFinite(position.top)) {
-    return null
-  }
-
-  return {
-    left: position.left,
-    top: position.top,
-  }
-}
-
-function revealCurrentMatch(context = resolveEditorContext()) {
+function revealCurrentMatch(context = contextTracker.resolve()) {
   if (!context) {
     clearSearchDecorations()
     return
