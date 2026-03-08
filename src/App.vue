@@ -95,27 +95,27 @@
         @input="onReplaceInput"
         @keydown.enter.prevent="replaceCurrent"
       />
-      <button
-        class="b3-button b3-button--outline sfsr-action"
+      <SyButton
+        class="sfsr-action"
         :disabled="!canReplaceCurrent"
         @click="replaceCurrent"
       >
         替换当前
-      </button>
-      <button
-        class="b3-button b3-button--outline sfsr-action"
+      </SyButton>
+      <SyButton
+        class="sfsr-action"
         :disabled="!state.matches.length"
         @click="skipCurrent"
       >
         跳过
-      </button>
-      <button
-        class="b3-button b3-button--outline sfsr-action"
+      </SyButton>
+      <SyButton
+        class="sfsr-action"
         :disabled="!state.matches.length"
         @click="replaceAll"
       >
         全部替换
-      </button>
+      </SyButton>
     </div>
 
     <div
@@ -136,6 +136,7 @@ import {
   ref,
   watch,
 } from 'vue'
+import SyButton from '@/components/SiyuanTheme/SyButton.vue'
 import {
   closePanel,
   getCurrentMatch,

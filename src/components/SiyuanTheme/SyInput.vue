@@ -1,6 +1,6 @@
 <template>
   <input
-    class="b3-text-field fn__flex-center fn__size200"
+    class="b3-text-field"
     :value="modelValue"
     @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
     v-bind="$attrs"

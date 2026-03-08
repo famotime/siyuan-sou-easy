@@ -6,6 +6,7 @@
 
 - 执行 `npm install`
 - 执行 `npm run test`
+- 执行 `npm run precheck`
 - 执行 `npm run build`
 - 将生成的插件包或 `dist` 内容安装到思源插件目录
 - 打开一个包含普通段落、标题、列表、代码块、复杂富文本的测试文档

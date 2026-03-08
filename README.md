@@ -13,6 +13,7 @@ A SiYuan plugin that adds a more editor-friendly search-and-replace flow for the
 ```bash
 npm install
 npm run test
+npm run precheck
 npm run build
 ```
 

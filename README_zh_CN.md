@@ -28,6 +28,7 @@
 ```bash
 npm install
 npm run test
+npm run precheck
 npm run build
 ```
 
