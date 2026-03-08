@@ -96,6 +96,23 @@ describe('search panel replace toggle', () => {
     expect(rows?.[1]?.querySelector('input[placeholder="替换"]')).not.toBeNull()
   })
 
+  it('shows regex usage help and examples when regex mode is enabled', async () => {
+    mountPanel()
+    applyPluginSettings({ ...DEFAULT_SETTINGS })
+    openPanel(true)
+    await nextTick()
+
+    searchReplaceState.options.useRegex = true
+    await nextTick()
+
+    const help = host?.querySelector<HTMLElement>('.sfsr-regex-help')
+
+    expect(help).not.toBeNull()
+    expect(help?.textContent).toContain('正则搜索帮助')
+    expect(help?.textContent).toContain('安装|部署')
+    expect(help?.textContent).toContain('$1')
+  })
+
   it('starts dragging from non-interactive panel content', async () => {
     mountPanel()
     applyPluginSettings({ ...DEFAULT_SETTINGS })

@@ -127,6 +127,27 @@
             全部替换
           </SyButton>
         </div>
+
+        <div
+          v-if="showRegexHelp"
+          class="sfsr-regex-help"
+        >
+          <div class="sfsr-regex-help__title">
+            {{ regexHelpTitle }}
+          </div>
+          <div class="sfsr-regex-help__note">
+            {{ regexHelpNote }}
+          </div>
+          <ul class="sfsr-regex-help__examples">
+            <li
+              v-for="example in regexHelpExamples"
+              :key="example.pattern"
+            >
+              <code>{{ example.pattern }}</code>
+              <span>{{ example.description }}</span>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
 
@@ -191,7 +212,25 @@ let dragState: {
 let isFindComposing = false
 let isReplaceComposing = false
 
+const regexHelpTitle = '正则搜索帮助'
+const regexHelpNote = '当前已支持正则搜索；替换文本仍按字面量写入，暂不支持 $1、\\1 等捕获组回填。'
+const regexHelpExamples = [
+  {
+    pattern: '安装|部署',
+    description: '匹配“安装”或“部署”',
+  },
+  {
+    pattern: '安装\\s+插件',
+    description: '匹配中间含空白的“安装 插件”',
+  },
+  {
+    pattern: 'v\\d+\\.\\d+\\.\\d+',
+    description: '匹配版本号，例如 v1.2.3',
+  },
+]
+
 const currentMatch = computed(() => getCurrentMatch())
+const showRegexHelp = computed(() => state.options.useRegex)
 const counterText = computed(() => {
   if (!state.query) {
     return '0 of 0'

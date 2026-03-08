@@ -18,5 +18,10 @@
   "settingDebugLogTitle": "Debug logging",
   "settingDebugLogDesc": "Print extra search and replace diagnostics to the console when enabled.",
   "settingPreserveCaseTitle": "Preserve case",
-  "settingPreserveCaseDesc": "Adjust replacement text to follow the matched text casing, for example foo→bar, FOO→BAR, Foo→Bar."
+  "settingPreserveCaseDesc": "Adjust replacement text to follow the matched text casing, for example foo→bar, FOO→BAR, Foo→Bar.",
+  "regexHelpTitle": "Regex search help",
+  "regexHelpNote": "Regex search is supported. Replacement text is still inserted literally, so backreferences like $1 and \\1 are not supported yet.",
+  "regexHelpExampleAlternation": "Example: ??|?? matches either ?? or ??.",
+  "regexHelpExampleWhitespace": "Example: ??\\s+?? matches ?? and ?? with whitespace between them.",
+  "regexHelpExampleVersion": "Example: v\\d+\\.\\d+\\.\\d+ matches versions like v1.2.3."
 }
