@@ -7,10 +7,22 @@ import {
 import '@/index.scss'
 import PluginInfoString from '@/../plugin.json'
 import {
+  collectKeymapHotkeys,
+  findHotkeyConflict,
+  formatHotkeyFromEvent,
+  normalizeHotkey,
+  type HotkeySource,
+} from '@/hotkeys'
+import {
+  SEARCH_REPLACE_TOP_BAR_ICON,
+  SEARCH_REPLACE_TOP_BAR_ICON_ID,
+} from '@/icons'
+import {
   applyPluginSettings,
   onEditorContextChanged,
   openPanel,
 } from '@/features/search-replace/store'
+import { createEditorContextFromProtyleLike } from '@/features/search-replace/editor'
 import {
   destroy,
   init,
@@ -45,8 +57,15 @@ export default class FriendlySearchReplacePlugin extends Plugin {
   public readonly version = version
   private settingsData: PluginSettings = { ...DEFAULT_SETTINGS }
 
-  private readonly handleEditorEvent = () => {
-    onEditorContextChanged()
+  private readonly handleEditorEvent = (event?: CustomEvent<{
+    protyle?: {
+      block?: {
+        rootID?: string
+      }
+      element?: HTMLElement
+    }
+  }>) => {
+    onEditorContextChanged(createEditorContextFromProtyleLike(event?.detail?.protyle))
   }
 
   async onload() {
@@ -69,8 +88,10 @@ export default class FriendlySearchReplacePlugin extends Plugin {
 
     await init(this)
 
+    this.addIcons(SEARCH_REPLACE_TOP_BAR_ICON)
+
     this.addTopBar({
-      icon: 'iconSearch',
+      icon: SEARCH_REPLACE_TOP_BAR_ICON_ID,
       title: this.i18n.addTopBarIcon,
       callback: () => {
         openPanel()
@@ -96,12 +117,16 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     })
 
     this.eventBus.on('switch-protyle', this.handleEditorEvent)
+    this.eventBus.on('click-editorcontent', this.handleEditorEvent)
+    this.eventBus.on('loaded-protyle-dynamic', this.handleEditorEvent)
     this.eventBus.on('loaded-protyle-static', this.handleEditorEvent)
     this.eventBus.on('destroy-protyle', this.handleEditorEvent)
   }
 
   onunload() {
     this.eventBus.off('switch-protyle', this.handleEditorEvent)
+    this.eventBus.off('click-editorcontent', this.handleEditorEvent)
+    this.eventBus.off('loaded-protyle-dynamic', this.handleEditorEvent)
     this.eventBus.off('loaded-protyle-static', this.handleEditorEvent)
     this.eventBus.off('destroy-protyle', this.handleEditorEvent)
     destroy()
@@ -115,22 +140,16 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     setting.addItem({
       title: this.i18n.settingPanelHotkeyTitle,
       description: this.i18n.settingPanelHotkeyDesc,
-      createActionElement: () => this.createTextInput(this.settingsData.panelHotkey, async (value) => {
-        await this.applySettings({
-          ...this.settingsData,
-          panelHotkey: value,
-        })
+      createActionElement: () => this.createHotkeyInput(this.settingsData.panelHotkey, async (value) => {
+        return await this.updateHotkeySetting('panelHotkey', value)
       }),
     })
 
     setting.addItem({
       title: this.i18n.settingReplaceHotkeyTitle,
       description: this.i18n.settingReplaceHotkeyDesc,
-      createActionElement: () => this.createTextInput(this.settingsData.replacePanelHotkey, async (value) => {
-        await this.applySettings({
-          ...this.settingsData,
-          replacePanelHotkey: value,
-        })
+      createActionElement: () => this.createHotkeyInput(this.settingsData.replacePanelHotkey, async (value) => {
+        return await this.updateHotkeySetting('replacePanelHotkey', value)
       }),
     })
 
@@ -228,15 +247,89 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     }
   }
 
-  private createTextInput(value: string, onChange: (value: string) => Promise<void>) {
+  private async updateHotkeySetting(settingKey: 'panelHotkey' | 'replacePanelHotkey', value: string) {
+    const normalizedHotkey = normalizeHotkey(value)
+    if (!normalizedHotkey) {
+      return false
+    }
+
+    const conflict = this.findHotkeySettingConflict(settingKey, normalizedHotkey)
+    if (conflict) {
+      showMessage(`\u5feb\u6377\u952e ${normalizedHotkey} \u4e0e\u5df2\u6709\u5feb\u6377\u952e\u51b2\u7a81\uff1a${conflict.label}`, 4000, 'warning')
+      return false
+    }
+
+    await this.applySettings({
+      ...this.settingsData,
+      [settingKey]: normalizedHotkey,
+    })
+    return true
+  }
+
+  private createHotkeyInput(value: string, onChange: (value: string) => Promise<boolean>) {
     const input = document.createElement('input')
     input.className = 'b3-text-field fn__size200'
-    input.value = value
-    input.placeholder = '例如：⌘⇧F'
-    input.addEventListener('change', async () => {
-      await onChange(input.value)
+    input.autocomplete = 'off'
+    input.placeholder = '\u70b9\u51fb\u540e\u6309\u4e0b\u5feb\u6377\u952e'
+    input.readOnly = true
+    input.spellcheck = false
+
+    let currentValue = normalizeHotkey(value) || value
+    input.value = currentValue
+
+    input.addEventListener('click', () => {
+      input.focus()
+      input.select()
+    })
+    input.addEventListener('focus', () => {
+      input.select()
+    })
+    input.addEventListener('keydown', async (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        input.value = currentValue
+        input.blur()
+        return
+      }
+
+      const hotkey = formatHotkeyFromEvent(event)
+      if (!hotkey) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+
+      input.value = hotkey
+      const accepted = await onChange(hotkey)
+      if (accepted) {
+        currentValue = hotkey
+      } else {
+        input.value = currentValue
+      }
+
+      input.blur()
     })
     return input
+  }
+
+  private findHotkeySettingConflict(settingKey: 'panelHotkey' | 'replacePanelHotkey', hotkey: string) {
+    const ignoredHotkeys = [this.settingsData[settingKey]]
+    return findHotkeyConflict(hotkey, this.getKnownHotkeySources(settingKey), ignoredHotkeys)
+  }
+
+  private getKnownHotkeySources(settingKey: 'panelHotkey' | 'replacePanelHotkey'): HotkeySource[] {
+    const ignoredLangKey = settingKey === 'panelHotkey' ? 'togglePanel' : 'toggleReplacePanel'
+    const commandSources = this.commands
+      .filter(command => command.langKey !== ignoredLangKey)
+      .map(command => ({
+        hotkey: command.customHotkey || command.hotkey,
+        label: command.langKey || 'plugin.command',
+      }))
+      .filter(command => Boolean(command.hotkey)) as HotkeySource[]
+
+    const keymapSources = collectKeymapHotkeys((window as any).siyuan?.config?.keymap)
+    return [...commandSources, ...keymapSources]
   }
 
   private createCheckbox(checked: boolean, onChange: (checked: boolean) => Promise<void>) {

@@ -4,118 +4,130 @@
     ref="panelRef"
     class="sfsr-panel"
     :style="panelStyle"
+    @pointerdown="onPanelPointerDown"
+    @dblclick="onPanelDoubleClick"
     @keydown.esc.stop.prevent="closePanel"
   >
-    <div class="sfsr-row">
-      <div
-        class="sfsr-drag-handle"
-        title="拖动面板，双击重置位置"
-        @pointerdown.prevent="startDrag"
-        @dblclick.stop="resetPanelPosition"
-      >
-        ⋮⋮
-      </div>
-
-      <input
-        ref="findInputRef"
-        :value="state.query"
-        class="b3-text-field sfsr-input"
-        placeholder="查找"
-        @input="onFindInput"
-        @keydown.enter.prevent="onFindEnter"
-      />
-
+    <div
+      class="sfsr-layout"
+      :class="{ 'sfsr-layout--replace-visible': state.replaceVisible }"
+    >
       <button
-        :class="optionButtonClass(state.options.matchCase)"
-        class="sfsr-button"
-        title="区分大小写"
-        @click="toggleOption('matchCase')"
-      >
-        Aa
-      </button>
-      <button
-        :class="optionButtonClass(state.options.wholeWord)"
-        class="sfsr-button"
-        title="全词匹配"
-        @click="toggleOption('wholeWord')"
-      >
-        ab
-      </button>
-      <button
-        :class="optionButtonClass(state.options.useRegex)"
-        class="sfsr-button"
-        title="使用正则"
-        @click="toggleOption('useRegex')"
-      >
-        .*
-      </button>
-
-      <div class="sfsr-count">{{ counterText }}</div>
-
-      <button
-        class="sfsr-button"
-        title="上一项"
-        @click="goPrev"
-      >
-        ↑
-      </button>
-      <button
-        class="sfsr-button"
-        title="下一项"
-        @click="goNext"
-      >
-        ↓
-      </button>
-      <button
-        :class="optionButtonClass(state.replaceVisible)"
-        class="sfsr-button"
-        title="显示替换栏"
+        class="sfsr-button sfsr-icon-button sfsr-replace-toggle"
+        :class="{ 'sfsr-replace-toggle--expanded': state.replaceVisible }"
+        type="button"
+        :aria-expanded="String(state.replaceVisible)"
+        aria-label="展开或折叠替换栏"
+        title="展开或折叠替换栏"
         @click="toggleReplaceVisible"
       >
-        替
+        <span
+          aria-hidden="true"
+          class="sfsr-chevron"
+          :class="{ 'sfsr-chevron--expanded': state.replaceVisible }"
+        />
       </button>
-      <button
-        class="sfsr-button"
-        title="关闭"
-        @click="closePanel"
-      >
-        ×
-      </button>
-    </div>
 
-    <div
-      v-if="state.replaceVisible"
-      class="sfsr-row sfsr-row--secondary"
-    >
-      <input
-        ref="replaceInputRef"
-        :value="state.replacement"
-        class="b3-text-field sfsr-input"
-        placeholder="替换"
-        @input="onReplaceInput"
-        @keydown.enter.prevent="replaceCurrent"
-      />
-      <SyButton
-        class="sfsr-action"
-        :disabled="!canReplaceCurrent"
-        @click="replaceCurrent"
-      >
-        替换当前
-      </SyButton>
-      <SyButton
-        class="sfsr-action"
-        :disabled="!state.matches.length"
-        @click="skipCurrent"
-      >
-        跳过
-      </SyButton>
-      <SyButton
-        class="sfsr-action"
-        :disabled="!state.matches.length"
-        @click="replaceAll"
-      >
-        全部替换
-      </SyButton>
+      <div class="sfsr-main">
+        <div class="sfsr-row">
+          <input
+            ref="findInputRef"
+            :value="state.query"
+            class="b3-text-field sfsr-input"
+            placeholder="查找"
+            @compositionstart="onFindCompositionStart"
+            @compositionend="onFindCompositionEnd"
+            @input="onFindInput"
+            @keydown.enter.prevent="onFindEnter"
+          />
+
+          <button
+            :class="optionButtonClass(state.options.matchCase)"
+            class="sfsr-button"
+            title="区分大小写"
+            @click="toggleOption('matchCase')"
+          >
+            Aa
+          </button>
+          <button
+            :class="optionButtonClass(state.options.wholeWord)"
+            class="sfsr-button"
+            title="全词匹配"
+            @click="toggleOption('wholeWord')"
+          >
+            ab
+          </button>
+          <button
+            :class="optionButtonClass(state.options.useRegex)"
+            class="sfsr-button"
+            title="使用正则"
+            @click="toggleOption('useRegex')"
+          >
+            .*
+          </button>
+
+          <div class="sfsr-count">{{ counterText }}</div>
+
+          <button
+            class="sfsr-button"
+            title="上一项"
+            @click="goPrev"
+          >
+            ↑
+          </button>
+          <button
+            class="sfsr-button"
+            title="下一项"
+            @click="goNext"
+          >
+            ↓
+          </button>
+          <button
+            class="sfsr-button"
+            title="关闭"
+            @click="closePanel"
+          >
+            ×
+          </button>
+        </div>
+
+        <div
+          v-if="state.replaceVisible"
+          class="sfsr-row sfsr-row--secondary"
+        >
+          <input
+            ref="replaceInputRef"
+            :value="state.replacement"
+            class="b3-text-field sfsr-input"
+            placeholder="替换"
+            @compositionstart="onReplaceCompositionStart"
+            @compositionend="onReplaceCompositionEnd"
+            @input="onReplaceInput"
+            @keydown.enter.prevent="replaceCurrent"
+          />
+          <SyButton
+            class="sfsr-action"
+            :disabled="!canReplaceCurrent"
+            @click="replaceCurrent"
+          >
+            替换当前
+          </SyButton>
+          <SyButton
+            class="sfsr-action"
+            :disabled="!state.matches.length"
+            @click="skipCurrent"
+          >
+            跳过
+          </SyButton>
+          <SyButton
+            class="sfsr-action"
+            :disabled="!state.matches.length"
+            @click="replaceAll"
+          >
+            全部替换
+          </SyButton>
+        </div>
+      </div>
     </div>
 
     <div
@@ -158,6 +170,16 @@ import {
 const findInputRef = ref<HTMLInputElement>()
 const replaceInputRef = ref<HTMLInputElement>()
 const panelRef = ref<HTMLDivElement>()
+const NON_DRAG_SELECTOR = [
+  'input',
+  'textarea',
+  'button',
+  'select',
+  'option',
+  'a',
+  '[contenteditable]:not([contenteditable="false"])',
+  '.sfsr-no-drag',
+].join(', ')
 
 let dragState: {
   pointerId: number
@@ -166,6 +188,8 @@ let dragState: {
   startClientX: number
   startClientY: number
 } | null = null
+let isFindComposing = false
+let isReplaceComposing = false
 
 const currentMatch = computed(() => getCurrentMatch())
 const counterText = computed(() => {
@@ -218,10 +242,36 @@ function optionButtonClass(active: boolean) {
 }
 
 function onFindInput(event: Event) {
+  if (isFindComposing) {
+    return
+  }
+
   setQuery((event.target as HTMLInputElement).value)
 }
 
 function onReplaceInput(event: Event) {
+  if (isReplaceComposing) {
+    return
+  }
+
+  setReplacement((event.target as HTMLInputElement).value)
+}
+
+function onFindCompositionStart() {
+  isFindComposing = true
+}
+
+function onFindCompositionEnd(event: CompositionEvent) {
+  isFindComposing = false
+  setQuery((event.target as HTMLInputElement).value)
+}
+
+function onReplaceCompositionStart() {
+  isReplaceComposing = true
+}
+
+function onReplaceCompositionEnd(event: CompositionEvent) {
+  isReplaceComposing = false
   setReplacement((event.target as HTMLInputElement).value)
 }
 
@@ -232,6 +282,23 @@ function onFindEnter(event: KeyboardEvent) {
   }
 
   goNext()
+}
+
+function onPanelPointerDown(event: PointerEvent) {
+  if (event.button !== 0 || !canStartPanelDrag(event.target)) {
+    return
+  }
+
+  event.preventDefault()
+  startDrag(event)
+}
+
+function onPanelDoubleClick(event: MouseEvent) {
+  if (!canStartPanelDrag(event.target)) {
+    return
+  }
+
+  resetPanelPosition()
 }
 
 function startDrag(event: PointerEvent) {
@@ -287,6 +354,28 @@ function stopDrag(event?: PointerEvent) {
 
 function resetPanelPosition() {
   resetStoredPanelPosition()
+}
+
+function canStartPanelDrag(target: EventTarget | null) {
+  const element = resolveEventElement(target)
+
+  if (!element) {
+    return true
+  }
+
+  return !element.closest(NON_DRAG_SELECTOR)
+}
+
+function resolveEventElement(target: EventTarget | null) {
+  if (target instanceof Element) {
+    return target
+  }
+
+  if (target instanceof Node) {
+    return target.parentElement
+  }
+
+  return null
 }
 
 function clampPanelPosition(position: { left: number, top: number }) {

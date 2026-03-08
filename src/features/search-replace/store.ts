@@ -9,6 +9,8 @@ import {
   applyReplacementsToClone,
   clearSearchDecorations,
   collectSearchableBlocks,
+  createEditorContextFromElement,
+  findEditorContextByRootId,
   getActiveEditorContext,
   getBlockElement,
   getCurrentSelectionText,
@@ -23,6 +25,7 @@ import {
   type PluginSettings,
 } from '@/settings'
 import type {
+  EditorContext,
   SearchMatch,
   SearchOptions,
 } from './types'
@@ -41,10 +44,14 @@ const UI_STATE_STORAGE = 'ui-state.json'
 let refreshTimer = 0
 let persistTimer = 0
 let pluginInstance: Plugin | null = null
+let lastEditorContext: EditorContext | null = null
+let liveRefreshObserver: MutationObserver | null = null
+let liveRefreshTarget: HTMLElement | null = null
+let documentListenersBound = false
 
 export const searchReplaceState = reactive({
   visible: false,
-  replaceVisible: true,
+  replaceVisible: DEFAULT_SETTINGS.defaultReplaceVisible,
   panelPosition: null as PanelPosition | null,
   settings: { ...DEFAULT_SETTINGS } as PluginSettings,
   query: '',
@@ -60,6 +67,29 @@ export const searchReplaceState = reactive({
 
 export function bindPlugin(plugin: Plugin) {
   pluginInstance = plugin
+
+  if (documentListenersBound) {
+    return
+  }
+
+  document.addEventListener('selectionchange', handleDocumentSelectionChange)
+  document.addEventListener('focusin', handleDocumentFocusIn, true)
+  document.addEventListener('input', handleDocumentInput, true)
+  documentListenersBound = true
+  rememberEditorContext(getActiveEditorContext())
+}
+
+export function unbindPlugin() {
+  if (!documentListenersBound) {
+    pluginInstance = null
+    return
+  }
+
+  document.removeEventListener('selectionchange', handleDocumentSelectionChange)
+  document.removeEventListener('focusin', handleDocumentFocusIn, true)
+  document.removeEventListener('input', handleDocumentInput, true)
+  documentListenersBound = false
+  pluginInstance = null
 }
 
 export async function initializeUiState() {
@@ -119,6 +149,8 @@ export function openPanel(forceVisible?: boolean, replaceVisible?: boolean) {
     return
   }
 
+  rememberEditorContext(getActiveEditorContext())
+
   if (typeof replaceVisible === 'boolean') {
     searchReplaceState.replaceVisible = replaceVisible
   } else {
@@ -141,6 +173,8 @@ export function closePanel() {
   searchReplaceState.visible = false
   searchReplaceState.busy = false
   searchReplaceState.error = ''
+  lastEditorContext = null
+  disconnectLiveRefreshObserver()
   clearSearchDecorations()
 }
 
@@ -162,7 +196,9 @@ export function toggleOption(option: keyof SearchOptions) {
   scheduleRefresh(0)
 }
 
-export function onEditorContextChanged() {
+export function onEditorContextChanged(contextHint?: EditorContext | null) {
+  rememberEditorContext(contextHint ?? getActiveEditorContext())
+
   if (!searchReplaceState.visible) {
     return
   }
@@ -318,7 +354,8 @@ async function refreshMatches() {
     return
   }
 
-  const context = getActiveEditorContext()
+  const context = resolveEditorContext()
+  syncLiveRefreshObserver(context)
   if (!context) {
     searchReplaceState.currentRootId = ''
     searchReplaceState.currentTitle = ''
@@ -364,11 +401,128 @@ async function refreshMatches() {
   revealCurrentMatch(context)
 }
 
+function resolveEditorContext() {
+  const activeContext = getActiveEditorContext()
+  if (isUsableEditorContext(activeContext)) {
+    lastEditorContext = activeContext
+    return activeContext
+  }
+
+  if (isUsableEditorContext(lastEditorContext)) {
+    return lastEditorContext
+  }
+
+  if (lastEditorContext?.rootId) {
+    const reconnectedContext = findEditorContextByRootId(lastEditorContext.rootId, lastEditorContext.title)
+    if (isUsableEditorContext(reconnectedContext)) {
+      lastEditorContext = reconnectedContext
+      return reconnectedContext
+    }
+  }
+
+  lastEditorContext = null
+  return null
+}
+
+function rememberEditorContext(context: EditorContext | null) {
+  if (!isUsableEditorContext(context)) {
+    return
+  }
+
+  lastEditorContext = context
+}
+
+function isUsableEditorContext(context: EditorContext | null | undefined): context is EditorContext {
+  if (!context?.rootId || !context.protyle) {
+    return false
+  }
+
+  return !('isConnected' in context.protyle) || context.protyle.isConnected
+}
+
 function scheduleRefresh(delay = 120) {
   window.clearTimeout(refreshTimer)
   refreshTimer = window.setTimeout(() => {
     void refreshMatches()
   }, delay)
+}
+
+function syncLiveRefreshObserver(context: EditorContext | null) {
+  const nextTarget = resolveLiveRefreshTarget(context)
+  if (liveRefreshTarget === nextTarget) {
+    return
+  }
+
+  disconnectLiveRefreshObserver()
+  if (!nextTarget || typeof MutationObserver !== 'function') {
+    return
+  }
+
+  liveRefreshObserver = new MutationObserver((mutations) => {
+    if (!searchReplaceState.visible || searchReplaceState.busy || !searchReplaceState.query.trim()) {
+      return
+    }
+
+    const hasContentChange = mutations.some(mutation => mutation.type === 'childList' || mutation.type === 'characterData')
+    if (!hasContentChange) {
+      return
+    }
+
+    debugLog('editor-dom-changed')
+    scheduleRefresh(80)
+  })
+  liveRefreshObserver.observe(nextTarget, {
+    childList: true,
+    characterData: true,
+    subtree: true,
+  })
+  liveRefreshTarget = nextTarget
+}
+
+function disconnectLiveRefreshObserver() {
+  liveRefreshObserver?.disconnect()
+  liveRefreshObserver = null
+  liveRefreshTarget = null
+}
+
+function resolveLiveRefreshTarget(context: EditorContext | null) {
+  if (!(context?.protyle instanceof HTMLElement)) {
+    return null
+  }
+
+  return context.protyle.querySelector<HTMLElement>('.protyle-wysiwyg') ?? context.protyle
+}
+
+function handleDocumentSelectionChange() {
+  rememberEditorContext(getActiveEditorContext())
+}
+
+function handleDocumentFocusIn(event: FocusEvent) {
+  const target = event.target instanceof Element ? event.target : null
+  const protyle = target?.closest('.protyle')
+  rememberEditorContext(createEditorContextFromElement(protyle instanceof HTMLElement ? protyle : null))
+}
+
+function handleDocumentInput(event: Event) {
+  const target = event.target instanceof Element ? event.target : null
+  const protyle = target?.closest('.protyle')
+  const context = createEditorContextFromElement(protyle instanceof HTMLElement ? protyle : null)
+  if (!context) {
+    return
+  }
+
+  rememberEditorContext(context)
+  if (!searchReplaceState.visible || searchReplaceState.busy) {
+    return
+  }
+
+  const resolvedContext = resolveEditorContext()
+  if (!resolvedContext || resolvedContext.protyle !== context.protyle) {
+    return
+  }
+
+  debugLog('editor-input')
+  scheduleRefresh(50)
 }
 
 function schedulePersistUiState(delay = 180) {
@@ -413,7 +567,7 @@ function normalizePanelPosition(position: PanelPosition | null | undefined) {
   }
 }
 
-function revealCurrentMatch(context = getActiveEditorContext()) {
+function revealCurrentMatch(context = resolveEditorContext()) {
   if (!context) {
     clearSearchDecorations()
     return

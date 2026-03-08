@@ -39,28 +39,83 @@ export function getActiveEditorContext(): EditorContext | null {
     ? selection.anchorNode
     : selection?.anchorNode?.parentElement
 
-  const candidates = [
-    anchorElement?.closest('.protyle'),
-    (document.activeElement as HTMLElement | null)?.closest?.('.protyle'),
-    document.querySelector('.layout__wnd--active .protyle'),
-    document.querySelector('.protyle:not(.fn__none)'),
-  ]
+  const directCandidates = [
+    createEditorContextFromElement(anchorElement?.closest('.protyle')),
+    createEditorContextFromElement((document.activeElement as HTMLElement | null)?.closest?.('.protyle')),
+  ].filter(Boolean) as EditorContext[]
 
-  for (const candidate of candidates) {
-    if (!(candidate instanceof HTMLElement)) {
-      continue
+  const visibleContexts = collectVisibleEditorContexts()
+  const titleMatchedContext = findContextByCurrentPageTitle(visibleContexts)
+
+  if (directCandidates.length > 0) {
+    if (titleMatchedContext) {
+      const directTitleMatch = directCandidates.find(candidate => candidate.rootId === titleMatchedContext.rootId)
+      if (directTitleMatch) {
+        return directTitleMatch
+      }
+
+      return titleMatchedContext
     }
 
-    const rootId = getRootId(candidate)
-    if (!rootId) {
-      continue
-    }
+    return directCandidates[0]
+  }
 
-    return {
-      protyle: candidate,
-      rootId,
-      title: getEditorTitle(candidate),
-    }
+  if (titleMatchedContext) {
+    return titleMatchedContext
+  }
+
+  const activeWindowContext = createEditorContextFromElement(document.querySelector('.layout__wnd--active .protyle'))
+  if (activeWindowContext) {
+    return activeWindowContext
+  }
+
+  if (visibleContexts.length > 0) {
+    return visibleContexts[0]
+  }
+
+  return null
+}
+
+export function createEditorContextFromElement(protyle: HTMLElement | null | undefined, rootIdHint = '', titleHint = ''): EditorContext | null {
+  if (!(protyle instanceof HTMLElement)) {
+    return null
+  }
+
+  const rootId = rootIdHint.trim() || getRootId(protyle)
+  if (!rootId) {
+    return null
+  }
+
+  return {
+    protyle,
+    rootId,
+    title: titleHint.trim() || getEditorTitle(protyle),
+  }
+}
+
+export function createEditorContextFromProtyleLike(protyle: {
+  block?: {
+    rootID?: string
+  }
+  element?: HTMLElement
+} | null | undefined) {
+  return createEditorContextFromElement(protyle?.element, protyle?.block?.rootID)
+}
+
+export function findEditorContextByRootId(rootId: string, titleHint = '') {
+  const normalizedRootId = rootId.trim()
+  if (!normalizedRootId) {
+    return null
+  }
+
+  const visibleContexts = collectVisibleEditorContexts()
+  const exactMatch = visibleContexts.find(context => context.rootId === normalizedRootId)
+  if (exactMatch) {
+    return exactMatch
+  }
+
+  if (titleHint.trim()) {
+    return visibleContexts.find(context => context.title === titleHint.trim()) ?? null
   }
 
   return null
@@ -133,7 +188,8 @@ export function syncSearchDecorations(context: EditorContext, matches: SearchMat
     getBlockElement(context, blockId)?.classList.add(MATCH_CLASS)
   })
 
-  if (currentMatch && !applyCurrentTextHighlight(context, currentMatch)) {
+  if (currentMatch) {
+    applyCurrentTextHighlight(context, currentMatch)
     getBlockElement(context, currentMatch.blockId)?.classList.add(CURRENT_MATCH_CLASS)
   }
 }
@@ -238,6 +294,35 @@ function getEditorTitle(protyle: HTMLElement) {
   }
 
   return '当前文档'
+}
+
+function collectVisibleEditorContexts() {
+  const elements = Array.from(document.querySelectorAll<HTMLElement>('.protyle'))
+    .filter(element => !element.classList.contains('fn__none'))
+
+  const contexts: EditorContext[] = []
+  const seenRootIds = new Set<string>()
+
+  elements.forEach((element) => {
+    const context = createEditorContextFromElement(element)
+    if (!context || seenRootIds.has(context.rootId)) {
+      return
+    }
+
+    seenRootIds.add(context.rootId)
+    contexts.push(context)
+  })
+
+  return contexts
+}
+
+function findContextByCurrentPageTitle(contexts: EditorContext[]) {
+  const currentPageTitle = document.title.split(' - ')[0]?.trim()
+  if (!currentPageTitle) {
+    return null
+  }
+
+  return contexts.find(context => context.title === currentPageTitle) ?? null
 }
 
 function isSupportedBlockType(blockType: string, options: SearchOptions) {

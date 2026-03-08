@@ -15,7 +15,7 @@ export interface PluginSettings {
 export const DEFAULT_SETTINGS: PluginSettings = {
   panelHotkey: '⌘⇧F',
   replacePanelHotkey: '⌘⇧H',
-  defaultReplaceVisible: true,
+  defaultReplaceVisible: false,
   rememberPanelPosition: true,
   preloadSelection: true,
   includeCodeBlock: false,

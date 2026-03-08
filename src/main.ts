@@ -6,6 +6,7 @@ import {
   bindPlugin,
   closePanel,
   initializeUiState,
+  unbindPlugin,
 } from '@/features/search-replace/store'
 
 let pluginInstance: Plugin | null = null
@@ -36,6 +37,7 @@ export async function init(plugin: Plugin) {
 
 export function destroy() {
   closePanel()
+  unbindPlugin()
   app?.unmount()
   app = null
 
