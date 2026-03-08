@@ -1,12 +1,12 @@
 {
-  "name": "siyuan-friendly-search-replace",
+  "name": "siyuan-sou-easy",
   "version": "0.0.1",
   "type": "module",
   "description": "A SiYuan plugin that adds VS Code style find-and-replace for the current document.",
-  "author": "",
+  "author": "QuincyZou",
   "license": "MIT",
   "homepage": "",
-  "repository": "",
+  "repository": "https://github.com/famotime/siyuan-sou-easy",
   "scripts": {
     "dev": "vite build --watch",
     "precheck": "node ./scripts/release-precheck.mjs",

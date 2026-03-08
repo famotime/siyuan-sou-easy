@@ -1,5 +1,5 @@
 {
-  "name": "siyuan-friendly-search-replace",
+  "name": "siyuan-sou-easy",
   "author": "",
   "url": "",
   "version": "0.0.1",
@@ -12,9 +12,9 @@
     "all"
   ],
   "displayName": {
-    "default": "Friendly Search Replace",
-    "en_US": "Friendly Search Replace",
-    "zh_CN": "更友好的查找替换"
+    "default": "搜 easy",
+    "en_US": "Sou Easy",
+    "zh_CN": "搜 easy"
   },
   "description": {
     "default": "VS Code style find-and-replace for the current SiYuan document.",

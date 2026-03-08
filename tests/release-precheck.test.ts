@@ -10,7 +10,7 @@ describe('collectPrecheckIssues', () => {
         togglePanel: 'Open find panel',
       },
       i18nZh: {
-        addTopBarIcon: '更友好的查找替换',
+        addTopBarIcon: '搜 easy',
         togglePanel: '打开查找面板',
       },
       packageJson: {
