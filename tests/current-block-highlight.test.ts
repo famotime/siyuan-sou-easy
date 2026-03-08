@@ -58,4 +58,42 @@ describe('current block highlight', () => {
 
     expect(protyle.querySelector('[data-node-id="block-1"]')?.classList.contains('sfsr-block-current')).toBe(true)
   })
+
+  it('applies highlight classes to the actual heading block when metadata with the same node id exists', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-wysiwyg">
+          <div class="protyle-attr" data-node-id="heading-1"></div>
+          <div data-node-id="heading-1" data-type="NodeHeading" class="h1">
+            <div contenteditable="true">问题标题</div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector('.protyle') as HTMLElement
+    const headingBlock = protyle.querySelector<HTMLElement>('[data-node-id="heading-1"][data-type="NodeHeading"]')
+    const context: EditorContext = {
+      protyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    const match: SearchMatch = {
+      blockId: 'heading-1',
+      blockIndex: 0,
+      blockType: 'NodeHeading',
+      end: 2,
+      id: 'heading-1:0:2',
+      matchedText: '问题',
+      previewText: '[问题]标题',
+      replaceable: true,
+      rootId: 'root-1',
+      start: 0,
+    }
+
+    syncSearchDecorations(context, [match], match)
+
+    expect(headingBlock?.classList.contains('sfsr-block-match')).toBe(true)
+    expect(headingBlock?.classList.contains('sfsr-block-current')).toBe(true)
+  })
 })

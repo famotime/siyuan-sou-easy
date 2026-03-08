@@ -155,7 +155,9 @@ export function collectSearchableBlocks(context: EditorContext, options: SearchO
 }
 
 export function getBlockElement(context: EditorContext, blockId: string) {
-  return context.protyle.querySelector<HTMLElement>(`[data-node-id="${blockId}"]`)
+  return context.protyle.querySelector<HTMLElement>(`.protyle-wysiwyg [data-node-id="${blockId}"][data-type]`)
+    ?? context.protyle.querySelector<HTMLElement>(`[data-node-id="${blockId}"][data-type]`)
+    ?? context.protyle.querySelector<HTMLElement>(`[data-node-id="${blockId}"]`)
 }
 
 export function getBlockPlainText(blockElement: HTMLElement) {
