@@ -249,7 +249,7 @@ export async function replaceCurrent() {
 
   debugLog('replace-current:start', match)
 
-  const context = getActiveEditorContext()
+  const context = resolveEditorContext()
   if (!context || context.rootId !== match.rootId) {
     await refreshMatches()
     return
@@ -303,7 +303,7 @@ export async function replaceAll() {
     return
   }
 
-  const context = getActiveEditorContext()
+  const context = resolveEditorContext()
   if (!context) {
     searchReplaceState.error = '未找到当前文档'
     return

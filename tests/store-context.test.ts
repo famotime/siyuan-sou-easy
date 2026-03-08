@@ -75,8 +75,13 @@ const searchEngineMocks = vi.hoisted(() => ({
   })),
 }))
 
+const kernelMocks = vi.hoisted(() => ({
+  updateDomBlock: vi.fn(async () => null),
+}))
+
 vi.mock('@/features/search-replace/editor', () => editorMocks)
 vi.mock('@/features/search-replace/search-engine', () => searchEngineMocks)
+vi.mock('@/features/search-replace/kernel', () => kernelMocks)
 
 import {
   applyPluginSettings,
@@ -84,6 +89,7 @@ import {
   goNext,
   onEditorContextChanged,
   openPanel,
+  replaceCurrent,
   searchReplaceState,
 } from '@/features/search-replace/store'
 
@@ -91,6 +97,19 @@ describe('search store editor context fallback', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     resetState()
+    editorMocks.state.blocks = [{
+      blockId: 'block-1',
+      blockIndex: 0,
+      blockType: 'NodeParagraph',
+      element: {} as HTMLElement,
+      rootId: 'root-1',
+      text: 'foo bar foo',
+    }]
+    editorMocks.state.context = {
+      protyle: { isConnected: true } as HTMLElement,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
     editorMocks.state.contextAvailable = true
     vi.clearAllMocks()
   })
@@ -230,6 +249,52 @@ describe('search store editor context fallback', () => {
     expect(searchReplaceState.currentTitle).toBe(currentContext.title)
     expect(searchReplaceState.matches).toHaveLength(1)
     expect(searchReplaceState.matches[0]?.rootId).toBe(currentContext.rootId)
+  })
+
+  it('replaces the current match even when the panel has taken focus from the editor', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+    })
+    searchReplaceState.visible = true
+    searchReplaceState.query = 'foo'
+    searchReplaceState.replacement = 'bar'
+    searchReplaceState.matches = [{
+      blockId: 'block-1',
+      blockIndex: 0,
+      blockType: 'NodeParagraph',
+      end: 3,
+      id: 'block-1:0:3',
+      matchedText: 'foo',
+      previewText: '[foo] bar foo',
+      replaceable: true,
+      rootId: 'root-1',
+      start: 0,
+    }]
+    searchReplaceState.currentIndex = 0
+
+    editorMocks.getBlockElement.mockReturnValue({
+      outerHTML: '<div data-node-id="block-1" data-type="NodeParagraph"><div contenteditable="true">bar bar foo</div></div>',
+    } as HTMLElement)
+    editorMocks.applyReplacementsToClone.mockReturnValue({
+      appliedCount: 1,
+      clone: {
+        outerHTML: '<div data-node-id="block-1" data-type="NodeParagraph"><div contenteditable="true">bar bar foo</div></div>',
+      },
+    })
+
+    onEditorContextChanged(editorMocks.state.context)
+    editorMocks.state.contextAvailable = false
+
+    await replaceCurrent()
+
+    expect(editorMocks.getBlockElement).toHaveBeenCalledTimes(1)
+    expect(editorMocks.applyReplacementsToClone).toHaveBeenCalledTimes(1)
+    expect(kernelMocks.updateDomBlock).toHaveBeenCalledTimes(1)
+    expect(kernelMocks.updateDomBlock).toHaveBeenCalledWith(
+      'block-1',
+      '<div data-node-id="block-1" data-type="NodeParagraph"><div contenteditable="true">bar bar foo</div></div>',
+    )
   })
 })
 

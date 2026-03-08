@@ -3,8 +3,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyReplacementsToClone,
+  getBlockElement,
   getBlockPlainText,
 } from '@/features/search-replace/editor'
+import type { EditorContext } from '@/features/search-replace/types'
 
 function createBlockFromHtml(html: string) {
   const block = document.createElement('div')
@@ -60,5 +62,35 @@ describe('applyReplacementsToClone', () => {
 
     expect(outcome.appliedCount).toBe(0)
     expect(outcome.clone).toBeNull()
+  })
+
+  it('replaces text in the actual heading block when metadata with the same node id exists', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-wysiwyg">
+          <div class="protyle-attr" data-node-id="heading-1"></div>
+          <div data-node-id="heading-1" data-type="NodeHeading" class="h1">
+            <div contenteditable="true">插件安装指南</div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const context: EditorContext = {
+      protyle: document.querySelector('.protyle') as HTMLElement,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    const block = getBlockElement(context, 'heading-1')
+    const outcome = applyReplacementsToClone(
+      block as HTMLElement,
+      [{ end: 4, matchedText: '安装', start: 2 }],
+      '部署',
+    )
+
+    expect(block?.dataset.type).toBe('NodeHeading')
+    expect(outcome.appliedCount).toBe(1)
+    expect(outcome.clone).not.toBeNull()
+    expect(getBlockPlainText(outcome.clone as HTMLElement)).toBe('插件部署指南')
   })
 })
