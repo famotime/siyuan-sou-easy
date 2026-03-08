@@ -162,6 +162,75 @@ describe('search store editor context fallback', () => {
     expect(searchReplaceState.error).toBe('')
     expect(searchReplaceState.matches).toHaveLength(2)
   })
+
+  it('does not overwrite a cached editor event context with a stale detected context when opening the panel', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+    })
+
+    const currentContext = {
+      protyle: { isConnected: true } as HTMLElement,
+      rootId: 'root-current',
+      title: 'Current Doc',
+    }
+    const staleContext = {
+      protyle: { isConnected: true } as HTMLElement,
+      rootId: 'root-stale',
+      title: 'Stale Doc',
+    }
+
+    editorMocks.collectSearchableBlocks.mockImplementation((context) => {
+      if (context.rootId === currentContext.rootId) {
+        return [{
+          blockId: 'block-current',
+          blockIndex: 0,
+          blockType: 'NodeParagraph',
+          element: {} as HTMLElement,
+          rootId: currentContext.rootId,
+          text: '问题问题',
+        }]
+      }
+
+      return [{
+        blockId: 'block-stale',
+        blockIndex: 0,
+        blockType: 'NodeParagraph',
+        element: {} as HTMLElement,
+        rootId: staleContext.rootId,
+        text: 'other text',
+      }]
+    })
+    searchEngineMocks.findMatches.mockImplementation((blocks) => ({
+      error: '',
+      matches: blocks[0]?.rootId === currentContext.rootId
+        ? [{
+          blockId: 'block-current',
+          blockIndex: 0,
+          blockType: 'NodeParagraph',
+          end: 2,
+          id: 'block-current:0:2',
+          matchedText: '问题',
+          previewText: '[问题]问题',
+          replaceable: true,
+          rootId: currentContext.rootId,
+          start: 0,
+        }]
+        : [],
+    }))
+
+    searchReplaceState.query = '问题'
+    editorMocks.state.context = staleContext
+
+    onEditorContextChanged(currentContext)
+    openPanel(true)
+    vi.runOnlyPendingTimers()
+
+    expect(searchReplaceState.currentRootId).toBe(currentContext.rootId)
+    expect(searchReplaceState.currentTitle).toBe(currentContext.title)
+    expect(searchReplaceState.matches).toHaveLength(1)
+    expect(searchReplaceState.matches[0]?.rootId).toBe(currentContext.rootId)
+  })
 })
 
 function resetState() {

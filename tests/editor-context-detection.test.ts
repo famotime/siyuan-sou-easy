@@ -70,4 +70,40 @@ describe('editor context detection', () => {
     expect(context?.rootId).toBe('20260207090010-i8288q8')
     expect(context?.title).toBe('搜索替换测试')
   })
+  it('prefers the active window context over a stale selection when the panel has focus', () => {
+    document.title = 'siyuan-plugin-test - 鎬濇簮绗旇 v3.5.7'
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-background" data-node-id="20260220075025-ue88wkc"></div>
+        <div class="protyle-title" data-node-id="20260220075025-ue88wkc"></div>
+        <input class="protyle-title__input" value="鏃ф枃妗? />
+        <div class="protyle-wysiwyg">
+          <div data-node-id="old-block" data-type="NodeParagraph" class="p"><div contenteditable="true">鏃ф枃妗ｉ噷鐨勯€夊尯</div></div>
+        </div>
+      </div>
+      <div class="layout__wnd--active">
+        <div class="protyle">
+          <div class="protyle-background" data-node-id="20260207090010-i8288q8"></div>
+          <div class="protyle-title" data-node-id="20260207090010-i8288q8"></div>
+          <input class="protyle-title__input" value="鎼滅储鏇挎崲娴嬭瘯" />
+        </div>
+      </div>
+      <input class="sfsr-input" value="闂" />
+    `
+
+    const staleTextNode = document.querySelector('[data-node-id="old-block"] [contenteditable="true"]')?.firstChild
+    const range = document.createRange()
+    range.setStart(staleTextNode!, 0)
+    range.setEnd(staleTextNode!, 1)
+    const selection = window.getSelection()!
+    selection.removeAllRanges()
+    selection.addRange(range)
+
+    document.querySelector<HTMLInputElement>('.sfsr-input')?.focus()
+
+    const context = getActiveEditorContext()
+
+    expect(context?.rootId).toBe('20260207090010-i8288q8')
+    expect(context?.title).toBe('鎼滅储鏇挎崲娴嬭瘯')
+  })
 })

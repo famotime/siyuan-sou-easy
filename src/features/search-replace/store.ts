@@ -45,6 +45,7 @@ let refreshTimer = 0
 let persistTimer = 0
 let pluginInstance: Plugin | null = null
 let lastEditorContext: EditorContext | null = null
+let lastHintedEditorContext: EditorContext | null = null
 let liveRefreshObserver: MutationObserver | null = null
 let liveRefreshTarget: HTMLElement | null = null
 let documentListenersBound = false
@@ -89,6 +90,8 @@ export function unbindPlugin() {
   document.removeEventListener('focusin', handleDocumentFocusIn, true)
   document.removeEventListener('input', handleDocumentInput, true)
   documentListenersBound = false
+  lastEditorContext = null
+  lastHintedEditorContext = null
   pluginInstance = null
 }
 
@@ -197,7 +200,12 @@ export function toggleOption(option: keyof SearchOptions) {
 }
 
 export function onEditorContextChanged(contextHint?: EditorContext | null) {
-  rememberEditorContext(contextHint ?? getActiveEditorContext())
+  if (isUsableEditorContext(contextHint)) {
+    rememberHintedEditorContext(contextHint)
+    rememberEditorContext(contextHint)
+  } else {
+    rememberEditorContext(getActiveEditorContext())
+  }
 
   if (!searchReplaceState.visible) {
     return
@@ -402,6 +410,12 @@ async function refreshMatches() {
 }
 
 function resolveEditorContext() {
+  const hintedContext = resolveHintedEditorContext()
+  if (hintedContext) {
+    lastEditorContext = hintedContext
+    return hintedContext
+  }
+
   const activeContext = getActiveEditorContext()
   if (isUsableEditorContext(activeContext)) {
     lastEditorContext = activeContext
@@ -424,12 +438,37 @@ function resolveEditorContext() {
   return null
 }
 
+function resolveHintedEditorContext() {
+  if (isUsableEditorContext(lastHintedEditorContext)) {
+    return lastHintedEditorContext
+  }
+
+  if (lastHintedEditorContext?.rootId) {
+    const reconnectedContext = findEditorContextByRootId(lastHintedEditorContext.rootId, lastHintedEditorContext.title)
+    if (isUsableEditorContext(reconnectedContext)) {
+      lastHintedEditorContext = reconnectedContext
+      return reconnectedContext
+    }
+  }
+
+  lastHintedEditorContext = null
+  return null
+}
+
 function rememberEditorContext(context: EditorContext | null) {
   if (!isUsableEditorContext(context)) {
     return
   }
 
   lastEditorContext = context
+}
+
+function rememberHintedEditorContext(context: EditorContext | null) {
+  if (!isUsableEditorContext(context)) {
+    return
+  }
+
+  lastHintedEditorContext = context
 }
 
 function isUsableEditorContext(context: EditorContext | null | undefined): context is EditorContext {
@@ -500,7 +539,9 @@ function handleDocumentSelectionChange() {
 function handleDocumentFocusIn(event: FocusEvent) {
   const target = event.target instanceof Element ? event.target : null
   const protyle = target?.closest('.protyle')
-  rememberEditorContext(createEditorContextFromElement(protyle instanceof HTMLElement ? protyle : null))
+  const context = createEditorContextFromElement(protyle instanceof HTMLElement ? protyle : null)
+  rememberHintedEditorContext(context)
+  rememberEditorContext(context)
 }
 
 function handleDocumentInput(event: Event) {
@@ -511,6 +552,7 @@ function handleDocumentInput(event: Event) {
     return
   }
 
+  rememberHintedEditorContext(context)
   rememberEditorContext(context)
   if (!searchReplaceState.visible || searchReplaceState.busy) {
     return
