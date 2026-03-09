@@ -16,9 +16,11 @@ import {
 import App from '@/App.vue'
 import {
   applyPluginSettings,
+  bindPlugin,
   closePanel,
   openPanel,
   searchReplaceState,
+  unbindPlugin,
 } from '@/features/search-replace/store'
 import {
   DEFAULT_SETTINGS,
@@ -46,11 +48,13 @@ describe('selection mode from panel interaction', () => {
         </div>
       </div>
     `
+    bindPlugin({} as any)
     mountPanel()
   })
 
   afterEach(() => {
     closePanel()
+    unbindPlugin()
     app?.unmount()
     host?.remove()
     document.body.innerHTML = ''
@@ -59,6 +63,35 @@ describe('selection mode from panel interaction', () => {
     vi.restoreAllMocks()
     host = null
     app = null
+  })
+
+  it('clears the native selection after updating the selection-only scope so highlights become visible', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+    })
+    searchReplaceState.query = 'foo'
+    searchReplaceState.options.selectionOnly = true
+
+    openPanel(true)
+    await nextTick()
+    vi.runOnlyPendingTimers()
+
+    const textNode = document.querySelector('[data-node-id="block-1"] [contenteditable="true"]')?.firstChild as Text
+    const range = document.createRange()
+    range.setStart(textNode, 4)
+    range.setEnd(textNode, 11)
+    const selection = window.getSelection()!
+    const clearSelectionSpy = vi.spyOn(selection, 'removeAllRanges')
+    selection.removeAllRanges()
+    selection.addRange(range)
+    document.dispatchEvent(new Event('selectionchange'))
+
+    vi.runOnlyPendingTimers()
+    await nextTick()
+
+    expect(searchReplaceState.matches).toHaveLength(1)
+    expect(clearSelectionSpy).toHaveBeenCalledTimes(2)
   })
 
   it('immediately highlights matches inside the selected range after clicking the selection toggle', async () => {

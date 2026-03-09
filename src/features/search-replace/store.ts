@@ -45,6 +45,7 @@ const UI_STATE_STORAGE = 'ui-state.json'
 
 let refreshTimer = 0
 let persistTimer = 0
+let selectionRevealTimer = 0
 let pluginInstance: Plugin | null = null
 let lastEditorContext: EditorContext | null = null
 let lastHintedEditorContext: EditorContext | null = null
@@ -91,6 +92,7 @@ export function unbindPlugin() {
     return
   }
 
+  clearSelectionRevealTimer()
   document.removeEventListener('selectionchange', handleDocumentSelectionChange)
   document.removeEventListener('focusin', handleDocumentFocusIn, true)
   document.removeEventListener('input', handleDocumentInput, true)
@@ -186,6 +188,7 @@ export function closePanel() {
   searchReplaceState.visible = false
   searchReplaceState.busy = false
   searchReplaceState.error = ''
+  clearSelectionRevealTimer()
   lastEditorContext = null
   disconnectLiveRefreshObserver()
   clearSearchDecorations()
@@ -595,16 +598,48 @@ function handleDocumentSelectionChange() {
   const selectionContext = createEditorContextFromElement(anchorElement?.closest('.protyle'))
 
   if (selectionContext) {
+    const selectionScope = getCurrentSelectionScope(selectionContext)
     rememberHintedEditorContext(selectionContext)
     rememberEditorContext(selectionContext)
-    rememberSelectionScope(selectionContext, getCurrentSelectionScope(selectionContext))
+    rememberSelectionScope(selectionContext, selectionScope)
     if (searchReplaceState.visible && searchReplaceState.options.selectionOnly) {
       scheduleRefresh(0)
+      scheduleSelectionHighlightReveal(selectionContext)
     }
     return
   }
 
   rememberEditorContext(getActiveEditorContext())
+}
+
+function scheduleSelectionHighlightReveal(context: EditorContext) {
+  clearSelectionRevealTimer()
+  if (!searchReplaceState.query.trim()) {
+    return
+  }
+
+  selectionRevealTimer = window.setTimeout(() => {
+    if (!searchReplaceState.visible || !searchReplaceState.options.selectionOnly) {
+      return
+    }
+
+    const scope = getCurrentSelectionScope(context)
+    if (scope.size > 0) {
+      rememberHintedEditorContext(context)
+      rememberEditorContext(context)
+      rememberSelectionScope(context, scope)
+    }
+
+    const selection = window.getSelection()
+    if (selection?.rangeCount) {
+      selection.removeAllRanges()
+    }
+    scheduleRefresh(0)
+  }, 80)
+}
+
+function clearSelectionRevealTimer() {
+  window.clearTimeout(selectionRevealTimer)
 }
 
 function handleDocumentFocusIn(event: FocusEvent) {
