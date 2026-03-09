@@ -100,6 +100,46 @@ describe('search store live refresh', () => {
     document.body.innerHTML = ''
   })
 
+  it('does not jump back to the current match during passive refreshes', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+    })
+    searchReplaceState.query = 'foo'
+
+    searchEngineMocks.findMatches.mockImplementation(() => ({
+      error: '',
+      matches: [{
+        blockId: 'block-1',
+        blockIndex: 0,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-1:0:3',
+        matchedText: 'foo',
+        previewText: '[foo] bar',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      }],
+    }))
+
+    openPanel(true)
+    vi.runOnlyPendingTimers()
+
+    editorMocks.scrollMatchIntoView.mockClear()
+    editorMocks.syncSearchDecorations.mockClear()
+
+    const changedNode = document.createElement('div')
+    changedNode.textContent = 'foo bar'
+    editorMocks.state.context!.protyle.querySelector('.protyle-wysiwyg')?.appendChild(changedNode)
+
+    await Promise.resolve()
+    vi.runOnlyPendingTimers()
+
+    expect(editorMocks.syncSearchDecorations).toHaveBeenCalledTimes(1)
+    expect(editorMocks.scrollMatchIntoView).not.toHaveBeenCalled()
+  })
+
   it('refreshes matches when the current document DOM changes', async () => {
     applyPluginSettings({
       ...DEFAULT_SETTINGS,

@@ -238,7 +238,7 @@ export function goNext() {
   }
 
   searchReplaceState.currentIndex = (searchReplaceState.currentIndex + 1) % searchReplaceState.matches.length
-  revealCurrentMatch()
+  revealCurrentMatch(undefined, 'if-needed')
 }
 
 export function goPrev() {
@@ -247,7 +247,7 @@ export function goPrev() {
   }
 
   searchReplaceState.currentIndex = (searchReplaceState.currentIndex - 1 + searchReplaceState.matches.length) % searchReplaceState.matches.length
-  revealCurrentMatch()
+  revealCurrentMatch(undefined, 'if-needed')
 }
 
 export function skipCurrent() {
@@ -290,7 +290,7 @@ export async function replaceCurrent() {
     await refreshMatches()
     if (searchReplaceState.matches.length > 0) {
       searchReplaceState.currentIndex = Math.min(nextIndex, searchReplaceState.matches.length - 1)
-      revealCurrentMatch()
+      revealCurrentMatch(undefined, 'if-needed')
     }
     debugLog('replace-current:done', {
       blockId: match.blockId,
@@ -422,7 +422,7 @@ async function refreshMatches() {
     searchReplaceState.currentIndex = searchReplaceState.matches.length - 1
   }
 
-  revealCurrentMatch(context)
+  revealCurrentMatch(context, 'none')
 }
 
 function resolveEditorContext() {
@@ -666,7 +666,10 @@ function normalizePanelPosition(position: PanelPosition | null | undefined) {
   }
 }
 
-function revealCurrentMatch(context = resolveEditorContext()) {
+function revealCurrentMatch(
+  context = resolveEditorContext(),
+  scrollMode: 'if-needed' | 'none' = 'none',
+) {
   if (!context) {
     clearSearchDecorations()
     return
@@ -674,5 +677,9 @@ function revealCurrentMatch(context = resolveEditorContext()) {
 
   const currentMatch = getCurrentMatch()
   syncSearchDecorations(context, searchReplaceState.matches, currentMatch)
-  scrollMatchIntoView(context, currentMatch)
+  if (scrollMode === 'none') {
+    return
+  }
+
+  scrollMatchIntoView(context, currentMatch, scrollMode)
 }

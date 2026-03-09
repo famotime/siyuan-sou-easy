@@ -240,7 +240,11 @@ export function clearSearchDecorations(context?: EditorContext | null) {
   })
 }
 
-export function scrollMatchIntoView(context: EditorContext, match: SearchMatch | null) {
+export function scrollMatchIntoView(
+  context: EditorContext,
+  match: SearchMatch | null,
+  mode: 'always' | 'if-needed' = 'always',
+) {
   if (!match) {
     return
   }
@@ -250,10 +254,32 @@ export function scrollMatchIntoView(context: EditorContext, match: SearchMatch |
     return
   }
 
+  const scrollContainer = resolveScrollContainer(context)
+  if (mode === 'if-needed' && isElementVisibleWithinContainer(element, scrollContainer)) {
+    return
+  }
+
   element.scrollIntoView({
     behavior: 'smooth',
     block: 'center',
   })
+}
+
+function resolveScrollContainer(context: EditorContext) {
+  return context.protyle.querySelector<HTMLElement>('.protyle-content')
+    ?? context.protyle.querySelector<HTMLElement>('.protyle-wysiwyg')
+    ?? null
+}
+
+function isElementVisibleWithinContainer(element: HTMLElement, container: HTMLElement | null) {
+  const elementRect = element.getBoundingClientRect()
+
+  if (container) {
+    const containerRect = container.getBoundingClientRect()
+    return elementRect.top >= containerRect.top && elementRect.bottom <= containerRect.bottom
+  }
+
+  return elementRect.top >= 0 && elementRect.bottom <= window.innerHeight
 }
 
 export function applyReplacementsToClone(
