@@ -73,12 +73,30 @@
           </button>
           <button
             :class="optionButtonClass(state.options.selectionOnly)"
-            class="sfsr-button"
+            class="sfsr-button sfsr-icon-button"
+            aria-label="仅在选中范围内查找和替换"
             title="仅在选中范围内查找和替换"
             @pointerdown.prevent.stop="onSelectionOnlyPointerDown"
             @click.stop="onSelectionOnlyClick"
           >
-            选区
+            <svg
+              aria-hidden="true"
+              class="sfsr-toolbar-icon"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.4"
+            >
+              <path d="M4 2.75H2.75V5" />
+              <path d="M12 2.75H13.25V5" />
+              <path d="M4 13.25H2.75V11" />
+              <path d="M12 13.25H13.25V11" />
+              <path d="M5.25 6H10.75" />
+              <path d="M5.25 8H10.75" />
+              <path d="M5.25 10H8.75" />
+            </svg>
           </button>
 
           <div class="sfsr-count">{{ counterText }}</div>

@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Top Bar Icon Candidates</title>
+  <style>
+    :root {
+      --bg: #f4efe5;
+      --panel: rgba(255, 251, 244, 0.82);
+      --panel-strong: rgba(255, 248, 237, 0.94);
+      --ink: #1b2d2a;
+      --muted: #5f6d68;
+      --line: rgba(27, 45, 42, 0.14);
+      --accent: #b64f24;
+      --accent-soft: rgba(182, 79, 36, 0.14);
+      --shadow: 0 24px 60px rgba(49, 35, 22, 0.14);
+      --radius: 26px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(182, 79, 36, 0.14), transparent 28rem),
+        radial-gradient(circle at bottom right, rgba(27, 45, 42, 0.14), transparent 26rem),
+        linear-gradient(180deg, #f7f2e9 0%, var(--bg) 100%);
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.28;
+      background-image:
+        linear-gradient(rgba(27, 45, 42, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(27, 45, 42, 0.03) 1px, transparent 1px);
+      background-size: 24px 24px;
+      mask-image: radial-gradient(circle at center, black 45%, transparent 100%);
+    }
+
+    .page {
+      width: min(1200px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 48px 0 64px;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 32px;
+      border: 1px solid var(--line);
+      border-radius: calc(var(--radius) + 8px);
+      background: linear-gradient(135deg, rgba(255, 252, 248, 0.9), rgba(244, 235, 220, 0.88));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      top: -80px;
+      right: -40px;
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(182, 79, 36, 0.18) 0%, transparent 66%);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.55);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: '';
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 6px var(--accent-soft);
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      font-family: Georgia, 'Times New Roman', serif;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    h1 {
+      margin-top: 20px;
+      font-size: clamp(34px, 5vw, 60px);
+      line-height: 0.98;
+      max-width: 12ch;
+    }
+
+    .lede {
+      max-width: 64ch;
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .meta {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      margin-top: 28px;
+    }
+
+    .meta-card {
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.52);
+    }
+
+    .meta-card strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .meta-card span {
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .grid {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      margin-top: 28px;
+    }
+
+    .card {
+      position: relative;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, var(--panel-strong), var(--panel));
+      box-shadow: 0 18px 40px rgba(49, 35, 22, 0.08);
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: auto -20px -65px auto;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(182, 79, 36, 0.12) 0%, transparent 70%);
+    }
+
+    .card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 44px;
+      height: 28px;
+      padding: 0 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(182, 79, 36, 0.22);
+      background: rgba(182, 79, 36, 0.08);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .badge.current {
+      color: #0f5a4a;
+      border-color: rgba(15, 90, 74, 0.22);
+      background: rgba(15, 90, 74, 0.08);
+    }
+
+    .icon-stage {
+      display: grid;
+      place-items: center;
+      width: 110px;
+      height: 110px;
+      margin-top: 20px;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(247, 240, 227, 0.92));
+    }
+
+    .icon-stage svg {
+      width: 52px;
+      height: 52px;
+      color: var(--ink);
+    }
+
+    .name {
+      margin-top: 18px;
+      font-size: 26px;
+      line-height: 1.05;
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .desc {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    .tokens {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .token {
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.58);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .choice {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+      font-size: 13px;
+      color: var(--ink);
+    }
+
+    .footer {
+      margin-top: 28px;
+      padding: 22px 24px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: rgba(255, 251, 244, 0.78);
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    code {
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(27, 45, 42, 0.08);
+      color: var(--ink);
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+      font-size: 0.95em;
+    }
+
+    @media (max-width: 720px) {
+      .page {
+        width: min(100% - 20px, 1200px);
+        padding: 20px 0 36px;
+      }
+
+      .hero,
+      .card,
+      .footer {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <div class="eyebrow">Search Replace Plugin</div>
+      <h1>Top bar icon candidates for selection</h1>
+      <p class="lede">
+        Every option below fits the current plugin wiring: a 24x24 single-color SVG symbol passed into
+        <code>addTopBar({ icon })</code>. The strongest direction is to keep a custom symbol instead of
+        falling back to a generic built-in search icon.
+      </p>
+      <div class="meta">
+        <div class="meta-card">
+          <strong>Current wiring</strong>
+          <span><code>src/index.ts</code> uses a custom symbol ID from <code>src/icons.ts</code>.</span>
+        </div>
+        <div class="meta-card">
+          <strong>Best fit</strong>
+          <span>Pick an icon that reads as "search plus action", not just "search".</span>
+        </div>
+        <div class="meta-card">
+          <strong>Selection hint</strong>
+          <span>Reply with a candidate number like <code>02</code> or <code>05</code>.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <div class="card-head">
+          <div>
+            <div class="badge current">Current</div>
+          </div>
+          <div class="badge">01</div>
+        </div>
+        <div class="icon-stage">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <circle cx="10.5" cy="10.5" r="5.75" stroke-width="1.75"></circle>
+            <path d="M15 15L19 19" stroke-width="1.75" stroke-linecap="round"></path>
+            <path d="M5 18H13" stroke-width="1.75" stroke-linecap="round"></path>
+            <path d="M11 16L13 18L11 20" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </div>
+        <h2 class="name">Lens Swap</h2>
+        <div class="subtitle">Balanced / Most literal</div>
+        <p class="desc">
+          The current mark is already clear: lens for find, arrow for replace. It is the safest option if
+          you want to preserve recognition and ship fast.
+        </p>
+        <div class="tokens">
+          <span class="token">clear meaning</span>
+          <span class="token">stable</span>
+          <span class="token">already implemented</span>
+        </div>
+        <div class="choice">Choose this if you want minimal risk and no change-management cost.</div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <div class="badge">Recommended</div>
+          <div class="badge">02</div>
+        </div>
+        <div class="icon-stage">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <circle cx="9.75" cy="9.75" r="4.75" stroke-width="1.8"></circle>
+            <path d="M13.25 13.25L18 18" stroke-width="1.8" stroke-linecap="round"></path>
+            <path d="M4.75 18H12.5" stroke-width="1.8" stroke-linecap="round"></path>
+            <path d="M10.25 16L12.5 18L10.25 20" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path d="M14.25 6.25H19.25" stroke-width="1.8" stroke-linecap="round"></path>
+            <path d="M17 4L19.25 6.25L17 8.5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </div>
+        <h2 class="name">Dual Motion</h2>
+        <div class="subtitle">Search + replace emphasis</div>
+        <p class="desc">
+          Adds a second directional cue so the icon reads more like a tool than a passive finder. Strong
+          candidate if you want the top bar button to suggest action.
+        </p>
+        <div class="tokens">
+          <span class="token">best overall</span>
+          <span class="token">more dynamic</span>
+          <span class="token">still compact</span>
+        </div>
+        <div class="choice">Recommended default if you want a visible upgrade from the current icon.</div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <div class="badge">Recommended</div>
+          <div class="badge">03</div>
+        </div>
+        <div class="icon-stage">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path d="M6 4.75H13.75L17.25 8.25V18.75H6Z" stroke-width="1.75" stroke-linejoin="round"></path>
+            <path d="M13.75 4.75V8.25H17.25" stroke-width="1.75" stroke-linejoin="round"></path>
+            <circle cx="10.25" cy="12.25" r="2.9" stroke-width="1.75"></circle>
+            <path d="M12.35 14.35L14.9 16.9" stroke-width="1.75" stroke-linecap="round"></path>
+            <path d="M7.5 18.25H13.5" stroke-width="1.75" stroke-linecap="round"></path>
+            <path d="M11.3 16.7L13.5 18.25L11.3 19.8" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </div>
+        <h2 class="name">Doc Lens</h2>
+        <div class="subtitle">Document-centric</div>
+        <p class="desc">
+          Makes sense for a plugin that works inside the current document. The folded-corner page improves
+          recognition in a crowded top bar where many icons are purely abstract.
+        </p>
+        <div class="tokens">
+          <span class="token">document context</span>
+          <span class="token">recognizable</span>
+          <span class="token">editor-first</span>
+        </div>
+        <div class="choice">Best if you want the icon to feel native to note editing, not just search.</div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <div class="badge">04</div>
+          <div class="badge">Utility</div>
+        </div>
+        <div class="icon-stage">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path d="M7 5.5H4.75V18.5H7" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path d="M17 5.5H19.25V18.5H17" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path d="M8.75 9H15.5" stroke-width="1.85" stroke-linecap="round"></path>
+            <path d="M8.75 15H15.5" stroke-width="1.85" stroke-linecap="round"></path>
+            <path d="M10.75 12H15.25" stroke-width="1.85" stroke-linecap="round"></path>
+            <path d="M13.25 10L15.5 12L13.25 14" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </div>
+        <h2 class="name">Bracket Replace</h2>
+        <div class="subtitle">Technical / Tooling feel</div>
+        <p class="desc">
+          Reads like text transformation. Less friendly than a lens, but sharper for users who think in
+          terms of precise replace operations.
+        </p>
+        <div class="tokens">
+          <span class="token">developer tone</span>
+          <span class="token">precise</span>
+          <span class="token">less mainstream</span>
+        </div>
+        <div class="choice">Use this if you want the plugin to feel more like a power tool.</div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <div class="badge">05</div>
+          <div class="badge">Friendly</div>
+        </div>
+        <div class="icon-stage">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <circle cx="10" cy="10" r="4.75" stroke-width="1.75"></circle>
+            <path d="M13.5 13.5L18.25 18.25" stroke-width="1.75" stroke-linecap="round"></path>
+            <path d="M6 18.25H14.5" stroke-width="1.75" stroke-linecap="round"></path>
+            <path d="M15.5 16.25V20.25" stroke-width="1.75" stroke-linecap="round"></path>
+            <path d="M13.5 18.25H17.5" stroke-width="1.75" stroke-linecap="round"></path>
+          </svg>
+        </div>
+        <h2 class="name">Lens Plus</h2>
+        <div class="subtitle">Simple / easy-going</div>
+        <p class="desc">
+          More approachable than an arrow-heavy mark. The plus sign suggests an active helper without
+          pushing too hard on the semantics of replace.
+        </p>
+        <div class="tokens">
+          <span class="token">friendly</span>
+          <span class="token">clean silhouette</span>
+          <span class="token">lighter meaning</span>
+        </div>
+        <div class="choice">Choose this if you want softer branding around the plugin.</div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <div class="badge">06</div>
+          <div class="badge">Bold</div>
+        </div>
+        <div class="icon-stage">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path d="M4.75 6.25H14.75" stroke-width="1.85" stroke-linecap="round"></path>
+            <path d="M4.75 10.25H11.25" stroke-width="1.85" stroke-linecap="round"></path>
+            <path d="M4.75 14.25H14.75" stroke-width="1.85" stroke-linecap="round"></path>
+            <path d="M4.75 18.25H9.75" stroke-width="1.85" stroke-linecap="round"></path>
+            <circle cx="17.25" cy="9.25" r="2.75" stroke-width="1.75"></circle>
+            <path d="M19.2 11.2L21 13" stroke-width="1.75" stroke-linecap="round"></path>
+            <path d="M13.5 18.25H19" stroke-width="1.85" stroke-linecap="round"></path>
+            <path d="M16.75 16L19 18.25L16.75 20.5" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </div>
+        <h2 class="name">Line Finder</h2>
+        <div class="subtitle">Text-line oriented</div>
+        <p class="desc">
+          This one looks closest to "find in text". It works well if your users mainly perceive the plugin
+          as an editor toolbar utility rather than a standalone feature.
+        </p>
+        <div class="tokens">
+          <span class="token">text oriented</span>
+          <span class="token">distinct silhouette</span>
+          <span class="token">denser</span>
+        </div>
+        <div class="choice">Good if you want a more editorial, document-line flavor.</div>
+      </article>
+    </section>
+
+    <section class="footer">
+      Strong shortlist: <code>02 Dual Motion</code>, <code>03 Doc Lens</code>, <code>01 Lens Swap</code>.
+      If you want, I can apply the selected icon directly in <code>src/icons.ts</code> and commit it as a
+      separate change.
+    </section>
+  </div>
+</body>
+</html>

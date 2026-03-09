@@ -120,8 +120,11 @@ describe('search panel replace toggle', () => {
     await nextTick()
 
     const selectionButton = host?.querySelector<HTMLButtonElement>('button[title="仅在选中范围内查找和替换"]')
+    const selectionIcon = selectionButton?.querySelector<SVGElement>('.sfsr-toolbar-icon')
 
     expect(selectionButton).not.toBeNull()
+    expect(selectionIcon).not.toBeNull()
+    expect(selectionButton?.textContent?.trim()).toBe('')
     expect((searchReplaceState.options as any).selectionOnly).toBe(false)
 
     selectionButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))

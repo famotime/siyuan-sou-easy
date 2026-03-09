@@ -70,4 +70,13 @@ describe('plugin top bar icon', () => {
       icon: expect.not.stringMatching(/^iconSearch$/),
     }))
   })
+
+  it('uses the bracket replace symbol design', async () => {
+    const { SEARCH_REPLACE_TOP_BAR_ICON } = await import('@/icons')
+
+    expect(SEARCH_REPLACE_TOP_BAR_ICON).not.toContain('<circle')
+    expect(SEARCH_REPLACE_TOP_BAR_ICON).toContain('d="M7 5.5H4.75V18.5H7"')
+    expect(SEARCH_REPLACE_TOP_BAR_ICON).toContain('d="M17 5.5H19.25V18.5H17"')
+    expect(SEARCH_REPLACE_TOP_BAR_ICON).toContain('d="M13.25 10L15.5 12L13.25 14"')
+  })
 })

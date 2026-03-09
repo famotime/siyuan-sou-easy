@@ -84,6 +84,12 @@
   padding: 0;
 }
 
+.sfsr-toolbar-icon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
 .sfsr-replace-toggle {
   flex: 0 0 var(--sfsr-control-height);
   align-self: flex-start;
