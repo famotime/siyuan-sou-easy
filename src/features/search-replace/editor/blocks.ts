@@ -1,6 +1,7 @@
 import {
   CODE_NODE_TYPE,
   SUPPORTED_NODE_TYPES,
+  TABLE_NODE_TYPE,
 } from './constants'
 import type {
   EditorContext,
@@ -76,7 +77,7 @@ function getEditableRoots(blockElement: HTMLElement) {
       return false
     }
 
-    return getOwnerBlock(candidate) === blockElement
+    return isOwnedByBlock(candidate, blockElement)
   })
 }
 
@@ -92,7 +93,7 @@ function collectTextNodes(root: HTMLElement, ownerBlock: HTMLElement) {
         return NodeFilter.FILTER_REJECT
       }
 
-      if (getOwnerBlock(parentElement) !== ownerBlock) {
+      if (!isOwnedByBlock(parentElement, ownerBlock)) {
         return NodeFilter.FILTER_REJECT
       }
 
@@ -112,4 +113,14 @@ function collectTextNodes(root: HTMLElement, ownerBlock: HTMLElement) {
 
 function getOwnerBlock(element: Element) {
   return element.closest<HTMLElement>('[data-node-id][data-type]')
+}
+
+function isOwnedByBlock(element: Element, ownerBlock: HTMLElement) {
+  const nearestBlock = getOwnerBlock(element)
+  if (nearestBlock === ownerBlock) {
+    return true
+  }
+
+  return ownerBlock.dataset.type === TABLE_NODE_TYPE
+    && Boolean(nearestBlock && ownerBlock.contains(nearestBlock))
 }

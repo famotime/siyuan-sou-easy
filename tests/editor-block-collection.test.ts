@@ -8,10 +8,12 @@ import {
 } from 'vitest'
 
 import {
+  applyReplacementsToClone,
   collectSearchableBlocks,
   createEditorContextFromElement,
   getBlockPlainText,
 } from '@/features/search-replace/editor'
+import { findMatches } from '@/features/search-replace/search-engine'
 import type { SearchOptions } from '@/features/search-replace/types'
 
 const defaultOptions: SearchOptions = {
@@ -27,7 +29,7 @@ describe('editor block collection', () => {
     document.body.innerHTML = ''
   })
 
-  it('collects only supported searchable blocks and strips attribute text', () => {
+  it('collects supported searchable blocks and strips attribute text', () => {
     document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-background" data-node-id="root-1"></div>
@@ -70,7 +72,61 @@ describe('editor block collection', () => {
         blockId: 'block-1',
         text: 'Alpha Beta',
       },
+      {
+        blockId: 'block-3',
+        text: 'Skip this block',
+      },
     ])
-    expect(withCodeBlocks.map(block => block.blockId)).toEqual(['block-1', 'block-2'])
+    expect(withCodeBlocks.map(block => block.blockId)).toEqual(['block-1', 'block-2', 'block-3'])
+  })
+
+  it('collects text from table cells so table content can be searched and replaced', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-background" data-node-id="root-1"></div>
+        <div class="protyle-title" data-node-id="root-1"></div>
+        <input class="protyle-title__input" value="Doc 1" />
+        <div class="protyle-wysiwyg">
+          <div data-node-id="block-table" data-type="NodeTable">
+            <div class="table__row">
+              <div data-node-id="cell-1" data-type="NodeTableCell" class="table__cell">
+                <div contenteditable="true">Cell Alpha</div>
+              </div>
+              <div data-node-id="cell-2" data-type="NodeTableCell" class="table__cell">
+                <div contenteditable="true">Cell Beta</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    const context = createEditorContextFromElement(protyle)!
+    const tableBlock = document.querySelector<HTMLElement>('[data-node-id="block-table"]')!
+
+    expect(getBlockPlainText(tableBlock)).toBe('Cell AlphaCell Beta')
+
+    const blocks = collectSearchableBlocks(context, defaultOptions)
+    const matches = findMatches(blocks, 'Alpha', defaultOptions).matches
+
+    expect(blocks.map(block => ({
+      blockId: block.blockId,
+      blockType: block.blockType,
+      text: block.text,
+    }))).toEqual([
+      {
+        blockId: 'block-table',
+        blockType: 'NodeTable',
+        text: 'Cell AlphaCell Beta',
+      },
+    ])
+
+    const outcome = applyReplacementsToClone(tableBlock, [matches[0]!], 'Omega')
+
+    expect(matches).toHaveLength(1)
+    expect(matches[0]?.replaceable).toBe(true)
+    expect(outcome.appliedCount).toBe(1)
+    expect(getBlockPlainText(outcome.clone as HTMLElement)).toBe('Cell OmegaCell Beta')
   })
 })
