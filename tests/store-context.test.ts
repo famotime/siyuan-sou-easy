@@ -360,6 +360,7 @@ describe('search store editor context fallback', () => {
 function resetState() {
   searchReplaceState.visible = false
   searchReplaceState.replaceVisible = DEFAULT_SETTINGS.defaultReplaceVisible
+  ;(searchReplaceState as any).minimapVisible = false
   searchReplaceState.panelPosition = null
   searchReplaceState.settings = { ...DEFAULT_SETTINGS }
   searchReplaceState.query = ''

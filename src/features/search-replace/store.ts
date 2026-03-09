@@ -57,6 +57,7 @@ let lastSelectionScopeRootId = ''
 export const searchReplaceState = reactive({
   visible: false,
   replaceVisible: DEFAULT_SETTINGS.defaultReplaceVisible,
+  minimapVisible: false,
   panelPosition: null as PanelPosition | null,
   settings: { ...DEFAULT_SETTINGS } as PluginSettings,
   query: '',
@@ -200,6 +201,10 @@ export function setReplacement(value: string) {
 
 export function toggleReplaceVisible() {
   searchReplaceState.replaceVisible = !searchReplaceState.replaceVisible
+}
+
+export function toggleMinimapVisible() {
+  searchReplaceState.minimapVisible = !searchReplaceState.minimapVisible
 }
 
 export function toggleOption(option: keyof SearchOptions) {

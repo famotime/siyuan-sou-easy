@@ -131,6 +131,24 @@ describe('search panel replace toggle', () => {
     expect(selectionButton?.classList.contains('sfsr-button--active')).toBe(true)
   })
 
+  it('toggles minimap visibility from the toolbar button', async () => {
+    mountPanel()
+    applyPluginSettings({ ...DEFAULT_SETTINGS })
+    openPanel(true)
+    await nextTick()
+
+    const minimapButton = host?.querySelector<HTMLButtonElement>('button[title="显示文档缩略图"]')
+
+    expect(minimapButton).not.toBeNull()
+    expect((searchReplaceState as any).minimapVisible).toBe(false)
+
+    minimapButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await nextTick()
+
+    expect((searchReplaceState as any).minimapVisible).toBe(true)
+    expect(minimapButton?.classList.contains('sfsr-button--active')).toBe(true)
+  })
+
   it('opens with a narrower default width to keep the toolbar compact', async () => {
     mountPanel()
     applyPluginSettings({ ...DEFAULT_SETTINGS })
@@ -315,6 +333,7 @@ describe('search panel replace toggle', () => {
   function resetState() {
     searchReplaceState.visible = false
     searchReplaceState.replaceVisible = DEFAULT_SETTINGS.defaultReplaceVisible
+    ;(searchReplaceState as any).minimapVisible = false
     searchReplaceState.panelPosition = null
     searchReplaceState.query = ''
     searchReplaceState.replacement = ''

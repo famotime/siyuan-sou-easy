@@ -79,6 +79,14 @@
           >
             选区
           </button>
+          <button
+            :class="optionButtonClass(state.minimapVisible)"
+            class="sfsr-button"
+            title="显示文档缩略图"
+            @click="toggleMinimapVisible"
+          >
+            缩略
+          </button>
 
           <div class="sfsr-count">{{ counterText }}</div>
 
@@ -173,6 +181,36 @@
       {{ statusText }}
     </div>
   </div>
+
+  <div
+    v-if="minimapState"
+    ref="minimapRef"
+    class="sfsr-minimap"
+    :style="minimapStyle"
+  >
+    <div
+      class="sfsr-minimap__track"
+      @click="onMinimapTrackClick"
+    >
+      <div
+        v-for="marker in minimapState.markers"
+        :key="marker.id"
+        class="sfsr-minimap__marker"
+        :class="{ 'sfsr-minimap__marker--current': marker.current }"
+        :style="{
+          height: `${marker.height}px`,
+          top: `${marker.top}px`,
+        }"
+      />
+      <div
+        class="sfsr-minimap__viewport"
+        :style="{
+          height: `${minimapState.viewportHeight}px`,
+          top: `${minimapState.viewportTop}px`,
+        }"
+      />
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -184,6 +222,11 @@ import {
   watch,
 } from 'vue'
 import SyButton from '@/components/SiyuanTheme/SyButton.vue'
+import {
+  findEditorContextByRootId,
+  getActiveEditorContext,
+  getBlockElement,
+} from '@/features/search-replace/editor'
 import {
   closePanel,
   getCurrentMatch,
@@ -198,18 +241,49 @@ import {
   setQuery,
   setReplacement,
   skipCurrent,
+  toggleMinimapVisible,
   toggleOption,
   toggleReplaceVisible,
 } from '@/features/search-replace/store'
+import type {
+  EditorContext,
+  SearchMatch,
+} from '@/features/search-replace/types'
 
 const PANEL_MARGIN = 8
 const DEFAULT_PANEL_WIDTH = 648
 const MIN_PANEL_WIDTH = 420
+const MINIMAP_GAP = 12
+const MINIMAP_WIDTH = 84
+const MINIMAP_MIN_HEIGHT = 140
+const MINIMAP_MAX_HEIGHT = 360
+const MINIMAP_VIEWPORT_MIN_HEIGHT = 28
+const MINIMAP_MARKER_MIN_HEIGHT = 3
+
+interface MinimapMarker {
+  current: boolean
+  height: number
+  id: string
+  top: number
+}
+
+interface MinimapLayout {
+  clientHeight: number
+  height: number
+  markers: MinimapMarker[]
+  right: number
+  scrollHeight: number
+  top: number
+  viewportHeight: number
+  viewportTop: number
+}
 
 const findInputRef = ref<HTMLInputElement>()
 const replaceInputRef = ref<HTMLInputElement>()
 const panelRef = ref<HTMLDivElement>()
+const minimapRef = ref<HTMLDivElement>()
 const panelWidth = ref(resolveDefaultPanelWidth())
+const minimapState = ref<MinimapLayout | null>(null)
 const NON_DRAG_SELECTOR = [
   'input',
   'textarea',
@@ -233,6 +307,7 @@ let resizeState: {
   panelRight: number
   panelTop: number
 } | null = null
+let minimapScrollContainer: HTMLElement | null = null
 let isFindComposing = false
 let isReplaceComposing = false
 
@@ -300,6 +375,19 @@ const panelStyle = computed(() => {
     left: `${state.panelPosition.left}px`,
     top: `${state.panelPosition.top}px`,
     transform: 'none',
+  }
+})
+
+const minimapStyle = computed(() => {
+  if (!minimapState.value) {
+    return undefined
+  }
+
+  return {
+    height: `${minimapState.value.height}px`,
+    right: `${minimapState.value.right}px`,
+    top: `${minimapState.value.top}px`,
+    width: `${MINIMAP_WIDTH}px`,
   }
 })
 
@@ -459,11 +547,7 @@ function stopDrag(event?: PointerEvent) {
 }
 
 function onResizeMove(event: PointerEvent) {
-  if (!resizeState) {
-    return
-  }
-
-  if (event.pointerId !== resizeState.pointerId) {
+  if (!resizeState || event.pointerId !== resizeState.pointerId) {
     return
   }
 
@@ -491,6 +575,42 @@ function stopResize(event?: PointerEvent) {
 
 function resetPanelPosition() {
   resetStoredPanelPosition()
+}
+
+function onMinimapTrackClick(event: MouseEvent) {
+  if (!minimapState.value || !minimapScrollContainer) {
+    return
+  }
+
+  const track = event.currentTarget instanceof HTMLElement
+    ? event.currentTarget
+    : minimapRef.value?.querySelector<HTMLElement>('.sfsr-minimap__track')
+  if (!track) {
+    return
+  }
+
+  const rect = track.getBoundingClientRect()
+  const trackHeight = rect.height > 0 ? rect.height : minimapState.value.height
+  const trackTop = rect.height > 0 ? rect.top : minimapState.value.top
+  const maxScrollTop = Math.max(0, minimapState.value.scrollHeight - minimapState.value.clientHeight)
+  const clickOffset = clamp(event.clientY - trackTop, 0, trackHeight)
+  const ratio = trackHeight > 0 ? clickOffset / trackHeight : 0
+  const nextScrollTop = clamp(
+    (ratio * minimapState.value.scrollHeight) - (minimapState.value.clientHeight / 2),
+    0,
+    maxScrollTop,
+  )
+
+  if (typeof minimapScrollContainer.scrollTo === 'function') {
+    minimapScrollContainer.scrollTo({
+      behavior: 'auto',
+      top: nextScrollTop,
+    })
+  } else {
+    minimapScrollContainer.scrollTop = nextScrollTop
+  }
+
+  refreshMinimap()
 }
 
 function canStartPanelDrag(target: EventTarget | null) {
@@ -539,14 +659,127 @@ function resolveDefaultPanelWidth() {
   return clampPanelWidth(DEFAULT_PANEL_WIDTH)
 }
 
-function handleViewportResize() {
-  panelWidth.value = clampPanelWidth(panelWidth.value)
+function clearMinimap() {
+  minimapState.value = null
+  syncMinimapScrollContainer(null)
+}
 
-  if (!state.panelPosition) {
+function handleMinimapScroll() {
+  refreshMinimap()
+}
+
+function refreshMinimap() {
+  if (!state.visible || !state.minimapVisible) {
+    clearMinimap()
     return
   }
 
-  setPanelPosition(clampPanelPosition(state.panelPosition), false)
+  const context = resolveMinimapContext()
+  if (!context) {
+    clearMinimap()
+    return
+  }
+
+  const scrollContainer = resolveMinimapScrollContainer(context)
+  const scrollRect = scrollContainer.getBoundingClientRect()
+  if (scrollRect.height <= 0) {
+    clearMinimap()
+    return
+  }
+
+  const scrollHeight = Math.max(scrollContainer.scrollHeight || 0, scrollRect.height, 1)
+  const clientHeight = Math.max(scrollContainer.clientHeight || scrollRect.height, 1)
+  const scrollTop = clamp(scrollContainer.scrollTop || 0, 0, Math.max(0, scrollHeight - clientHeight))
+  const height = clamp(scrollRect.height - 16, MINIMAP_MIN_HEIGHT, MINIMAP_MAX_HEIGHT)
+  const viewportHeight = Math.min(
+    height,
+    Math.max(MINIMAP_VIEWPORT_MIN_HEIGHT, (clientHeight / scrollHeight) * height),
+  )
+  const maxViewportTop = Math.max(0, height - viewportHeight)
+  const maxScrollTop = Math.max(0, scrollHeight - clientHeight)
+  const viewportTop = maxScrollTop > 0
+    ? (scrollTop / maxScrollTop) * maxViewportTop
+    : 0
+
+  minimapState.value = {
+    clientHeight,
+    height,
+    markers: state.matches
+      .map(match => projectMinimapMarker(context, scrollContainer, scrollRect, scrollHeight, height, match))
+      .filter(Boolean) as MinimapMarker[],
+    right: Math.max(PANEL_MARGIN, window.innerWidth - scrollRect.right + MINIMAP_GAP),
+    scrollHeight,
+    top: clamp(scrollRect.top, PANEL_MARGIN, Math.max(PANEL_MARGIN, window.innerHeight - height - PANEL_MARGIN)),
+    viewportHeight,
+    viewportTop,
+  }
+  syncMinimapScrollContainer(scrollContainer)
+}
+
+function resolveMinimapContext() {
+  if (state.currentRootId) {
+    return findEditorContextByRootId(state.currentRootId, state.currentTitle) ?? getActiveEditorContext()
+  }
+
+  return getActiveEditorContext()
+}
+
+function resolveMinimapScrollContainer(context: EditorContext) {
+  return context.protyle.querySelector<HTMLElement>('.protyle-content')
+    ?? context.protyle.querySelector<HTMLElement>('.protyle-wysiwyg')
+    ?? context.protyle
+}
+
+function projectMinimapMarker(
+  context: EditorContext,
+  scrollContainer: HTMLElement,
+  scrollRect: DOMRect,
+  scrollHeight: number,
+  minimapHeight: number,
+  match: SearchMatch,
+) {
+  const blockElement = getBlockElement(context, match.blockId)
+  if (!blockElement) {
+    return null
+  }
+
+  const blockRect = blockElement.getBoundingClientRect()
+  const markerHeight = Math.max(
+    MINIMAP_MARKER_MIN_HEIGHT,
+    (Math.max(blockRect.height, 12) / scrollHeight) * minimapHeight,
+  )
+  const markerTop = clamp(
+    ((blockRect.top - scrollRect.top + scrollContainer.scrollTop) / scrollHeight) * minimapHeight,
+    0,
+    Math.max(0, minimapHeight - markerHeight),
+  )
+
+  return {
+    current: currentMatch.value?.id === match.id,
+    height: markerHeight,
+    id: match.id,
+    top: markerTop,
+  }
+}
+
+function syncMinimapScrollContainer(nextContainer: HTMLElement | null) {
+  if (minimapScrollContainer === nextContainer) {
+    return
+  }
+
+  minimapScrollContainer?.removeEventListener('scroll', handleMinimapScroll)
+  minimapScrollContainer = nextContainer
+  minimapScrollContainer?.addEventListener('scroll', handleMinimapScroll)
+}
+
+function handleViewportResize() {
+  panelWidth.value = clampPanelWidth(panelWidth.value)
+
+  if (state.panelPosition) {
+    setPanelPosition(clampPanelPosition(state.panelPosition), false)
+  }
+
+  refreshMinimap()
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -559,6 +792,7 @@ watch(
     if (!visible) {
       stopDrag()
       stopResize()
+      clearMinimap()
       return
     }
 
@@ -569,6 +803,7 @@ watch(
     }
     findInputRef.value?.focus()
     findInputRef.value?.select()
+    refreshMinimap()
   },
 )
 
@@ -588,11 +823,26 @@ watch(
   },
 )
 
+watch(
+  () => [
+    state.visible,
+    state.minimapVisible,
+    state.currentRootId,
+    state.currentTitle,
+    state.currentIndex,
+    state.matches.map(match => match.id).join('|'),
+  ],
+  () => {
+    refreshMinimap()
+  },
+)
+
 window.addEventListener('resize', handleViewportResize)
 
 onBeforeUnmount(() => {
   stopDrag()
   stopResize()
+  clearMinimap()
   window.removeEventListener('resize', handleViewportResize)
 })
 </script>
