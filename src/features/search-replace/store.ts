@@ -207,6 +207,23 @@ export function toggleMinimapVisible() {
   searchReplaceState.minimapVisible = !searchReplaceState.minimapVisible
 }
 
+export function captureCurrentSelectionScope() {
+  const context = getActiveEditorContext()
+  if (!context) {
+    return false
+  }
+
+  const scope = getCurrentSelectionScope(context)
+  if (!scope.size) {
+    return false
+  }
+
+  rememberHintedEditorContext(context)
+  rememberEditorContext(context)
+  rememberSelectionScope(context, scope)
+  return true
+}
+
 export function toggleOption(option: keyof SearchOptions) {
   searchReplaceState.options[option] = !searchReplaceState.options[option]
   scheduleRefresh(0)

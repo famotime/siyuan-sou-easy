@@ -75,7 +75,8 @@
             :class="optionButtonClass(state.options.selectionOnly)"
             class="sfsr-button"
             title="仅在选中范围内查找和替换"
-            @click="toggleOption('selectionOnly')"
+            @pointerdown.prevent.stop="onSelectionOnlyPointerDown"
+            @click.stop="onSelectionOnlyClick"
           >
             选区
           </button>
@@ -246,6 +247,7 @@ import {
   getBlockElement,
 } from '@/features/search-replace/editor'
 import {
+  captureCurrentSelectionScope,
   closePanel,
   getCurrentMatch,
   goNext,
@@ -418,6 +420,25 @@ function optionButtonClass(active: boolean) {
 
 function toggleOptionsPanel() {
   optionsPanelVisible.value = !optionsPanelVisible.value
+}
+
+function onSelectionOnlyPointerDown() {
+  if (!state.options.selectionOnly) {
+    captureCurrentSelectionScope()
+  }
+}
+
+function onSelectionOnlyClick() {
+  const enabling = !state.options.selectionOnly
+  if (enabling) {
+    captureCurrentSelectionScope()
+  }
+
+  toggleOption('selectionOnly')
+
+  if (enabling) {
+    window.getSelection()?.removeAllRanges()
+  }
 }
 
 function onFindInput(event: Event) {
