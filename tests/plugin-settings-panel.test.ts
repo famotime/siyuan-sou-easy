@@ -1,0 +1,92 @@
+// @vitest-environment jsdom
+
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
+
+const loadSettings = vi.fn().mockResolvedValue({
+  debugLog: false,
+  defaultReplaceVisible: false,
+  includeCodeBlock: false,
+  minimapVisible: false,
+  panelHotkey: 'Ctrl+F11',
+  preserveCase: false,
+  preloadSelection: true,
+  rememberPanelPosition: true,
+  replacePanelHotkey: 'Ctrl+F12',
+})
+
+vi.mock('@/main', () => ({
+  destroy: vi.fn(),
+  init: vi.fn().mockResolvedValue(undefined),
+}))
+
+vi.mock('@/features/search-replace/store', () => ({
+  applyPluginSettings: vi.fn(),
+  onEditorContextChanged: vi.fn(),
+  openPanel: vi.fn(),
+}))
+
+vi.mock('@/settings', () => ({
+  DEFAULT_SETTINGS: {
+    debugLog: false,
+    defaultReplaceVisible: false,
+    includeCodeBlock: false,
+    minimapVisible: false,
+    panelHotkey: 'Ctrl+F11',
+    preserveCase: false,
+    preloadSelection: true,
+    rememberPanelPosition: true,
+    replacePanelHotkey: 'Ctrl+F12',
+  },
+  loadSettings,
+  normalizeSettings: vi.fn(value => value),
+  saveSettings: vi.fn(),
+}))
+
+describe('plugin settings panel', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.resetModules()
+  })
+
+  it('registers a minimap toggle in the plugin settings panel', async () => {
+    const { Setting } = await import('siyuan')
+    const addItemSpy = vi.spyOn(Setting.prototype, 'addItem')
+    const { default: FriendlySearchReplacePlugin } = await import('@/index')
+
+    const plugin = new FriendlySearchReplacePlugin()
+    plugin.i18n = {
+      settingDebugLogDesc: 'debug',
+      settingDebugLogTitle: 'Debug',
+      settingDefaultReplaceVisibleDesc: 'default replace',
+      settingDefaultReplaceVisibleTitle: 'Default replace',
+      settingIncludeCodeBlockDesc: 'include code',
+      settingIncludeCodeBlockTitle: 'Include code',
+      settingMinimapDesc: 'show minimap on panel',
+      settingMinimapTitle: 'Document minimap',
+      settingPanelHotkeyDesc: 'panel hotkey',
+      settingPanelHotkeyTitle: 'Panel hotkey',
+      settingPreloadSelectionDesc: 'preload selection',
+      settingPreloadSelectionTitle: 'Preload selection',
+      settingPreserveCaseDesc: 'preserve case',
+      settingPreserveCaseTitle: 'Preserve case',
+      settingRememberPositionDesc: 'remember position',
+      settingRememberPositionTitle: 'Remember position',
+      settingReplaceHotkeyDesc: 'replace hotkey',
+      settingReplaceHotkeyTitle: 'Replace hotkey',
+    }
+    ;(plugin as any).settingsData = await loadSettings()
+
+    plugin.openSetting()
+
+    expect(addItemSpy).toHaveBeenCalledWith(expect.objectContaining({
+      description: 'show minimap on panel',
+      title: 'Document minimap',
+    }))
+  })
+})

@@ -7,6 +7,7 @@ export interface PluginSettings {
   replacePanelHotkey: string
   defaultReplaceVisible: boolean
   rememberPanelPosition: boolean
+  minimapVisible: boolean
   preloadSelection: boolean
   includeCodeBlock: boolean
   debugLog: boolean
@@ -18,6 +19,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
   replacePanelHotkey: 'Ctrl+F12',
   defaultReplaceVisible: false,
   rememberPanelPosition: true,
+  minimapVisible: false,
   preloadSelection: true,
   includeCodeBlock: false,
   debugLog: false,
@@ -50,6 +52,9 @@ export function normalizeSettings(settings?: Partial<PluginSettings> | null): Pl
     rememberPanelPosition: typeof settings?.rememberPanelPosition === 'boolean'
       ? settings.rememberPanelPosition
       : DEFAULT_SETTINGS.rememberPanelPosition,
+    minimapVisible: typeof settings?.minimapVisible === 'boolean'
+      ? settings.minimapVisible
+      : DEFAULT_SETTINGS.minimapVisible,
     preloadSelection: typeof settings?.preloadSelection === 'boolean'
       ? settings.preloadSelection
       : DEFAULT_SETTINGS.preloadSelection,

@@ -131,34 +131,15 @@ describe('search panel replace toggle', () => {
     expect(selectionButton?.classList.contains('sfsr-button--active')).toBe(true)
   })
 
-  it('toggles minimap visibility from the separate options panel switch', async () => {
+  it('does not show minimap controls inside the search toolbar', async () => {
     mountPanel()
     applyPluginSettings({ ...DEFAULT_SETTINGS })
     openPanel(true)
     await nextTick()
 
-    const inlineMinimapButton = host?.querySelector<HTMLButtonElement>('button[title="显示文档缩略图"]')
-    const optionsButton = host?.querySelector<HTMLButtonElement>('button[title="显示控制选项"]')
-
-    expect(inlineMinimapButton).toBeNull()
-    expect(optionsButton).not.toBeNull()
-    expect((searchReplaceState as any).minimapVisible).toBe(false)
+    expect(host?.querySelector('button[title="显示文档缩略图"]')).toBeNull()
+    expect(host?.querySelector('button[title="显示控制选项"]')).toBeNull()
     expect(host?.querySelector('.sfsr-options-panel')).toBeNull()
-
-    optionsButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    await nextTick()
-
-    const minimapSwitch = host?.querySelector<HTMLButtonElement>('button[role="switch"][title="显示或隐藏文档缩略图"]')
-
-    expect(host?.querySelector('.sfsr-options-panel')).not.toBeNull()
-    expect(minimapSwitch).not.toBeNull()
-    expect(minimapSwitch?.getAttribute('aria-checked')).toBe('false')
-
-    minimapSwitch?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    await nextTick()
-
-    expect((searchReplaceState as any).minimapVisible).toBe(true)
-    expect(minimapSwitch?.getAttribute('aria-checked')).toBe('true')
   })
 
   it('opens with a narrower default width to keep the toolbar compact', async () => {

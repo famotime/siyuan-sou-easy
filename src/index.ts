@@ -176,6 +176,17 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     })
 
     setting.addItem({
+      title: this.i18n.settingMinimapTitle,
+      description: this.i18n.settingMinimapDesc,
+      createActionElement: () => this.createCheckbox(this.settingsData.minimapVisible, async (checked) => {
+        await this.applySettings({
+          ...this.settingsData,
+          minimapVisible: checked,
+        })
+      }),
+    })
+
+    setting.addItem({
       title: this.i18n.settingPreloadSelectionTitle,
       description: this.i18n.settingPreloadSelectionDesc,
       createActionElement: () => this.createCheckbox(this.settingsData.preloadSelection, async (checked) => {

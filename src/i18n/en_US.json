@@ -11,6 +11,8 @@
   "settingDefaultReplaceVisibleDesc": "When opening from the find entry, show the replace row by default.",
   "settingRememberPositionTitle": "Remember panel position",
   "settingRememberPositionDesc": "Save the dragged panel position and restore it next time.",
+  "settingMinimapTitle": "Document minimap",
+  "settingMinimapDesc": "Show the document minimap beside the panel while searching.",
   "settingPreloadSelectionTitle": "Use selection as query",
   "settingPreloadSelectionDesc": "When opening the panel, fill the search box with the current editor selection if any.",
   "settingIncludeCodeBlockTitle": "Search code blocks",

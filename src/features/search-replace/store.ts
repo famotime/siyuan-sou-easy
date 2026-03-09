@@ -121,6 +121,7 @@ export async function initializeUiState() {
 
 export function applyPluginSettings(settings: PluginSettings) {
   searchReplaceState.settings = { ...settings }
+  searchReplaceState.minimapVisible = settings.minimapVisible
   searchReplaceState.options.includeCodeBlock = settings.includeCodeBlock
   setDebugLoggingEnabled(settings.debugLog)
   debugLog('settings-updated', settings)
@@ -201,10 +202,6 @@ export function setReplacement(value: string) {
 
 export function toggleReplaceVisible() {
   searchReplaceState.replaceVisible = !searchReplaceState.replaceVisible
-}
-
-export function toggleMinimapVisible() {
-  searchReplaceState.minimapVisible = !searchReplaceState.minimapVisible
 }
 
 export function captureCurrentSelectionScope() {

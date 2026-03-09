@@ -80,14 +80,6 @@
           >
             选区
           </button>
-          <button
-            :class="optionButtonClass(optionsPanelVisible)"
-            class="sfsr-button sfsr-no-drag"
-            title="显示控制选项"
-            @click.stop="toggleOptionsPanel"
-          >
-            选项
-          </button>
 
           <div class="sfsr-count">{{ counterText }}</div>
 
@@ -149,24 +141,6 @@
           >
             全部替换
           </SyButton>
-        </div>
-
-        <div
-          v-if="optionsPanelVisible"
-          class="sfsr-options-panel sfsr-no-drag"
-        >
-          <button
-            :class="optionButtonClass(state.minimapVisible)"
-            class="sfsr-options-switch"
-            type="button"
-            role="switch"
-            :aria-checked="String(state.minimapVisible)"
-            title="显示或隐藏文档缩略图"
-            @click.stop="toggleMinimapVisible"
-          >
-            <span>文档缩略图</span>
-            <span>{{ state.minimapVisible ? '开' : '关' }}</span>
-          </button>
         </div>
 
         <div
@@ -285,7 +259,6 @@ import {
   setQuery,
   setReplacement,
   skipCurrent,
-  toggleMinimapVisible,
   toggleOption,
   toggleReplaceVisible,
 } from '@/features/search-replace/store'
@@ -344,7 +317,6 @@ const panelRef = ref<HTMLDivElement>()
 const minimapRef = ref<HTMLDivElement>()
 const panelWidth = ref(resolveDefaultPanelWidth())
 const minimapState = ref<MinimapLayout | null>(null)
-const optionsPanelVisible = ref(false)
 const NON_DRAG_SELECTOR = [
   'input',
   'textarea',
@@ -458,9 +430,6 @@ function optionButtonClass(active: boolean) {
   }
 }
 
-function toggleOptionsPanel() {
-  optionsPanelVisible.value = !optionsPanelVisible.value
-}
 
 function onSelectionOnlyPointerDown() {
   if (!state.options.selectionOnly) {
@@ -1018,7 +987,6 @@ watch(
       stopDrag()
       stopResize()
       clearMinimap()
-      optionsPanelVisible.value = false
       return
     }
 

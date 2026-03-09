@@ -11,6 +11,8 @@
   "settingDefaultReplaceVisibleDesc": "通过查找入口打开面板时，是否默认显示替换输入区。",
   "settingRememberPositionTitle": "记住面板位置",
   "settingRememberPositionDesc": "启用后会保存拖动后的位置，并在下次打开或重启后恢复。",
+  "settingMinimapTitle": "文档缩略图",
+  "settingMinimapDesc": "启用后，搜索面板打开时会在文档右侧显示缩略图。",
   "settingPreloadSelectionTitle": "优先使用选中文本",
   "settingPreloadSelectionDesc": "打开面板时，若编辑器中已有选中文本，则自动填入查找框。",
   "settingIncludeCodeBlockTitle": "搜索代码块",

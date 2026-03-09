@@ -10,12 +10,14 @@ describe('normalizeSettings', () => {
     const settings = normalizeSettings({
       debugLog: true,
       includeCodeBlock: true,
+      minimapVisible: true,
       preserveCase: true,
     })
 
     expect(settings).toMatchObject({
       debugLog: true,
       includeCodeBlock: true,
+      minimapVisible: true,
       preserveCase: true,
     })
   })
@@ -26,6 +28,7 @@ describe('normalizeSettings', () => {
     expect(settings).toMatchObject({
       debugLog: DEFAULT_SETTINGS.debugLog,
       includeCodeBlock: DEFAULT_SETTINGS.includeCodeBlock,
+      minimapVisible: DEFAULT_SETTINGS.minimapVisible,
       preserveCase: DEFAULT_SETTINGS.preserveCase,
     })
   })
