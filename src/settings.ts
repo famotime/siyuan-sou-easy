@@ -71,6 +71,7 @@ export function createSearchOptionsFromSettings(settings: PluginSettings): Searc
     wholeWord: false,
     useRegex: false,
     includeCodeBlock: settings.includeCodeBlock,
+    selectionOnly: false,
   }
 }
 

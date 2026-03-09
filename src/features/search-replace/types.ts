@@ -1,8 +1,16 @@
+export interface TextOffsetRange {
+  start: number
+  end: number
+}
+
+export type SelectionScope = Map<string, TextOffsetRange[]>
+
 export interface SearchOptions {
   matchCase: boolean
   wholeWord: boolean
   useRegex: boolean
   includeCodeBlock: boolean
+  selectionOnly: boolean
 }
 
 export interface EditorContext {

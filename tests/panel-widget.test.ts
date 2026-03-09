@@ -113,6 +113,24 @@ describe('search panel replace toggle', () => {
     expect(help?.textContent).toContain('$1')
   })
 
+  it('toggles selection-only search from the toolbar button', async () => {
+    mountPanel()
+    applyPluginSettings({ ...DEFAULT_SETTINGS })
+    openPanel(true)
+    await nextTick()
+
+    const selectionButton = host?.querySelector<HTMLButtonElement>('button[title="仅在选中范围内查找和替换"]')
+
+    expect(selectionButton).not.toBeNull()
+    expect((searchReplaceState.options as any).selectionOnly).toBe(false)
+
+    selectionButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await nextTick()
+
+    expect((searchReplaceState.options as any).selectionOnly).toBe(true)
+    expect(selectionButton?.classList.contains('sfsr-button--active')).toBe(true)
+  })
+
   it('opens with a narrower default width to keep the toolbar compact', async () => {
     mountPanel()
     applyPluginSettings({ ...DEFAULT_SETTINGS })

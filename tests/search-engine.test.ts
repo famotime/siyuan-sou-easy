@@ -8,12 +8,13 @@ vi.mock('@/features/search-replace/editor', () => ({
 import { findMatches } from '@/features/search-replace/search-engine'
 import type { SearchOptions, SearchableBlock } from '@/features/search-replace/types'
 
-const defaultOptions: SearchOptions = {
+const defaultOptions = {
   includeCodeBlock: false,
   matchCase: false,
+  selectionOnly: false,
   useRegex: false,
   wholeWord: false,
-}
+} as SearchOptions & { selectionOnly: boolean }
 
 function createBlock(text: string, blockIndex = 0): SearchableBlock {
   return {
@@ -91,5 +92,36 @@ describe('findMatches', () => {
 
     expect(result.matches).toEqual([])
     expect(result.error).not.toBe('')
+  })
+
+  it('limits matches to the selected text ranges when selection-only mode is enabled', () => {
+    const result = (findMatches as any)([
+      createBlock('foo bar foo baz', 0),
+      createBlock('foo bar', 1),
+    ], 'foo', {
+      ...defaultOptions,
+      selectionOnly: true,
+    }, new Map([
+      ['block-0', [{ start: 4, end: 11 }]],
+      ['block-1', [{ start: 0, end: 3 }]],
+    ]))
+
+    expect(result.error).toBe('')
+    expect(result.matches.map((match: any) => ({
+      blockId: match.blockId,
+      start: match.start,
+      end: match.end,
+    }))).toEqual([
+      {
+        blockId: 'block-0',
+        start: 8,
+        end: 11,
+      },
+      {
+        blockId: 'block-1',
+        start: 0,
+        end: 3,
+      },
+    ])
   })
 })

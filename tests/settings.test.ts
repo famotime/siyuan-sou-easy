@@ -40,6 +40,7 @@ describe('createSearchOptionsFromSettings', () => {
     expect(options).toEqual({
       includeCodeBlock: true,
       matchCase: false,
+      selectionOnly: false,
       useRegex: false,
       wholeWord: false,
     })

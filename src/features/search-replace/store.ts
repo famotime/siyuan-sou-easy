@@ -13,6 +13,7 @@ import {
   findEditorContextByRootId,
   getActiveEditorContext,
   getBlockElement,
+  getCurrentSelectionScope,
   getCurrentSelectionText,
   scrollMatchIntoView,
   syncSearchDecorations,
@@ -28,6 +29,7 @@ import type {
   EditorContext,
   SearchMatch,
   SearchOptions,
+  SelectionScope,
 } from './types'
 
 interface PanelPosition {
@@ -49,6 +51,8 @@ let lastHintedEditorContext: EditorContext | null = null
 let liveRefreshObserver: MutationObserver | null = null
 let liveRefreshTarget: HTMLElement | null = null
 let documentListenersBound = false
+let lastSelectionScope: SelectionScope = new Map()
+let lastSelectionScopeRootId = ''
 
 export const searchReplaceState = reactive({
   visible: false,
@@ -152,7 +156,11 @@ export function openPanel(forceVisible?: boolean, replaceVisible?: boolean) {
     return
   }
 
-  rememberEditorContext(getActiveEditorContext())
+  const activeContext = getActiveEditorContext()
+  rememberEditorContext(activeContext)
+  if (activeContext) {
+    rememberSelectionScope(activeContext, getCurrentSelectionScope(activeContext))
+  }
 
   if (typeof replaceVisible === 'boolean') {
     searchReplaceState.replaceVisible = replaceVisible
@@ -386,7 +394,10 @@ async function refreshMatches() {
   }
 
   const blocks = collectSearchableBlocks(context, searchReplaceState.options)
-  const result = findMatches(blocks, searchReplaceState.query, searchReplaceState.options)
+  const selectionScope = searchReplaceState.options.selectionOnly
+    ? resolveSelectionScope(context)
+    : new Map()
+  const result = findMatches(blocks, searchReplaceState.query, searchReplaceState.options, selectionScope)
   searchReplaceState.error = result.error
   searchReplaceState.matches = result.matches
   debugLog('refresh-matches', {
@@ -471,6 +482,31 @@ function rememberHintedEditorContext(context: EditorContext | null) {
   lastHintedEditorContext = context
 }
 
+function resolveSelectionScope(context: EditorContext) {
+  const liveSelectionScope = getCurrentSelectionScope(context)
+  if (liveSelectionScope.size > 0) {
+    rememberSelectionScope(context, liveSelectionScope)
+    return liveSelectionScope
+  }
+
+  if (lastSelectionScopeRootId === context.rootId) {
+    return cloneSelectionScope(lastSelectionScope)
+  }
+
+  return new Map()
+}
+
+function rememberSelectionScope(context: EditorContext, scope: SelectionScope) {
+  lastSelectionScopeRootId = context.rootId
+  lastSelectionScope = cloneSelectionScope(scope)
+}
+
+function cloneSelectionScope(scope: SelectionScope): SelectionScope {
+  return new Map(Array.from(scope.entries()).map(([blockId, ranges]) => {
+    return [blockId, ranges.map(range => ({ ...range }))]
+  }))
+}
+
 function isUsableEditorContext(context: EditorContext | null | undefined): context is EditorContext {
   if (!context?.rootId || !context.protyle) {
     return false
@@ -533,6 +569,22 @@ function resolveLiveRefreshTarget(context: EditorContext | null) {
 }
 
 function handleDocumentSelectionChange() {
+  const selection = window.getSelection()
+  const anchorElement = selection?.anchorNode instanceof Element
+    ? selection.anchorNode
+    : selection?.anchorNode?.parentElement
+  const selectionContext = createEditorContextFromElement(anchorElement?.closest('.protyle'))
+
+  if (selectionContext) {
+    rememberHintedEditorContext(selectionContext)
+    rememberEditorContext(selectionContext)
+    rememberSelectionScope(selectionContext, getCurrentSelectionScope(selectionContext))
+    if (searchReplaceState.visible && searchReplaceState.options.selectionOnly) {
+      scheduleRefresh(0)
+    }
+    return
+  }
+
   rememberEditorContext(getActiveEditorContext())
 }
 

@@ -37,6 +37,7 @@ const editorMocks = vi.hoisted(() => {
     findEditorContextByRootId: vi.fn(() => (state.contextAvailable ? state.context : null)),
     getActiveEditorContext: vi.fn(() => (state.contextAvailable ? state.context : null)),
     getBlockElement: vi.fn(),
+    getCurrentSelectionScope: vi.fn(() => new Map()),
     getCurrentSelectionText: vi.fn(() => ''),
     scrollMatchIntoView: vi.fn(),
     syncSearchDecorations: vi.fn(),

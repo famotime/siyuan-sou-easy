@@ -6,6 +6,8 @@ import type {
   SearchMatch,
   SearchOptions,
   SearchableBlock,
+  SelectionScope,
+  TextOffsetRange,
 } from './types'
 
 const ASCII_WORD_CHAR = /[A-Za-z0-9_]/
@@ -14,6 +16,7 @@ export function findMatches(
   blocks: SearchableBlock[],
   query: string,
   options: SearchOptions,
+  selectionScope: SelectionScope = new Map(),
 ): { error: string, matches: SearchMatch[] } {
   const keyword = query.trim()
   if (!keyword) {
@@ -48,6 +51,11 @@ export function findMatches(
       const start = match.index
       const end = start + matchedText.length
       if (!isWholeWordMatch(block.text, start, end, options.wholeWord)) {
+        match = pattern.exec(block.text)
+        continue
+      }
+
+      if (!isMatchWithinSelection(block.blockId, start, end, options, selectionScope)) {
         match = pattern.exec(block.text)
         continue
       }
@@ -93,4 +101,23 @@ function isWholeWordMatch(text: string, start: number, end: number, enabled: boo
   const previousChar = start > 0 ? text[start - 1] : ''
   const nextChar = end < text.length ? text[end] : ''
   return !ASCII_WORD_CHAR.test(previousChar) && !ASCII_WORD_CHAR.test(nextChar)
+}
+
+function isMatchWithinSelection(
+  blockId: string,
+  start: number,
+  end: number,
+  options: SearchOptions,
+  selectionScope: SelectionScope,
+) {
+  if (!options.selectionOnly) {
+    return true
+  }
+
+  const ranges = selectionScope.get(blockId) ?? []
+  return ranges.some(range => isRangeContained(range, start, end))
+}
+
+function isRangeContained(range: TextOffsetRange, start: number, end: number) {
+  return start >= range.start && end <= range.end
 }

@@ -71,6 +71,14 @@
           >
             .*
           </button>
+          <button
+            :class="optionButtonClass(state.options.selectionOnly)"
+            class="sfsr-button"
+            title="仅在选中范围内查找和替换"
+            @click="toggleOption('selectionOnly')"
+          >
+            选区
+          </button>
 
           <div class="sfsr-count">{{ counterText }}</div>
 

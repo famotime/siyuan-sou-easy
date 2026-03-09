@@ -37,6 +37,7 @@ const editorMocks = vi.hoisted(() => {
     findEditorContextByRootId: vi.fn(() => (state.contextAvailable ? state.context : null)),
     getActiveEditorContext: vi.fn(() => (state.contextAvailable ? state.context : null)),
     getBlockElement: vi.fn(),
+    getCurrentSelectionScope: vi.fn(() => new Map()),
     getCurrentSelectionText: vi.fn(() => ''),
     scrollMatchIntoView: vi.fn(),
     syncSearchDecorations: vi.fn(),
@@ -112,6 +113,39 @@ describe('search store editor context fallback', () => {
     }
     editorMocks.state.contextAvailable = true
     vi.clearAllMocks()
+    editorMocks.collectSearchableBlocks.mockImplementation(() => editorMocks.state.blocks)
+    editorMocks.findEditorContextByRootId.mockImplementation(() => (editorMocks.state.contextAvailable ? editorMocks.state.context : null))
+    editorMocks.getActiveEditorContext.mockImplementation(() => (editorMocks.state.contextAvailable ? editorMocks.state.context : null))
+    editorMocks.getCurrentSelectionScope.mockImplementation(() => new Map())
+    searchEngineMocks.findMatches.mockImplementation(() => ({
+      error: '',
+      matches: [
+        {
+          blockId: 'block-1',
+          blockIndex: 0,
+          blockType: 'NodeParagraph',
+          end: 3,
+          id: 'block-1:0:3',
+          matchedText: 'foo',
+          previewText: '[foo] bar foo',
+          replaceable: true,
+          rootId: 'root-1',
+          start: 0,
+        },
+        {
+          blockId: 'block-1',
+          blockIndex: 0,
+          blockType: 'NodeParagraph',
+          end: 11,
+          id: 'block-1:8:11',
+          matchedText: 'foo',
+          previewText: 'foo bar [foo]',
+          replaceable: true,
+          rootId: 'root-1',
+          start: 8,
+        },
+      ],
+    }))
   })
 
   afterEach(() => {
@@ -249,6 +283,31 @@ describe('search store editor context fallback', () => {
     expect(searchReplaceState.currentTitle).toBe(currentContext.title)
     expect(searchReplaceState.matches).toHaveLength(1)
     expect(searchReplaceState.matches[0]?.rootId).toBe(currentContext.rootId)
+  })
+
+  it('passes the current selection scope into search when selection-only mode is enabled', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+    })
+    searchReplaceState.query = 'foo'
+    ;(searchReplaceState.options as any).selectionOnly = true
+
+    const selectionScope = new Map([
+      ['block-1', [{ start: 4, end: 11 }]],
+    ])
+    editorMocks.getCurrentSelectionScope.mockReturnValue(selectionScope)
+
+    openPanel(true)
+    vi.runOnlyPendingTimers()
+
+    expect(editorMocks.getCurrentSelectionScope).toHaveBeenCalledWith(editorMocks.state.context)
+    expect(searchEngineMocks.findMatches).toHaveBeenCalledWith(
+      editorMocks.state.blocks,
+      'foo',
+      searchReplaceState.options,
+      selectionScope,
+    )
   })
 
   it('replaces the current match even when the panel has taken focus from the editor', async () => {
