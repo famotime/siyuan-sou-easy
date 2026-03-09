@@ -13,7 +13,8 @@
   top: 12px;
   left: 50%;
   transform: translateX(-50%);
-  width: min(860px, calc(100vw - 32px));
+  width: min(648px, calc(100vw - 32px));
+  box-sizing: border-box;
   padding: 6px;
   border: 1px solid var(--b3-border-color);
   border-radius: 8px;
@@ -21,6 +22,34 @@
   box-shadow: var(--b3-dialog-shadow);
   pointer-events: auto;
   cursor: move;
+}
+
+.sfsr-resize-handle {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: -6px;
+  width: 12px;
+  cursor: ew-resize;
+}
+
+.sfsr-resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--b3-border-color);
+  opacity: 0.72;
+  transform: translate(-50%, -50%);
+  transition: background-color 120ms ease, opacity 120ms ease;
+}
+
+.sfsr-resize-handle:hover::after {
+  background: var(--b3-theme-primary);
+  opacity: 1;
 }
 
 .sfsr-layout {
@@ -198,6 +227,11 @@
 body.sfsr-dragging {
   user-select: none;
   cursor: move;
+}
+
+body.sfsr-resizing {
+  user-select: none;
+  cursor: ew-resize;
 }
 
 .protyle-wysiwyg .sfsr-block-match {

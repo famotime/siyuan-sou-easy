@@ -9,6 +9,12 @@
     @keydown.esc.stop.prevent="closePanel"
   >
     <div
+      class="sfsr-resize-handle"
+      aria-hidden="true"
+      @dblclick.stop
+      @pointerdown.stop="onResizeHandlePointerDown"
+    />
+    <div
       class="sfsr-layout"
       :class="{ 'sfsr-layout--replace-visible': state.replaceVisible }"
     >
@@ -188,9 +194,14 @@ import {
   toggleReplaceVisible,
 } from '@/features/search-replace/store'
 
+const PANEL_MARGIN = 8
+const DEFAULT_PANEL_WIDTH = 648
+const MIN_PANEL_WIDTH = 420
+
 const findInputRef = ref<HTMLInputElement>()
 const replaceInputRef = ref<HTMLInputElement>()
 const panelRef = ref<HTMLDivElement>()
+const panelWidth = ref(resolveDefaultPanelWidth())
 const NON_DRAG_SELECTOR = [
   'input',
   'textarea',
@@ -208,6 +219,11 @@ let dragState: {
   panelTop: number
   startClientX: number
   startClientY: number
+} | null = null
+let resizeState: {
+  pointerId: number
+  panelRight: number
+  panelTop: number
 } | null = null
 let isFindComposing = false
 let isReplaceComposing = false
@@ -263,11 +279,16 @@ const statusText = computed(() => {
 
 const canReplaceCurrent = computed(() => Boolean(currentMatch.value?.replaceable) && !state.busy)
 const panelStyle = computed(() => {
+  const style: Record<string, string> = {
+    width: `${panelWidth.value}px`,
+  }
+
   if (!state.panelPosition) {
-    return undefined
+    return style
   }
 
   return {
+    ...style,
     left: `${state.panelPosition.left}px`,
     top: `${state.panelPosition.top}px`,
     transform: 'none',
@@ -332,6 +353,15 @@ function onPanelPointerDown(event: PointerEvent) {
   startDrag(event)
 }
 
+function onResizeHandlePointerDown(event: PointerEvent) {
+  if (event.button !== 0) {
+    return
+  }
+
+  event.preventDefault()
+  startResize(event)
+}
+
 function onPanelDoubleClick(event: MouseEvent) {
   if (!canStartPanelDrag(event.target)) {
     return
@@ -344,6 +374,8 @@ function startDrag(event: PointerEvent) {
   if (!panelRef.value) {
     return
   }
+
+  stopResize()
 
   const rect = panelRef.value.getBoundingClientRect()
   setPanelPosition({
@@ -363,6 +395,33 @@ function startDrag(event: PointerEvent) {
   window.addEventListener('pointermove', onDragMove)
   window.addEventListener('pointerup', stopDrag)
   window.addEventListener('pointercancel', stopDrag)
+}
+
+function startResize(event: PointerEvent) {
+  if (!panelRef.value) {
+    return
+  }
+
+  stopDrag()
+
+  const rect = panelRef.value.getBoundingClientRect()
+  const width = clampPanelWidth(rect.width)
+  panelWidth.value = width
+  setPanelPosition({
+    left: rect.right - width,
+    top: rect.top,
+  }, false)
+
+  resizeState = {
+    pointerId: event.pointerId,
+    panelRight: rect.right,
+    panelTop: rect.top,
+  }
+
+  document.body.classList.add('sfsr-resizing')
+  window.addEventListener('pointermove', onResizeMove)
+  window.addEventListener('pointerup', stopResize)
+  window.addEventListener('pointercancel', stopResize)
 }
 
 function onDragMove(event: PointerEvent) {
@@ -391,6 +450,37 @@ function stopDrag(event?: PointerEvent) {
   window.removeEventListener('pointercancel', stopDrag)
 }
 
+function onResizeMove(event: PointerEvent) {
+  if (!resizeState) {
+    return
+  }
+
+  if (event.pointerId !== resizeState.pointerId) {
+    return
+  }
+
+  const nextWidth = clampPanelWidth(resizeState.panelRight - event.clientX)
+  const nextLeft = resizeState.panelRight - nextWidth
+  panelWidth.value = nextWidth
+  setPanelPosition(clampPanelPosition({
+    left: nextLeft,
+    top: resizeState.panelTop,
+  }, nextWidth), false)
+}
+
+function stopResize(event?: PointerEvent) {
+  if (event && resizeState && event.pointerId !== resizeState.pointerId) {
+    return
+  }
+
+  resizeState = null
+  persistPanelPosition()
+  document.body.classList.remove('sfsr-resizing')
+  window.removeEventListener('pointermove', onResizeMove)
+  window.removeEventListener('pointerup', stopResize)
+  window.removeEventListener('pointercancel', stopResize)
+}
+
 function resetPanelPosition() {
   resetStoredPanelPosition()
 }
@@ -417,20 +507,33 @@ function resolveEventElement(target: EventTarget | null) {
   return null
 }
 
-function clampPanelPosition(position: { left: number, top: number }) {
-  const panelWidth = panelRef.value?.offsetWidth ?? 0
+function clampPanelPosition(position: { left: number, top: number }, width = panelWidth.value) {
   const panelHeight = panelRef.value?.offsetHeight ?? 0
-  const margin = 8
-  const maxLeft = Math.max(margin, window.innerWidth - panelWidth - margin)
-  const maxTop = Math.max(margin, window.innerHeight - panelHeight - margin)
+  const maxLeft = Math.max(PANEL_MARGIN, window.innerWidth - width - PANEL_MARGIN)
+  const maxTop = Math.max(PANEL_MARGIN, window.innerHeight - panelHeight - PANEL_MARGIN)
 
   return {
-    left: clamp(position.left, margin, maxLeft),
-    top: clamp(position.top, margin, maxTop),
+    left: clamp(position.left, PANEL_MARGIN, maxLeft),
+    top: clamp(position.top, PANEL_MARGIN, maxTop),
   }
 }
 
+function clampPanelWidth(width: number) {
+  const maxWidth = Math.max(MIN_PANEL_WIDTH, window.innerWidth - (PANEL_MARGIN * 2))
+  return clamp(width, MIN_PANEL_WIDTH, maxWidth)
+}
+
+function resolveDefaultPanelWidth() {
+  if (typeof window === 'undefined') {
+    return DEFAULT_PANEL_WIDTH
+  }
+
+  return clampPanelWidth(DEFAULT_PANEL_WIDTH)
+}
+
 function handleViewportResize() {
+  panelWidth.value = clampPanelWidth(panelWidth.value)
+
   if (!state.panelPosition) {
     return
   }
@@ -447,10 +550,12 @@ watch(
   async (visible) => {
     if (!visible) {
       stopDrag()
+      stopResize()
       return
     }
 
     await nextTick()
+    panelWidth.value = clampPanelWidth(panelWidth.value)
     if (state.panelPosition) {
       setPanelPosition(clampPanelPosition(state.panelPosition), false)
     }
@@ -479,6 +584,7 @@ window.addEventListener('resize', handleViewportResize)
 
 onBeforeUnmount(() => {
   stopDrag()
+  stopResize()
   window.removeEventListener('resize', handleViewportResize)
 })
 </script>

@@ -113,6 +113,51 @@ describe('search panel replace toggle', () => {
     expect(help?.textContent).toContain('$1')
   })
 
+  it('opens with a narrower default width to keep the toolbar compact', async () => {
+    mountPanel()
+    applyPluginSettings({ ...DEFAULT_SETTINGS })
+    openPanel(true)
+    await nextTick()
+
+    const panel = getPanelElement()
+
+    expect(panel.style.width).toBe('648px')
+  })
+
+  it('expands the panel width by dragging the left resize handle', async () => {
+    mountPanel()
+    applyPluginSettings({ ...DEFAULT_SETTINGS })
+    openPanel(true)
+    await nextTick()
+
+    const panel = getPanelElement()
+    const resizeHandle = host?.querySelector<HTMLElement>('.sfsr-resize-handle')
+
+    expect(resizeHandle).not.toBeNull()
+
+    stubPanelRect(panel, { width: 648 })
+
+    resizeHandle?.dispatchEvent(createPointerEvent('pointerdown', {
+      button: 0,
+      clientX: 100,
+      clientY: 30,
+      pointerId: 2,
+    }))
+    window.dispatchEvent(createPointerEvent('pointermove', {
+      clientX: 40,
+      clientY: 30,
+      pointerId: 2,
+    }))
+    await nextTick()
+    window.dispatchEvent(createPointerEvent('pointerup', { pointerId: 2 }))
+
+    expect(panel.style.width).toBe('708px')
+    expect(searchReplaceState.panelPosition).toEqual({
+      left: 40,
+      top: 20,
+    })
+  })
+
   it('starts dragging from non-interactive panel content', async () => {
     mountPanel()
     applyPluginSettings({ ...DEFAULT_SETTINGS })
@@ -205,25 +250,30 @@ describe('search panel replace toggle', () => {
     return panel as HTMLElement
   }
 
-  function stubPanelRect(panel: HTMLElement) {
+  function stubPanelRect(panel: HTMLElement, rect: Partial<DOMRect> = {}) {
+    const width = rect.width ?? 320
+    const height = rect.height ?? 64
+    const left = rect.left ?? 100
+    const top = rect.top ?? 20
+
     Object.defineProperty(panel, 'offsetWidth', {
       configurable: true,
-      value: 320,
+      value: width,
     })
     Object.defineProperty(panel, 'offsetHeight', {
       configurable: true,
-      value: 64,
+      value: height,
     })
     vi.spyOn(panel, 'getBoundingClientRect').mockReturnValue({
-      bottom: 84,
-      height: 64,
-      left: 100,
-      right: 420,
+      bottom: top + height,
+      height,
+      left,
+      right: left + width,
       toJSON: () => ({}),
-      top: 20,
-      width: 320,
-      x: 100,
-      y: 20,
+      top,
+      width,
+      x: left,
+      y: top,
     })
   }
 

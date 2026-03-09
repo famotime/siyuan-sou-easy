@@ -1,4 +1,5 @@
 import type { Plugin } from 'siyuan'
+import { normalizeHotkey as normalizeCommandHotkey } from '@/hotkeys'
 import type { SearchOptions } from '@/features/search-replace/types'
 
 export interface PluginSettings {
@@ -13,8 +14,8 @@ export interface PluginSettings {
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
-  panelHotkey: '⌘⇧F',
-  replacePanelHotkey: '⌘⇧H',
+  panelHotkey: 'Ctrl+F11',
+  replacePanelHotkey: 'Ctrl+F12',
   defaultReplaceVisible: false,
   rememberPanelPosition: true,
   preloadSelection: true,
@@ -31,7 +32,7 @@ export async function loadSettings(plugin: Plugin): Promise<PluginSettings> {
     return normalizeSettings(data)
   } catch (error) {
     console.warn('Failed to load plugin settings', error)
-    return { ...DEFAULT_SETTINGS }
+    return normalizeSettings()
   }
 }
 
@@ -74,10 +75,11 @@ export function createSearchOptionsFromSettings(settings: PluginSettings): Searc
 }
 
 function normalizeHotkey(value: string | undefined, fallback: string) {
+  const normalizedFallback = normalizeCommandHotkey(fallback) || fallback
   if (typeof value !== 'string') {
-    return fallback
+    return normalizedFallback
   }
 
-  const trimmed = value.trim()
-  return trimmed || fallback
+  const normalized = normalizeCommandHotkey(value.trim())
+  return normalized || normalizedFallback
 }
