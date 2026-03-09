@@ -21,6 +21,7 @@ describe('search panel minimap', () => {
   let host: HTMLDivElement | null = null
   let app: ReturnType<typeof createApp> | null = null
   let scrollTop = 300
+  let scrollContainer: HTMLElement | null = null
 
   beforeEach(() => {
     resetState()
@@ -39,7 +40,7 @@ describe('search panel minimap', () => {
       </div>
     `
 
-    const scrollContainer = document.querySelector<HTMLElement>('.protyle-content')!
+    scrollContainer = document.querySelector<HTMLElement>('.protyle-content')!
     const blockOne = document.querySelector<HTMLElement>('[data-node-id="block-1"]')!
     const blockTwo = document.querySelector<HTMLElement>('[data-node-id="block-2"]')!
 
@@ -102,6 +103,7 @@ describe('search panel minimap', () => {
     host?.remove()
     document.body.innerHTML = ''
     vi.restoreAllMocks()
+    scrollContainer = null
     host = null
     app = null
   })
@@ -182,6 +184,23 @@ describe('search panel minimap', () => {
     }))
 
     expect(scrollTop).toBeGreaterThan(300)
+  })
+
+  it('removes the scroll listener from the minimap container when unmounted', async () => {
+    const removeEventListenerSpy = vi.spyOn(scrollContainer!, 'removeEventListener')
+
+    mountPanel()
+    searchReplaceState.visible = true
+    searchReplaceState.minimapVisible = true
+    searchReplaceState.currentRootId = 'root-1'
+    searchReplaceState.currentTitle = 'Doc 1'
+
+    await nextTick()
+    await nextTick()
+
+    app?.unmount()
+
+    expect(removeEventListenerSpy).toHaveBeenCalledWith('scroll', expect.any(Function))
   })
 
   function mountPanel() {

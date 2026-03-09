@@ -1,0 +1,245 @@
+// @vitest-environment jsdom
+
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
+
+import * as siyuan from 'siyuan'
+import { DEFAULT_SETTINGS, createSearchOptionsFromSettings } from '@/settings'
+
+const editorMocks = vi.hoisted(() => {
+  const state = {
+    blocks: [] as Array<{
+      blockId: string
+      blockIndex: number
+      blockType: string
+      element: HTMLElement
+      rootId: string
+      text: string
+    }>,
+    context: {
+      protyle: { isConnected: true } as HTMLElement,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    },
+    contextAvailable: true,
+  }
+
+  return {
+    state,
+    applyReplacementsToClone: vi.fn(),
+    clearSearchDecorations: vi.fn(),
+    collectSearchableBlocks: vi.fn(() => state.blocks),
+    createEditorContextFromElement: vi.fn(() => state.context),
+    findEditorContextByRootId: vi.fn(() => (state.contextAvailable ? state.context : null)),
+    getActiveEditorContext: vi.fn(() => (state.contextAvailable ? state.context : null)),
+    getBlockElement: vi.fn(),
+    getCurrentSelectionScope: vi.fn(() => new Map()),
+    getCurrentSelectionText: vi.fn(() => ''),
+    scrollMatchIntoView: vi.fn(),
+    syncSearchDecorations: vi.fn(),
+  }
+})
+
+const searchEngineMocks = vi.hoisted(() => ({
+  findMatches: vi.fn(() => ({
+    error: '',
+    matches: [],
+  })),
+}))
+
+const kernelMocks = vi.hoisted(() => ({
+  updateDomBlock: vi.fn(async () => null),
+}))
+
+vi.mock('@/features/search-replace/editor', () => editorMocks)
+vi.mock('@/features/search-replace/search-engine', () => searchEngineMocks)
+vi.mock('@/features/search-replace/kernel', () => kernelMocks)
+
+import {
+  applyPluginSettings,
+  closePanel,
+  replaceAll,
+  searchReplaceState,
+} from '@/features/search-replace/store'
+
+describe('search store replaceAll', () => {
+  beforeEach(() => {
+    resetState()
+    vi.clearAllMocks()
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    editorMocks.state.blocks = [
+      {
+        blockId: 'block-1',
+        blockIndex: 0,
+        blockType: 'NodeParagraph',
+        element: {} as HTMLElement,
+        rootId: 'root-1',
+        text: 'foo foo',
+      },
+      {
+        blockId: 'block-2',
+        blockIndex: 1,
+        blockType: 'NodeParagraph',
+        element: {} as HTMLElement,
+        rootId: 'root-1',
+        text: 'foo',
+      },
+    ]
+    editorMocks.state.context = {
+      protyle: { isConnected: true } as HTMLElement,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    editorMocks.state.contextAvailable = true
+    editorMocks.findEditorContextByRootId.mockImplementation(() => (editorMocks.state.contextAvailable ? editorMocks.state.context : null))
+    editorMocks.getActiveEditorContext.mockImplementation(() => (editorMocks.state.contextAvailable ? editorMocks.state.context : null))
+
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+    })
+  })
+
+  afterEach(() => {
+    closePanel()
+    vi.restoreAllMocks()
+  })
+
+  it('groups matches by block, updates replaceable blocks, and reports skipped matches', async () => {
+    searchReplaceState.visible = true
+    searchReplaceState.query = 'foo'
+    searchReplaceState.replacement = 'bar'
+    searchReplaceState.matches = [
+      {
+        blockId: 'block-1',
+        blockIndex: 0,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-1:0:3',
+        matchedText: 'foo',
+        previewText: '[foo] foo',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+      {
+        blockId: 'block-1',
+        blockIndex: 0,
+        blockType: 'NodeParagraph',
+        end: 7,
+        id: 'block-1:4:7',
+        matchedText: 'foo',
+        previewText: 'foo [foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 4,
+      },
+      {
+        blockId: 'block-2',
+        blockIndex: 1,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-2:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+      {
+        blockId: 'block-ignored',
+        blockIndex: 2,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-ignored:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-other',
+        start: 0,
+      },
+    ]
+
+    editorMocks.getBlockElement.mockImplementation((_context, blockId: string) => {
+      if (blockId === 'block-1' || blockId === 'block-2') {
+        return { dataset: { nodeId: blockId } } as HTMLElement
+      }
+
+      return null
+    })
+    editorMocks.applyReplacementsToClone.mockImplementation((_blockElement: HTMLElement, matches: Array<{ blockId: string }>) => {
+      if (matches[0]?.blockId === 'block-1') {
+        return {
+          appliedCount: 2,
+          clone: {
+            outerHTML: '<div data-node-id="block-1">bar bar</div>',
+          },
+        }
+      }
+
+      return {
+        appliedCount: 0,
+        clone: null,
+      }
+    })
+
+    await replaceAll()
+
+    expect(window.confirm).toHaveBeenCalledWith('确定替换当前文档内的 4 处命中吗？')
+    expect(editorMocks.applyReplacementsToClone).toHaveBeenCalledTimes(2)
+    expect(kernelMocks.updateDomBlock).toHaveBeenCalledTimes(1)
+    expect(kernelMocks.updateDomBlock).toHaveBeenCalledWith(
+      'block-1',
+      '<div data-node-id="block-1">bar bar</div>',
+    )
+    expect(searchEngineMocks.findMatches).toHaveBeenCalledTimes(1)
+    expect(searchReplaceState.matches).toEqual([])
+    expect(siyuan.showMessage).toHaveBeenCalledWith('替换完成：2 处，跳过 1 处', 4000, 'info')
+  })
+
+  it('aborts without touching blocks when the confirmation is declined', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    searchReplaceState.matches = [{
+      blockId: 'block-1',
+      blockIndex: 0,
+      blockType: 'NodeParagraph',
+      end: 3,
+      id: 'block-1:0:3',
+      matchedText: 'foo',
+      previewText: '[foo]',
+      replaceable: true,
+      rootId: 'root-1',
+      start: 0,
+    }]
+
+    await replaceAll()
+
+    expect(editorMocks.getBlockElement).not.toHaveBeenCalled()
+    expect(kernelMocks.updateDomBlock).not.toHaveBeenCalled()
+    expect(searchEngineMocks.findMatches).not.toHaveBeenCalled()
+  })
+})
+
+function resetState() {
+  searchReplaceState.visible = false
+  searchReplaceState.replaceVisible = DEFAULT_SETTINGS.defaultReplaceVisible
+  searchReplaceState.minimapVisible = false
+  searchReplaceState.panelPosition = null
+  searchReplaceState.settings = { ...DEFAULT_SETTINGS }
+  searchReplaceState.query = ''
+  searchReplaceState.replacement = ''
+  searchReplaceState.options = createSearchOptionsFromSettings(DEFAULT_SETTINGS)
+  searchReplaceState.currentRootId = ''
+  searchReplaceState.currentTitle = ''
+  searchReplaceState.matches = []
+  searchReplaceState.currentIndex = 0
+  searchReplaceState.error = ''
+  searchReplaceState.busy = false
+}

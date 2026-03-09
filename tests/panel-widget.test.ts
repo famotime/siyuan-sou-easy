@@ -264,6 +264,38 @@ describe('search panel replace toggle', () => {
     expect(searchReplaceState.panelPosition).toBeNull()
   })
 
+  it('clamps panel width and position after the viewport shrinks', async () => {
+    mountPanel()
+    applyPluginSettings({ ...DEFAULT_SETTINGS })
+    searchReplaceState.panelPosition = { left: 320, top: 20 }
+    openPanel(true)
+    await nextTick()
+
+    const panel = getPanelElement()
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 520,
+    })
+    Object.defineProperty(window, 'innerHeight', {
+      configurable: true,
+      value: 480,
+    })
+    Object.defineProperty(panel, 'offsetHeight', {
+      configurable: true,
+      value: 64,
+    })
+
+    window.dispatchEvent(new Event('resize'))
+    await nextTick()
+
+    expect(panel.style.width).toBe('504px')
+    expect(searchReplaceState.panelPosition).toEqual({
+      left: 8,
+      top: 20,
+    })
+  })
+
   function mountPanel() {
     host = document.createElement('div')
     document.body.appendChild(host)

@@ -18,6 +18,15 @@ import {
   SEARCH_REPLACE_TOP_BAR_ICON_ID,
 } from '@/icons'
 import {
+  bindEditorContextEvents,
+  unbindEditorContextEvents,
+} from '@/features/search-replace/plugin-events'
+import {
+  BOOLEAN_SETTING_DEFINITIONS,
+  HOTKEY_SETTING_DEFINITIONS,
+  type HotkeySettingKey,
+} from '@/features/search-replace/settings-panel'
+import {
   applyPluginSettings,
   onEditorContextChanged,
   openPanel,
@@ -116,19 +125,11 @@ export default class FriendlySearchReplacePlugin extends Plugin {
       },
     })
 
-    this.eventBus.on('switch-protyle', this.handleEditorEvent)
-    this.eventBus.on('click-editorcontent', this.handleEditorEvent)
-    this.eventBus.on('loaded-protyle-dynamic', this.handleEditorEvent)
-    this.eventBus.on('loaded-protyle-static', this.handleEditorEvent)
-    this.eventBus.on('destroy-protyle', this.handleEditorEvent)
+    bindEditorContextEvents(this.eventBus, this.handleEditorEvent)
   }
 
   onunload() {
-    this.eventBus.off('switch-protyle', this.handleEditorEvent)
-    this.eventBus.off('click-editorcontent', this.handleEditorEvent)
-    this.eventBus.off('loaded-protyle-dynamic', this.handleEditorEvent)
-    this.eventBus.off('loaded-protyle-static', this.handleEditorEvent)
-    this.eventBus.off('destroy-protyle', this.handleEditorEvent)
+    unbindEditorContextEvents(this.eventBus, this.handleEditorEvent)
     destroy()
   }
 
@@ -137,97 +138,27 @@ export default class FriendlySearchReplacePlugin extends Plugin {
       width: '620px',
     })
 
-    setting.addItem({
-      title: this.i18n.settingPanelHotkeyTitle,
-      description: this.i18n.settingPanelHotkeyDesc,
-      createActionElement: () => this.createHotkeyInput(this.settingsData.panelHotkey, async (value) => {
-        return await this.updateHotkeySetting('panelHotkey', value)
-      }),
+    HOTKEY_SETTING_DEFINITIONS.forEach(({ descriptionKey, settingKey, titleKey }) => {
+      setting.addItem({
+        title: this.i18n[titleKey],
+        description: this.i18n[descriptionKey],
+        createActionElement: () => this.createHotkeyInput(this.settingsData[settingKey], async (value) => {
+          return await this.updateHotkeySetting(settingKey, value)
+        }),
+      })
     })
 
-    setting.addItem({
-      title: this.i18n.settingReplaceHotkeyTitle,
-      description: this.i18n.settingReplaceHotkeyDesc,
-      createActionElement: () => this.createHotkeyInput(this.settingsData.replacePanelHotkey, async (value) => {
-        return await this.updateHotkeySetting('replacePanelHotkey', value)
-      }),
-    })
-
-    setting.addItem({
-      title: this.i18n.settingDefaultReplaceVisibleTitle,
-      description: this.i18n.settingDefaultReplaceVisibleDesc,
-      createActionElement: () => this.createCheckbox(this.settingsData.defaultReplaceVisible, async (checked) => {
-        await this.applySettings({
-          ...this.settingsData,
-          defaultReplaceVisible: checked,
-        })
-      }),
-    })
-
-    setting.addItem({
-      title: this.i18n.settingRememberPositionTitle,
-      description: this.i18n.settingRememberPositionDesc,
-      createActionElement: () => this.createCheckbox(this.settingsData.rememberPanelPosition, async (checked) => {
-        await this.applySettings({
-          ...this.settingsData,
-          rememberPanelPosition: checked,
-        })
-      }),
-    })
-
-    setting.addItem({
-      title: this.i18n.settingMinimapTitle,
-      description: this.i18n.settingMinimapDesc,
-      createActionElement: () => this.createCheckbox(this.settingsData.minimapVisible, async (checked) => {
-        await this.applySettings({
-          ...this.settingsData,
-          minimapVisible: checked,
-        })
-      }),
-    })
-
-    setting.addItem({
-      title: this.i18n.settingPreloadSelectionTitle,
-      description: this.i18n.settingPreloadSelectionDesc,
-      createActionElement: () => this.createCheckbox(this.settingsData.preloadSelection, async (checked) => {
-        await this.applySettings({
-          ...this.settingsData,
-          preloadSelection: checked,
-        })
-      }),
-    })
-
-    setting.addItem({
-      title: this.i18n.settingIncludeCodeBlockTitle,
-      description: this.i18n.settingIncludeCodeBlockDesc,
-      createActionElement: () => this.createCheckbox(this.settingsData.includeCodeBlock, async (checked) => {
-        await this.applySettings({
-          ...this.settingsData,
-          includeCodeBlock: checked,
-        })
-      }),
-    })
-
-    setting.addItem({
-      title: this.i18n.settingDebugLogTitle,
-      description: this.i18n.settingDebugLogDesc,
-      createActionElement: () => this.createCheckbox(this.settingsData.debugLog, async (checked) => {
-        await this.applySettings({
-          ...this.settingsData,
-          debugLog: checked,
-        })
-      }),
-    })
-
-    setting.addItem({
-      title: this.i18n.settingPreserveCaseTitle,
-      description: this.i18n.settingPreserveCaseDesc,
-      createActionElement: () => this.createCheckbox(this.settingsData.preserveCase, async (checked) => {
-        await this.applySettings({
-          ...this.settingsData,
-          preserveCase: checked,
-        })
-      }),
+    BOOLEAN_SETTING_DEFINITIONS.forEach(({ descriptionKey, settingKey, titleKey }) => {
+      setting.addItem({
+        title: this.i18n[titleKey],
+        description: this.i18n[descriptionKey],
+        createActionElement: () => this.createCheckbox(this.settingsData[settingKey], async (checked) => {
+          await this.applySettings({
+            ...this.settingsData,
+            [settingKey]: checked,
+          })
+        }),
+      })
     })
 
     setting.open(this.name)
@@ -258,7 +189,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     }
   }
 
-  private async updateHotkeySetting(settingKey: 'panelHotkey' | 'replacePanelHotkey', value: string) {
+  private async updateHotkeySetting(settingKey: HotkeySettingKey, value: string) {
     const normalizedHotkey = normalizeHotkey(value)
     if (!normalizedHotkey) {
       return false
@@ -324,12 +255,12 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     return input
   }
 
-  private findHotkeySettingConflict(settingKey: 'panelHotkey' | 'replacePanelHotkey', hotkey: string) {
+  private findHotkeySettingConflict(settingKey: HotkeySettingKey, hotkey: string) {
     const ignoredHotkeys = [this.settingsData[settingKey]]
     return findHotkeyConflict(hotkey, this.getKnownHotkeySources(settingKey), ignoredHotkeys)
   }
 
-  private getKnownHotkeySources(settingKey: 'panelHotkey' | 'replacePanelHotkey'): HotkeySource[] {
+  private getKnownHotkeySources(settingKey: HotkeySettingKey): HotkeySource[] {
     const ignoredLangKey = settingKey === 'panelHotkey' ? 'togglePanel' : 'toggleReplacePanel'
     const commandSources = this.commands
       .filter(command => command.langKey !== ignoredLangKey)

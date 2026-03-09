@@ -99,4 +99,33 @@ describe('plugin editor context events', () => {
       title: 'Doc 1',
     }))
   })
+
+  it('registers and unregisters the full editor event list', async () => {
+    const { default: FriendlySearchReplacePlugin } = await import('@/index')
+
+    const plugin = new FriendlySearchReplacePlugin()
+    plugin.i18n = {
+      addTopBarIcon: 'Friendly Search Replace',
+    }
+    plugin.eventBus.on = vi.fn()
+    plugin.eventBus.off = vi.fn()
+
+    await plugin.onload()
+    plugin.onunload()
+
+    expect((plugin.eventBus.on as ReturnType<typeof vi.fn>).mock.calls.map(([eventName]) => eventName)).toEqual([
+      'switch-protyle',
+      'click-editorcontent',
+      'loaded-protyle-dynamic',
+      'loaded-protyle-static',
+      'destroy-protyle',
+    ])
+    expect((plugin.eventBus.off as ReturnType<typeof vi.fn>).mock.calls.map(([eventName]) => eventName)).toEqual([
+      'switch-protyle',
+      'click-editorcontent',
+      'loaded-protyle-dynamic',
+      'loaded-protyle-static',
+      'destroy-protyle',
+    ])
+  })
 })

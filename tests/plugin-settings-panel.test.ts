@@ -54,7 +54,7 @@ describe('plugin settings panel', () => {
     vi.resetModules()
   })
 
-  it('registers a minimap toggle in the plugin settings panel', async () => {
+  it('registers all hotkey and checkbox settings in the plugin settings panel', async () => {
     const { Setting } = await import('siyuan')
     const addItemSpy = vi.spyOn(Setting.prototype, 'addItem')
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
@@ -84,9 +84,47 @@ describe('plugin settings panel', () => {
 
     plugin.openSetting()
 
-    expect(addItemSpy).toHaveBeenCalledWith(expect.objectContaining({
-      description: 'show minimap on panel',
-      title: 'Document minimap',
-    }))
+    expect(addItemSpy).toHaveBeenCalledTimes(9)
+    expect(addItemSpy.mock.calls.map(([item]) => ({
+      description: item.description,
+      title: item.title,
+    }))).toEqual([
+      {
+        description: 'panel hotkey',
+        title: 'Panel hotkey',
+      },
+      {
+        description: 'replace hotkey',
+        title: 'Replace hotkey',
+      },
+      {
+        description: 'default replace',
+        title: 'Default replace',
+      },
+      {
+        description: 'remember position',
+        title: 'Remember position',
+      },
+      {
+        description: 'show minimap on panel',
+        title: 'Document minimap',
+      },
+      {
+        description: 'preload selection',
+        title: 'Preload selection',
+      },
+      {
+        description: 'include code',
+        title: 'Include code',
+      },
+      {
+        description: 'debug',
+        title: 'Debug',
+      },
+      {
+        description: 'preserve case',
+        title: 'Preserve case',
+      },
+    ])
   })
 })
