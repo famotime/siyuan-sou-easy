@@ -211,6 +211,30 @@
       class="sfsr-minimap__track"
       @click="onMinimapTrackClick"
     >
+      <div class="sfsr-minimap__doc">
+        <div
+          v-for="block in minimapState.blocks"
+          :key="block.id"
+          class="sfsr-minimap__doc-block"
+          :class="`sfsr-minimap__doc-block--${block.variant}`"
+          :style="{
+            height: `${block.height}px`,
+            top: `${block.top}px`,
+          }"
+        >
+          <span
+            v-for="(line, index) in block.lines"
+            :key="`${block.id}:${index}`"
+            class="sfsr-minimap__doc-line"
+            :style="{
+              height: `${line.height}px`,
+              left: `${line.left}%`,
+              top: `${line.top}px`,
+              width: `${line.width}%`,
+            }"
+          />
+        </div>
+      </div>
       <div
         v-for="marker in minimapState.markers"
         :key="marker.id"
@@ -280,6 +304,21 @@ const MINIMAP_MAX_HEIGHT = 360
 const MINIMAP_VIEWPORT_MIN_HEIGHT = 28
 const MINIMAP_MARKER_MIN_HEIGHT = 3
 
+interface MinimapDocLine {
+  height: number
+  left: number
+  top: number
+  width: number
+}
+
+interface MinimapDocBlock {
+  height: number
+  id: string
+  lines: MinimapDocLine[]
+  top: number
+  variant: 'code' | 'heading' | 'list' | 'paragraph'
+}
+
 interface MinimapMarker {
   current: boolean
   height: number
@@ -288,6 +327,7 @@ interface MinimapMarker {
 }
 
 interface MinimapLayout {
+  blocks: MinimapDocBlock[]
   clientHeight: number
   height: number
   markers: MinimapMarker[]
@@ -746,6 +786,7 @@ function refreshMinimap() {
     : 0
 
   minimapState.value = {
+    blocks: collectMinimapDocBlocks(context, scrollContainer, scrollRect, scrollHeight, height),
     clientHeight,
     height,
     markers: state.matches
@@ -772,6 +813,146 @@ function resolveMinimapScrollContainer(context: EditorContext) {
   return context.protyle.querySelector<HTMLElement>('.protyle-content')
     ?? context.protyle.querySelector<HTMLElement>('.protyle-wysiwyg')
     ?? context.protyle
+}
+
+function collectMinimapDocBlocks(
+  context: EditorContext,
+  scrollContainer: HTMLElement,
+  scrollRect: DOMRect,
+  scrollHeight: number,
+  minimapHeight: number,
+) {
+  const blockElements = Array.from(
+    context.protyle.querySelectorAll<HTMLElement>('.protyle-wysiwyg [data-node-id][data-type]'),
+  )
+  const seen = new Set<string>()
+
+  return blockElements.flatMap((blockElement) => {
+    const blockId = blockElement.dataset.nodeId
+    if (!blockId || seen.has(blockId)) {
+      return []
+    }
+
+    seen.add(blockId)
+    const projectedBlock = projectMinimapDocBlock(
+      blockElement,
+      scrollContainer,
+      scrollRect,
+      scrollHeight,
+      minimapHeight,
+    )
+
+    return projectedBlock ? [projectedBlock] : []
+  })
+}
+
+function projectMinimapDocBlock(
+  blockElement: HTMLElement,
+  scrollContainer: HTMLElement,
+  scrollRect: DOMRect,
+  scrollHeight: number,
+  minimapHeight: number,
+): MinimapDocBlock | null {
+  const blockId = blockElement.dataset.nodeId
+  const blockType = blockElement.dataset.type
+  if (!blockId || !blockType) {
+    return null
+  }
+
+  const blockRect = blockElement.getBoundingClientRect()
+  const projectedHeight = Math.max(
+    MINIMAP_MARKER_MIN_HEIGHT,
+    (Math.max(blockRect.height, 12) / scrollHeight) * minimapHeight,
+  )
+  const projectedTop = clamp(
+    ((blockRect.top - scrollRect.top + scrollContainer.scrollTop) / scrollHeight) * minimapHeight,
+    0,
+    Math.max(0, minimapHeight - projectedHeight),
+  )
+  const variant = resolveMinimapDocVariant(blockType)
+
+  return {
+    height: projectedHeight,
+    id: blockId,
+    lines: buildMinimapDocLines(blockId, variant, projectedHeight),
+    top: projectedTop,
+    variant,
+  }
+}
+
+function resolveMinimapDocVariant(blockType: string): MinimapDocBlock['variant'] {
+  if (blockType === 'NodeHeading') {
+    return 'heading'
+  }
+
+  if (blockType === 'NodeListItem') {
+    return 'list'
+  }
+
+  if (blockType === 'NodeCodeBlock') {
+    return 'code'
+  }
+
+  return 'paragraph'
+}
+
+function buildMinimapDocLines(
+  blockId: string,
+  variant: MinimapDocBlock['variant'],
+  blockHeight: number,
+): MinimapDocLine[] {
+  const hash = hashMinimapId(blockId)
+  const desiredLineCount = variant === 'heading'
+    ? 1
+    : variant === 'code'
+      ? 3
+      : 2
+  const maxLineCount = Math.max(1, Math.floor(blockHeight / 4))
+  const lineCount = Math.min(desiredLineCount, maxLineCount)
+  const lineHeight = variant === 'heading' ? 3 : 2
+  const spacing = lineCount === 1 ? 0 : (blockHeight - lineHeight) / (lineCount - 1)
+
+  return Array.from({ length: lineCount }, (_, index) => {
+    const left = variant === 'list'
+      ? 12
+      : variant === 'code'
+        ? 4
+        : 0
+    const width = resolveMinimapLineWidth(variant, index, hash)
+
+    return {
+      height: lineHeight,
+      left,
+      top: lineCount === 1
+        ? Math.max(0, (blockHeight - lineHeight) / 2)
+        : Math.min(blockHeight - lineHeight, index * spacing),
+      width: Math.min(100 - left, width),
+    }
+  })
+}
+
+function resolveMinimapLineWidth(
+  variant: MinimapDocBlock['variant'],
+  index: number,
+  hash: number,
+) {
+  switch (variant) {
+    case 'heading':
+      return 76 + (hash % 14)
+    case 'list':
+      return index === 0 ? 64 + (hash % 14) : 48 + (hash % 18)
+    case 'code':
+      return index === 2 ? 62 + (hash % 16) : 78 + (hash % 12)
+    case 'paragraph':
+    default:
+      return index === 0 ? 78 + (hash % 12) : 54 + (hash % 22)
+  }
+}
+
+function hashMinimapId(value: string) {
+  return Array.from(value).reduce((sum, char) => {
+    return (sum + char.charCodeAt(0)) % 997
+  }, 0)
 }
 
 function projectMinimapMarker(

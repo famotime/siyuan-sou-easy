@@ -32,7 +32,7 @@ describe('search panel minimap', () => {
         <input class="protyle-title__input" value="Doc 1" />
         <div class="protyle-content">
           <div class="protyle-wysiwyg">
-            <div data-node-id="block-1" data-type="NodeParagraph"><div contenteditable="true">First block</div></div>
+            <div data-node-id="block-1" data-type="NodeHeading"><div contenteditable="true">First block</div></div>
             <div data-node-id="block-2" data-type="NodeParagraph"><div contenteditable="true">Second block</div></div>
           </div>
         </div>
@@ -147,9 +147,15 @@ describe('search panel minimap', () => {
     const viewport = host?.querySelector<HTMLElement>('.sfsr-minimap__viewport')
     const markers = host?.querySelectorAll<HTMLElement>('.sfsr-minimap__marker')
     const currentMarker = host?.querySelector<HTMLElement>('.sfsr-minimap__marker--current')
+    const docBlocks = host?.querySelectorAll<HTMLElement>('.sfsr-minimap__doc-block')
+    const headingBlock = host?.querySelector<HTMLElement>('.sfsr-minimap__doc-block--heading')
+    const paragraphBlock = host?.querySelector<HTMLElement>('.sfsr-minimap__doc-block--paragraph')
 
     expect(minimap).not.toBeNull()
     expect(viewport).not.toBeNull()
+    expect(docBlocks).toHaveLength(2)
+    expect(headingBlock).not.toBeNull()
+    expect(paragraphBlock).not.toBeNull()
     expect(markers).toHaveLength(2)
     expect(currentMarker).not.toBeNull()
   })
