@@ -11,6 +11,7 @@ import {
   findHotkeyConflict,
   formatHotkeyFromEvent,
   normalizeHotkey,
+  toCommandHotkey,
   type HotkeySource,
 } from '@/hotkeys'
 import {
@@ -77,6 +78,32 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     onEditorContextChanged(createEditorContextFromProtyleLike(event?.detail?.protyle))
   }
 
+  private readonly openFindPanelCommand = () => {
+    this.openPanelFromCommand()
+  }
+
+  private readonly openReplacePanelCommand = () => {
+    this.openPanelFromCommand(true)
+  }
+
+  private readonly openFindPanelFromEditorCommand = (protyle: {
+    block?: {
+      rootID?: string
+    }
+    element?: HTMLElement
+  }) => {
+    this.openPanelFromCommand(undefined, protyle)
+  }
+
+  private readonly openReplacePanelFromEditorCommand = (protyle: {
+    block?: {
+      rootID?: string
+    }
+    element?: HTMLElement
+  }) => {
+    this.openPanelFromCommand(true, protyle)
+  }
+
   async onload() {
     const frontEnd = getFrontend()
     this.platform = frontEnd as SyFrontendTypes
@@ -109,20 +136,22 @@ export default class FriendlySearchReplacePlugin extends Plugin {
 
     this.addCommand({
       langKey: 'togglePanel',
-      hotkey: DEFAULT_SETTINGS.panelHotkey,
-      customHotkey: this.settingsData.panelHotkey,
-      callback: () => {
-        openPanel(true)
-      },
+      hotkey: toCommandHotkey(DEFAULT_SETTINGS.panelHotkey),
+      customHotkey: toCommandHotkey(this.settingsData.panelHotkey),
+      callback: this.openFindPanelCommand,
+      dockCallback: this.openFindPanelCommand,
+      editorCallback: this.openFindPanelFromEditorCommand,
+      fileTreeCallback: this.openFindPanelCommand,
     })
 
     this.addCommand({
       langKey: 'toggleReplacePanel',
-      hotkey: DEFAULT_SETTINGS.replacePanelHotkey,
-      customHotkey: this.settingsData.replacePanelHotkey,
-      callback: () => {
-        openPanel(true, true)
-      },
+      hotkey: toCommandHotkey(DEFAULT_SETTINGS.replacePanelHotkey),
+      customHotkey: toCommandHotkey(this.settingsData.replacePanelHotkey),
+      callback: this.openReplacePanelCommand,
+      dockCallback: this.openReplacePanelCommand,
+      editorCallback: this.openReplacePanelFromEditorCommand,
+      fileTreeCallback: this.openReplacePanelCommand,
     })
 
     bindEditorContextEvents(this.eventBus, this.handleEditorEvent)
@@ -178,15 +207,31 @@ export default class FriendlySearchReplacePlugin extends Plugin {
   private syncCommandHotkeys() {
     const panelCommand = this.commands.find(command => command.langKey === 'togglePanel')
     if (panelCommand) {
-      panelCommand.hotkey = DEFAULT_SETTINGS.panelHotkey
-      panelCommand.customHotkey = this.settingsData.panelHotkey
+      panelCommand.hotkey = toCommandHotkey(DEFAULT_SETTINGS.panelHotkey)
+      panelCommand.customHotkey = toCommandHotkey(this.settingsData.panelHotkey)
     }
 
     const replaceCommand = this.commands.find(command => command.langKey === 'toggleReplacePanel')
     if (replaceCommand) {
-      replaceCommand.hotkey = DEFAULT_SETTINGS.replacePanelHotkey
-      replaceCommand.customHotkey = this.settingsData.replacePanelHotkey
+      replaceCommand.hotkey = toCommandHotkey(DEFAULT_SETTINGS.replacePanelHotkey)
+      replaceCommand.customHotkey = toCommandHotkey(this.settingsData.replacePanelHotkey)
     }
+  }
+
+  private openPanelFromCommand(
+    replaceVisible?: boolean,
+    protyle?: {
+      block?: {
+        rootID?: string
+      }
+      element?: HTMLElement
+    },
+  ) {
+    if (protyle) {
+      onEditorContextChanged(createEditorContextFromProtyleLike(protyle))
+    }
+
+    openPanel(true, replaceVisible)
   }
 
   private async updateHotkeySetting(settingKey: HotkeySettingKey, value: string) {

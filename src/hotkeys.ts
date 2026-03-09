@@ -3,8 +3,9 @@ export interface HotkeySource {
   label: string
 }
 
-const MODIFIER_ORDER = ['Ctrl', 'Alt', 'Win', 'Shift'] as const
-const MODIFIER_ALIASES = new Map<string, typeof MODIFIER_ORDER[number]>([
+const DISPLAY_MODIFIER_ORDER = ['Ctrl', 'Alt', 'Win', 'Shift'] as const
+const COMMAND_MODIFIER_ORDER = ['Win', 'Alt', 'Shift', 'Ctrl'] as const
+const MODIFIER_ALIASES = new Map<string, typeof DISPLAY_MODIFIER_ORDER[number]>([
   ['alt', 'Alt'],
   ['cmd', 'Ctrl'],
   ['command', 'Ctrl'],
@@ -17,7 +18,19 @@ const MODIFIER_ALIASES = new Map<string, typeof MODIFIER_ORDER[number]>([
   ['win', 'Win'],
   ['windows', 'Win'],
 ])
+const COMMAND_MODIFIER_SYMBOLS = new Map<typeof DISPLAY_MODIFIER_ORDER[number], string>([
+  ['Ctrl', '⌘'],
+  ['Alt', '⌥'],
+  ['Win', '⌃'],
+  ['Shift', '⇧'],
+])
 const MODIFIER_ONLY_KEYS = new Set(['Alt', 'Control', 'Meta', 'Shift'])
+const COMMAND_SYMBOL_REPLACEMENTS = new Map<string, string>([
+  ['⌘', 'Ctrl+'],
+  ['⌥', 'Alt+'],
+  ['⌃', 'Win+'],
+  ['⇧', 'Shift+'],
+])
 const CODE_KEY_MAP = new Map<string, string>([
   ['Backquote', '`'],
   ['Backslash', '\\'],
@@ -34,6 +47,10 @@ const CODE_KEY_MAP = new Map<string, string>([
 ])
 const KEY_NAME_MAP = new Map<string, string>([
   [' ', 'Space'],
+  ['↩', 'Enter'],
+  ['⇥', 'Tab'],
+  ['⌫', 'Backspace'],
+  ['⌦', 'Delete'],
   ['ArrowDown', 'Down'],
   ['ArrowLeft', 'Left'],
   ['ArrowRight', 'Right'],
@@ -48,6 +65,20 @@ const KEY_NAME_MAP = new Map<string, string>([
   ['PageDown', 'PageDown'],
   ['PageUp', 'PageUp'],
   ['Tab', 'Tab'],
+  ['↓', 'Down'],
+  ['←', 'Left'],
+  ['→', 'Right'],
+  ['↑', 'Up'],
+])
+const COMMAND_KEY_SYMBOLS = new Map<string, string>([
+  ['Backspace', '⌫'],
+  ['Delete', '⌦'],
+  ['Down', '↓'],
+  ['Enter', '↩'],
+  ['Left', '←'],
+  ['Right', '→'],
+  ['Tab', '⇥'],
+  ['Up', '↑'],
 ])
 
 export function formatHotkeyFromEvent(event: KeyboardEvent) {
@@ -56,7 +87,7 @@ export function formatHotkeyFromEvent(event: KeyboardEvent) {
     return null
   }
 
-  const modifiers = MODIFIER_ORDER.filter((modifier) => {
+  const modifiers = DISPLAY_MODIFIER_ORDER.filter((modifier) => {
     switch (modifier) {
       case 'Ctrl':
         return event.ctrlKey
@@ -79,12 +110,7 @@ export function normalizeHotkey(hotkey: string | null | undefined) {
     return ''
   }
 
-  const normalizedInput = hotkey
-    .replace(/\u2318/g, 'Ctrl+')
-    .replace(/\u2325/g, 'Alt+')
-    .replace(/\u2303/g, 'Ctrl+')
-    .replace(/\u21E7/g, 'Shift+')
-    .trim()
+  const normalizedInput = expandCommandSymbols(hotkey).trim()
 
   if (!normalizedInput) {
     return ''
@@ -108,8 +134,40 @@ export function normalizeHotkey(hotkey: string | null | undefined) {
     key = normalizeHotkeyKey(token)
   })
 
-  const orderedModifiers = MODIFIER_ORDER.filter(modifier => modifiers.has(modifier))
+  const orderedModifiers = DISPLAY_MODIFIER_ORDER.filter(modifier => modifiers.has(modifier))
   return [...orderedModifiers, key].filter(Boolean).join('+')
+}
+
+export function toCommandHotkey(hotkey: string | null | undefined) {
+  const normalizedDisplayHotkey = normalizeHotkey(hotkey)
+  if (!normalizedDisplayHotkey) {
+    return ''
+  }
+
+  const rawTokens = normalizedDisplayHotkey
+    .split('+')
+    .map(token => token.trim())
+    .filter(Boolean)
+
+  const modifiers = new Set<typeof DISPLAY_MODIFIER_ORDER[number]>()
+  let key = ''
+
+  rawTokens.forEach((token) => {
+    const modifier = MODIFIER_ALIASES.get(token.toLowerCase())
+    if (modifier) {
+      modifiers.add(modifier)
+      return
+    }
+
+    key = normalizeHotkeyKey(token)
+  })
+
+  const modifierSymbols = COMMAND_MODIFIER_ORDER
+    .filter(modifier => modifiers.has(modifier))
+    .map(modifier => COMMAND_MODIFIER_SYMBOLS.get(modifier) ?? '')
+    .join('')
+
+  return `${modifierSymbols}${toCommandHotkeyKey(key)}`
 }
 
 export function collectKeymapHotkeys(keymap: unknown, path: string[] = []): HotkeySource[] {
@@ -186,6 +244,18 @@ function normalizeHotkeyKey(key: string) {
   }
 
   return key
+}
+
+function toCommandHotkeyKey(key: string) {
+  return COMMAND_KEY_SYMBOLS.get(key) ?? key
+}
+
+function expandCommandSymbols(value: string) {
+  let normalized = value
+  COMMAND_SYMBOL_REPLACEMENTS.forEach((replacement, symbol) => {
+    normalized = normalized.replaceAll(symbol, replacement)
+  })
+  return normalized
 }
 
 function isKeymapLeaf(value: object): value is { custom: string, default: string } {

@@ -11,6 +11,7 @@ import {
   findHotkeyConflict,
   formatHotkeyFromEvent,
   normalizeHotkey,
+  toCommandHotkey,
 } from '@/hotkeys'
 
 describe('hotkey helpers', () => {
@@ -37,6 +38,12 @@ describe('hotkey helpers', () => {
     expect(normalizeHotkey('⌘⇧F')).toBe('Ctrl+Shift+F')
     expect(normalizeHotkey('Meta+Shift+F')).toBe('Win+Shift+F')
     expect(normalizeHotkey('Ctrl+Shift+H')).toBe('Ctrl+Shift+H')
+  })
+
+  it('converts display hotkeys into SiYuan command hotkey symbols', () => {
+    expect(toCommandHotkey('Ctrl+F11')).toBe('⌘F11')
+    expect(toCommandHotkey('Ctrl+Shift+P')).toBe('⇧⌘P')
+    expect(toCommandHotkey('Alt+Shift+P')).toBe('⌥⇧P')
   })
 
   it('collects configured keymap hotkeys and finds conflicts', () => {
