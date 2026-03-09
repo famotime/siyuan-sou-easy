@@ -355,6 +355,181 @@ describe('search store editor context fallback', () => {
       '<div data-node-id="block-1" data-type="NodeParagraph"><div contenteditable="true">bar bar foo</div></div>',
     )
   })
+
+  it('clears the cached selection scope after replacing inside selection-only mode', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+    })
+
+    const selectionScope = new Map([
+      ['block-1', [{ start: 0, end: 3 }]],
+    ])
+
+    editorMocks.getCurrentSelectionScope
+      .mockImplementationOnce(() => selectionScope)
+      .mockImplementation(() => new Map())
+    searchEngineMocks.findMatches.mockImplementation((blocks, _query, _options, scope) => {
+      if (blocks.length === 0) {
+        return {
+          error: '',
+          matches: [],
+        }
+      }
+
+      return {
+        error: '',
+        matches: scope?.size
+          ? [{
+            blockId: 'block-1',
+            blockIndex: 0,
+            blockType: 'NodeParagraph',
+            end: 3,
+            id: 'block-1:0:3',
+            matchedText: 'foo',
+            previewText: '[foo] bar foo',
+            replaceable: true,
+            rootId: 'root-1',
+            start: 0,
+          }]
+          : [],
+      }
+    })
+
+    searchReplaceState.query = 'foo'
+    searchReplaceState.replacement = 'bar'
+    searchReplaceState.options.selectionOnly = true
+    editorMocks.getBlockElement.mockReturnValue({
+      outerHTML: '<div data-node-id="block-1" data-type="NodeParagraph"><div contenteditable="true">bar bar foo</div></div>',
+    } as HTMLElement)
+    editorMocks.applyReplacementsToClone.mockReturnValue({
+      appliedCount: 1,
+      clone: {
+        outerHTML: '<div data-node-id="block-1" data-type="NodeParagraph"><div contenteditable="true">bar bar foo</div></div>',
+      },
+    })
+
+    openPanel(true)
+    vi.runOnlyPendingTimers()
+
+    expect(searchReplaceState.matches).toHaveLength(1)
+
+    await replaceCurrent()
+
+    expect(searchReplaceState.matches).toEqual([])
+    expect(searchReplaceState.error).toBe('选区模式已开启，但当前没有可用选区')
+  })
+
+  it('does not reuse a stale cached selection scope after closing and reopening the panel', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+    })
+
+    const selectionScope = new Map([
+      ['block-1', [{ start: 0, end: 3 }]],
+    ])
+
+    editorMocks.getCurrentSelectionScope
+      .mockImplementationOnce(() => selectionScope)
+      .mockImplementation(() => new Map())
+    searchEngineMocks.findMatches.mockImplementation((blocks, _query, _options, scope) => {
+      if (blocks.length === 0) {
+        return {
+          error: '',
+          matches: [],
+        }
+      }
+
+      return {
+        error: '',
+        matches: scope?.size
+          ? [{
+            blockId: 'block-1',
+            blockIndex: 0,
+            blockType: 'NodeParagraph',
+            end: 3,
+            id: 'block-1:0:3',
+            matchedText: 'foo',
+            previewText: '[foo] bar foo',
+            replaceable: true,
+            rootId: 'root-1',
+            start: 0,
+          }]
+          : [],
+      }
+    })
+
+    searchReplaceState.query = 'foo'
+    searchReplaceState.options.selectionOnly = true
+
+    openPanel(true)
+    vi.runOnlyPendingTimers()
+
+    expect(searchReplaceState.matches).toHaveLength(1)
+
+    closePanel()
+    openPanel(true)
+    vi.runOnlyPendingTimers()
+
+    expect(searchReplaceState.matches).toEqual([])
+    expect(searchReplaceState.error).toBe('选区模式已开启，但当前没有可用选区')
+  })
+
+  it('clears the cached selection scope when editor interaction no longer has any live selection', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+    })
+
+    const selectionScope = new Map([
+      ['block-1', [{ start: 0, end: 3 }]],
+    ])
+
+    editorMocks.getCurrentSelectionScope
+      .mockImplementationOnce(() => selectionScope)
+      .mockImplementation(() => new Map())
+    searchEngineMocks.findMatches.mockImplementation((blocks, _query, _options, scope) => {
+      if (blocks.length === 0) {
+        return {
+          error: '',
+          matches: [],
+        }
+      }
+
+      return {
+        error: '',
+        matches: scope?.size
+          ? [{
+            blockId: 'block-1',
+            blockIndex: 0,
+            blockType: 'NodeParagraph',
+            end: 3,
+            id: 'block-1:0:3',
+            matchedText: 'foo',
+            previewText: '[foo] bar foo',
+            replaceable: true,
+            rootId: 'root-1',
+            start: 0,
+          }]
+          : [],
+      }
+    })
+
+    searchReplaceState.query = 'foo'
+    searchReplaceState.options.selectionOnly = true
+
+    openPanel(true)
+    vi.runOnlyPendingTimers()
+
+    expect(searchReplaceState.matches).toHaveLength(1)
+
+    onEditorContextChanged(editorMocks.state.context)
+    vi.runOnlyPendingTimers()
+
+    expect(searchReplaceState.matches).toEqual([])
+    expect(searchReplaceState.error).toBe('选区模式已开启，但当前没有可用选区')
+  })
 })
 
 function resetState() {

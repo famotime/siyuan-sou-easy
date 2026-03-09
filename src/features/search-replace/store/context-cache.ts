@@ -76,8 +76,21 @@ export function rememberHintedEditorContext(context: EditorContext | null) {
 }
 
 export function rememberSelectionScope(context: EditorContext, scope: SelectionScope) {
+  if (scope.size === 0) {
+    return
+  }
+
   lastSelectionScopeRootId = context.rootId
   lastSelectionScope = cloneSelectionScope(scope)
+}
+
+export function clearSelectionScope(rootId?: string) {
+  if (rootId && lastSelectionScopeRootId && lastSelectionScopeRootId !== rootId) {
+    return
+  }
+
+  lastSelectionScope = new Map()
+  lastSelectionScopeRootId = ''
 }
 
 export function clearResolvedEditorContext() {
@@ -87,8 +100,7 @@ export function clearResolvedEditorContext() {
 export function clearCachedEditorState() {
   lastEditorContext = null
   lastHintedEditorContext = null
-  lastSelectionScope = new Map()
-  lastSelectionScopeRootId = ''
+  clearSelectionScope()
 }
 
 export function isUsableEditorContext(context: EditorContext | null | undefined): context is EditorContext {

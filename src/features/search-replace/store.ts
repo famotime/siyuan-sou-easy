@@ -21,6 +21,7 @@ import type {
 import { debugLog, setDebugLoggingEnabled } from './debug'
 import type { PluginSettings } from '@/settings'
 import {
+  clearSelectionScope,
   clearCachedEditorState,
   clearResolvedEditorContext,
   rememberEditorContext,
@@ -48,6 +49,7 @@ let selectionRevealTimer = 0
 let liveRefreshObserver: MutationObserver | null = null
 let liveRefreshTarget: HTMLElement | null = null
 let documentListenersBound = false
+const NO_SELECTION_SCOPE_ERROR = '选区模式已开启，但当前没有可用选区'
 
 export { searchReplaceState } from './store/state'
 
@@ -132,7 +134,10 @@ export function openPanel(forceVisible?: boolean, replaceVisible?: boolean) {
   const activeContext = getActiveEditorContext()
   rememberEditorContext(activeContext)
   if (activeContext) {
-    rememberSelectionScope(activeContext, getCurrentSelectionScope(activeContext))
+    const scope = getCurrentSelectionScope(activeContext)
+    if (scope.size > 0) {
+      rememberSelectionScope(activeContext, scope)
+    }
   }
 
   if (typeof replaceVisible === 'boolean') {
@@ -158,6 +163,7 @@ export function closePanel() {
   searchReplaceState.busy = false
   searchReplaceState.error = ''
   clearSelectionRevealTimer()
+  clearSelectionScope()
   clearResolvedEditorContext()
   disconnectLiveRefreshObserver()
   clearSearchDecorations()
@@ -195,13 +201,33 @@ export function captureCurrentSelectionScope() {
 
 export function toggleOption(option: keyof SearchOptions) {
   searchReplaceState.options[option] = !searchReplaceState.options[option]
+  if (option === 'selectionOnly' && !searchReplaceState.options.selectionOnly) {
+    clearSelectionScope()
+  }
   scheduleRefresh(0)
 }
 
 export function onEditorContextChanged(contextHint?: EditorContext | null) {
+  if (
+    searchReplaceState.options.selectionOnly
+    && contextHint?.rootId
+    && searchReplaceState.currentRootId
+    && contextHint.rootId !== searchReplaceState.currentRootId
+  ) {
+    clearSelectionScope()
+  }
+
   if (contextHint) {
     rememberHintedEditorContext(contextHint)
     rememberEditorContext(contextHint)
+    if (searchReplaceState.options.selectionOnly) {
+      const scope = getCurrentSelectionScope(contextHint)
+      if (scope.size > 0) {
+        rememberSelectionScope(contextHint, scope)
+      } else {
+        clearSelectionScope(contextHint.rootId)
+      }
+    }
   } else {
     rememberEditorContext(getActiveEditorContext())
   }
@@ -243,6 +269,7 @@ export function skipCurrent() {
 export async function replaceCurrent() {
   await replaceCurrentMatch({
     applyReplacementsToClone,
+    clearSelectionScope,
     getBlockElement,
     getCurrentMatch,
     refreshMatches,
@@ -256,6 +283,7 @@ export async function replaceCurrent() {
 export async function replaceAll() {
   await replaceAllMatches({
     applyReplacementsToClone,
+    clearSelectionScope,
     getBlockElement,
     refreshMatches,
     resolveEditorContext,
@@ -296,6 +324,15 @@ async function refreshMatches() {
   const selectionScope = searchReplaceState.options.selectionOnly
     ? resolveSelectionScope(context)
     : new Map()
+  if (searchReplaceState.options.selectionOnly && selectionScope.size === 0) {
+    const validation = findMatches([], searchReplaceState.query, searchReplaceState.options)
+    searchReplaceState.matches = []
+    searchReplaceState.currentIndex = 0
+    searchReplaceState.error = validation.error || NO_SELECTION_SCOPE_ERROR
+    clearSearchDecorations(context)
+    return
+  }
+
   const result = findMatches(blocks, searchReplaceState.query, searchReplaceState.options, selectionScope)
   searchReplaceState.error = result.error
   searchReplaceState.matches = result.matches
@@ -358,6 +395,13 @@ function syncLiveRefreshObserver(context: EditorContext | null) {
       return
     }
 
+    if (searchReplaceState.options.selectionOnly && context) {
+      const liveSelectionScope = getCurrentSelectionScope(context)
+      if (liveSelectionScope.size === 0) {
+        clearSelectionScope(context.rootId)
+      }
+    }
+
     debugLog('editor-dom-changed')
     scheduleRefresh(80)
   })
@@ -394,7 +438,9 @@ function handleDocumentSelectionChange() {
     const selectionScope = getCurrentSelectionScope(selectionContext)
     rememberHintedEditorContext(selectionContext)
     rememberEditorContext(selectionContext)
-    rememberSelectionScope(selectionContext, selectionScope)
+    if (selectionScope.size > 0) {
+      rememberSelectionScope(selectionContext, selectionScope)
+    }
     if (searchReplaceState.visible && searchReplaceState.options.selectionOnly) {
       scheduleRefresh(0)
       scheduleSelectionHighlightReveal(selectionContext)

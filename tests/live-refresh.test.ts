@@ -193,6 +193,64 @@ describe('search store live refresh', () => {
     expect(searchEngineMocks.findMatches).toHaveBeenCalledTimes(2)
     expect(searchReplaceState.matches).toHaveLength(1)
   })
+
+  it('invalidates the cached selection scope when the document changes without an active selection', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+    })
+    searchReplaceState.query = 'foo'
+    searchReplaceState.options.selectionOnly = true
+
+    const selectionScope = new Map([
+      ['block-1', [{ start: 0, end: 3 }]],
+    ])
+
+    editorMocks.getCurrentSelectionScope
+      .mockImplementationOnce(() => selectionScope)
+      .mockImplementation(() => new Map())
+    searchEngineMocks.findMatches.mockImplementation((blocks, _query, _options, scope) => {
+      if (blocks.length === 0) {
+        return {
+          error: '',
+          matches: [],
+        }
+      }
+
+      return {
+        error: '',
+        matches: scope?.size
+          ? [{
+            blockId: 'block-1',
+            blockIndex: 0,
+            blockType: 'NodeParagraph',
+            end: 3,
+            id: 'block-1:0:3',
+            matchedText: 'foo',
+            previewText: '[foo] bar',
+            replaceable: true,
+            rootId: 'root-1',
+            start: 0,
+          }]
+          : [],
+      }
+    })
+
+    openPanel(true)
+    vi.runOnlyPendingTimers()
+
+    expect(searchReplaceState.matches).toHaveLength(1)
+
+    const changedNode = document.createElement('div')
+    changedNode.textContent = 'foo bar'
+    editorMocks.state.context!.protyle.querySelector('.protyle-wysiwyg')?.appendChild(changedNode)
+
+    await Promise.resolve()
+    vi.runOnlyPendingTimers()
+
+    expect(searchReplaceState.matches).toEqual([])
+    expect(searchReplaceState.error).toBe('选区模式已开启，但当前没有可用选区')
+  })
 })
 
 function resetState() {

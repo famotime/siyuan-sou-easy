@@ -8,6 +8,7 @@ import type { SearchReplaceState } from './state'
 
 interface ReplaceCurrentDependencies {
   applyReplacementsToClone: typeof import('../editor').applyReplacementsToClone
+  clearSelectionScope: (rootId?: string) => void
   getBlockElement: typeof import('../editor').getBlockElement
   getCurrentMatch: () => SearchMatch | null
   refreshMatches: () => Promise<void>
@@ -19,6 +20,7 @@ interface ReplaceCurrentDependencies {
 
 interface ReplaceAllDependencies {
   applyReplacementsToClone: typeof import('../editor').applyReplacementsToClone
+  clearSelectionScope: (rootId?: string) => void
   getBlockElement: typeof import('../editor').getBlockElement
   refreshMatches: () => Promise<void>
   resolveEditorContext: () => EditorContext | null
@@ -28,6 +30,7 @@ interface ReplaceAllDependencies {
 
 export async function replaceCurrentMatch({
   applyReplacementsToClone,
+  clearSelectionScope,
   getBlockElement,
   getCurrentMatch,
   refreshMatches,
@@ -68,6 +71,9 @@ export async function replaceCurrentMatch({
   try {
     state.busy = true
     await updateDomBlock(match.blockId, outcome.clone.outerHTML)
+    if (state.options.selectionOnly) {
+      clearSelectionScope(match.rootId)
+    }
     await refreshMatches()
     if (state.matches.length > 0) {
       state.currentIndex = Math.min(nextIndex, state.matches.length - 1)
@@ -85,6 +91,7 @@ export async function replaceCurrentMatch({
 
 export async function replaceAllMatches({
   applyReplacementsToClone,
+  clearSelectionScope,
   getBlockElement,
   refreshMatches,
   resolveEditorContext,
@@ -147,6 +154,9 @@ export async function replaceAllMatches({
       skippedCount += Math.max(0, matches.length - outcome.appliedCount)
     }
 
+    if (replacedCount > 0 && state.options.selectionOnly) {
+      clearSelectionScope(context.rootId)
+    }
     await refreshMatches()
     debugLog('replace-all:done', {
       replacedCount,
