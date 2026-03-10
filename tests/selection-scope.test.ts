@@ -138,4 +138,37 @@ describe('selection search scope', () => {
       ['block-2', [{ start: 0, end: 11 }]],
     ])
   })
+
+  it('maps selected list item containers to their nested searchable paragraph blocks', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-background" data-node-id="root-1"></div>
+        <div class="protyle-title" data-node-id="root-1"></div>
+        <input class="protyle-title__input" value="Doc 1" />
+        <div class="protyle-wysiwyg">
+          <div data-node-id="list-item-1" data-type="NodeListItem" class="li protyle-wysiwyg--select">
+            <div class="protyle-action"></div>
+            <div data-node-id="paragraph-1" data-type="NodeParagraph" class="p">
+              <div contenteditable="true">First item foo</div>
+            </div>
+          </div>
+          <div data-node-id="list-item-2" data-type="NodeListItem" class="li protyle-wysiwyg--select">
+            <div class="protyle-action"></div>
+            <div data-node-id="paragraph-2" data-type="NodeParagraph" class="p">
+              <div contenteditable="true">Second item bar</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    const context = createEditorContextFromElement(protyle)
+    const scope = getCurrentSelectionScope(context!)
+
+    expect(Array.from(scope.entries())).toEqual([
+      ['paragraph-1', [{ start: 0, end: 14 }]],
+      ['paragraph-2', [{ start: 0, end: 15 }]],
+    ])
+  })
 })

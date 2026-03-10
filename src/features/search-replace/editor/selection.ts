@@ -54,28 +54,57 @@ function getSelectionScopeFromSelectedBlocks(context: EditorContext): SelectionS
   const seen = new Set<string>()
 
   selectedElements.forEach((selectedElement) => {
-    const blockElement = selectedElement.matches('[data-node-id][data-type]')
-      ? selectedElement
-      : selectedElement.closest<HTMLElement>('[data-node-id][data-type]')
-    const blockId = blockElement?.dataset.nodeId
-    if (!blockElement || !blockId || seen.has(blockId)) {
-      return
-    }
+    const blockElements = resolveSelectedBlockElements(selectedElement)
+    blockElements.forEach((blockElement) => {
+      const blockId = blockElement.dataset.nodeId
+      if (!blockId || seen.has(blockId)) {
+        return
+      }
 
-    seen.add(blockId)
-    const textLength = getOwnedTextNodes(blockElement)
-      .reduce((length, node) => length + (node.nodeValue?.length ?? 0), 0)
-    if (textLength <= 0) {
-      return
-    }
+      const textLength = getBlockTextLength(blockElement)
+      if (textLength <= 0) {
+        return
+      }
 
-    scope.set(blockId, [{
-      start: 0,
-      end: textLength,
-    }])
+      seen.add(blockId)
+      scope.set(blockId, [{
+        start: 0,
+        end: textLength,
+      }])
+    })
   })
 
   return scope
+}
+
+function resolveSelectedBlockElements(selectedElement: HTMLElement) {
+  const primaryBlock = selectedElement.matches('[data-node-id][data-type]')
+    ? selectedElement
+    : selectedElement.closest<HTMLElement>('[data-node-id][data-type]')
+
+  if (primaryBlock) {
+    if (getBlockTextLength(primaryBlock) > 0) {
+      return [primaryBlock]
+    }
+
+    const descendantBlocks = getDescendantBlockElements(primaryBlock)
+      .filter(blockElement => getBlockTextLength(blockElement) > 0)
+    if (descendantBlocks.length > 0) {
+      return descendantBlocks
+    }
+  }
+
+  return getDescendantBlockElements(selectedElement)
+    .filter(blockElement => getBlockTextLength(blockElement) > 0)
+}
+
+function getDescendantBlockElements(rootElement: HTMLElement) {
+  return Array.from(rootElement.querySelectorAll<HTMLElement>('[data-node-id][data-type]'))
+}
+
+function getBlockTextLength(blockElement: HTMLElement) {
+  return getOwnedTextNodes(blockElement)
+    .reduce((length, node) => length + (node.nodeValue?.length ?? 0), 0)
 }
 
 function getSelectionRangesWithinBlock(blockElement: HTMLElement, selection: Selection) {
