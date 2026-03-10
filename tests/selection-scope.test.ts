@@ -87,6 +87,31 @@ describe('selection search scope', () => {
     ])
   })
 
+  it('treats selected list items as full selection ranges when the selection class is applied on inner content', () => {
+    document.body.innerHTML =       '<div class="protyle">' +
+      '<div class="protyle-background" data-node-id="root-1"></div>' +
+      '<div class="protyle-title" data-node-id="root-1"></div>' +
+      '<input class="protyle-title__input" value="Doc 1" />' +
+      '<div class="protyle-wysiwyg">' +
+      '  <div data-node-id="item-1" data-type="NodeListItem">' +
+      '    <div contenteditable="true" class="protyle-wysiwyg--select">First item foo</div>' +
+      '  </div>' +
+      '  <div data-node-id="item-2" data-type="NodeListItem">' +
+      '    <div contenteditable="true" class="protyle-wysiwyg--select">Second item bar</div>' +
+      '  </div>' +
+      '</div>' +
+      '</div>'
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    const context = createEditorContextFromElement(protyle)
+    const scope = getCurrentSelectionScope(context!)
+
+    expect(Array.from(scope.entries())).toEqual([
+      ['item-1', [{ start: 0, end: 14 }]],
+      ['item-2', [{ start: 0, end: 15 }]],
+    ])
+  })
+
   it('treats selected blocks as full selection ranges when SiYuan uses block selection classes', () => {
     document.body.innerHTML = `
       <div class="protyle">

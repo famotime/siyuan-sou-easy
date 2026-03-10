@@ -436,14 +436,19 @@ function handleDocumentSelectionChange() {
 
   if (selectionContext) {
     const selectionScope = getCurrentSelectionScope(selectionContext)
+    const hasCollapsedCaret = Boolean(selection && selection.rangeCount > 0 && selection.isCollapsed)
     rememberHintedEditorContext(selectionContext)
     rememberEditorContext(selectionContext)
     if (selectionScope.size > 0) {
       rememberSelectionScope(selectionContext, selectionScope)
     }
     if (searchReplaceState.visible && searchReplaceState.options.selectionOnly) {
-      scheduleRefresh(0)
-      scheduleSelectionHighlightReveal(selectionContext)
+      if (selectionScope.size > 0) {
+        scheduleRefresh(0)
+        scheduleSelectionHighlightReveal(selectionContext)
+      } else if (hasCollapsedCaret) {
+        clearSelectionRevealTimer()
+      }
     }
     return
   }

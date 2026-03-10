@@ -48,14 +48,17 @@ function getSelectionScopeFromTextRanges(context: EditorContext, selection: Sele
 
 function getSelectionScopeFromSelectedBlocks(context: EditorContext): SelectionScope {
   const scope: SelectionScope = new Map()
-  const selectedBlocks = Array.from(
-    context.protyle.querySelectorAll<HTMLElement>('.protyle-wysiwyg .protyle-wysiwyg--select[data-node-id][data-type]'),
+  const selectedElements = Array.from(
+    context.protyle.querySelectorAll<HTMLElement>('.protyle-wysiwyg .protyle-wysiwyg--select'),
   )
   const seen = new Set<string>()
 
-  selectedBlocks.forEach((blockElement) => {
-    const blockId = blockElement.dataset.nodeId
-    if (!blockId || seen.has(blockId)) {
+  selectedElements.forEach((selectedElement) => {
+    const blockElement = selectedElement.matches('[data-node-id][data-type]')
+      ? selectedElement
+      : selectedElement.closest<HTMLElement>('[data-node-id][data-type]')
+    const blockId = blockElement?.dataset.nodeId
+    if (!blockElement || !blockId || seen.has(blockId)) {
       return
     }
 

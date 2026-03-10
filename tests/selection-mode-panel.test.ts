@@ -125,6 +125,35 @@ describe('selection mode from panel interaction', () => {
     expect(document.querySelector('[data-node-id="block-1"]')?.classList.contains('sfsr-block-current')).toBe(true)
   })
 
+  it('keeps the caret available for typing when selection-only mode is on and the user only places a cursor', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+    })
+    searchReplaceState.query = 'foo'
+    searchReplaceState.options.selectionOnly = true
+
+    openPanel(true)
+    await nextTick()
+    vi.runOnlyPendingTimers()
+
+    const textNode = document.querySelector('[data-node-id="block-1"] [contenteditable="true"]')?.firstChild as Text
+    const range = document.createRange()
+    range.setStart(textNode, 4)
+    range.setEnd(textNode, 4)
+    const selection = window.getSelection()!
+    const clearSelectionSpy = vi.spyOn(selection, 'removeAllRanges')
+    selection.removeAllRanges()
+    selection.addRange(range)
+    document.dispatchEvent(new Event('selectionchange'))
+
+    vi.runOnlyPendingTimers()
+    await nextTick()
+
+    expect(clearSelectionSpy).toHaveBeenCalledTimes(1)
+    expect(window.getSelection()?.rangeCount).toBe(1)
+  })
+
   it('shows a clear error when selection-only mode has no available selection', async () => {
     applyPluginSettings({
       ...DEFAULT_SETTINGS,
