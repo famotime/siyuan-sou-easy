@@ -1,6 +1,7 @@
 import {
   Plugin,
   Setting,
+  adaptHotkey,
   getFrontend,
   showMessage,
 } from 'siyuan'
@@ -11,7 +12,6 @@ import {
   findHotkeyConflict,
   formatHotkeyFromEvent,
   normalizeHotkey,
-  toCommandHotkey,
   type HotkeySource,
 } from '@/hotkeys'
 import {
@@ -32,7 +32,10 @@ import {
   onEditorContextChanged,
   openPanel,
 } from '@/features/search-replace/store'
-import { createEditorContextFromProtyleLike } from '@/features/search-replace/editor'
+import {
+  createEditorContextFromElement,
+  createEditorContextFromProtyleLike,
+} from '@/features/search-replace/editor'
 import {
   destroy,
   init,
@@ -48,6 +51,8 @@ import {
 let pluginInfo = {
   version: '',
 }
+
+const HOTKEY_CAPTURE_INPUT_ATTRIBUTE = 'data-friendly-search-hotkey-input'
 
 try {
   pluginInfo = PluginInfoString
@@ -104,6 +109,40 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     this.openPanelFromCommand(true, protyle)
   }
 
+  private readonly handleDocumentKeydown = (event: KeyboardEvent) => {
+    if (event.defaultPrevented || event.isComposing) {
+      return
+    }
+
+    const target = event.target instanceof Element ? event.target : null
+    if (target?.closest(`[${HOTKEY_CAPTURE_INPUT_ATTRIBUTE}="true"]`)) {
+      return
+    }
+
+    const hotkey = formatHotkeyFromEvent(event)
+    if (!hotkey) {
+      return
+    }
+
+    const normalizedHotkey = normalizeHotkey(hotkey)
+    if (!normalizedHotkey) {
+      return
+    }
+
+    if (normalizedHotkey === this.settingsData.panelHotkey) {
+      event.preventDefault()
+      event.stopPropagation()
+      this.openPanelFromKeyboardEvent(event)
+      return
+    }
+
+    if (normalizedHotkey === this.settingsData.replacePanelHotkey) {
+      event.preventDefault()
+      event.stopPropagation()
+      this.openPanelFromKeyboardEvent(event, true)
+    }
+  }
+
   async onload() {
     const frontEnd = getFrontend()
     this.platform = frontEnd as SyFrontendTypes
@@ -136,8 +175,8 @@ export default class FriendlySearchReplacePlugin extends Plugin {
 
     this.addCommand({
       langKey: 'togglePanel',
-      hotkey: toCommandHotkey(DEFAULT_SETTINGS.panelHotkey),
-      customHotkey: toCommandHotkey(this.settingsData.panelHotkey),
+      hotkey: this.toRegisteredHotkey(DEFAULT_SETTINGS.panelHotkey),
+      customHotkey: this.toRegisteredHotkey(this.settingsData.panelHotkey),
       callback: this.openFindPanelCommand,
       dockCallback: this.openFindPanelCommand,
       editorCallback: this.openFindPanelFromEditorCommand,
@@ -146,8 +185,8 @@ export default class FriendlySearchReplacePlugin extends Plugin {
 
     this.addCommand({
       langKey: 'toggleReplacePanel',
-      hotkey: toCommandHotkey(DEFAULT_SETTINGS.replacePanelHotkey),
-      customHotkey: toCommandHotkey(this.settingsData.replacePanelHotkey),
+      hotkey: this.toRegisteredHotkey(DEFAULT_SETTINGS.replacePanelHotkey),
+      customHotkey: this.toRegisteredHotkey(this.settingsData.replacePanelHotkey),
       callback: this.openReplacePanelCommand,
       dockCallback: this.openReplacePanelCommand,
       editorCallback: this.openReplacePanelFromEditorCommand,
@@ -155,10 +194,12 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     })
 
     bindEditorContextEvents(this.eventBus, this.handleEditorEvent)
+    window.addEventListener('keydown', this.handleDocumentKeydown, true)
   }
 
   onunload() {
     unbindEditorContextEvents(this.eventBus, this.handleEditorEvent)
+    window.removeEventListener('keydown', this.handleDocumentKeydown, true)
     destroy()
   }
 
@@ -207,15 +248,20 @@ export default class FriendlySearchReplacePlugin extends Plugin {
   private syncCommandHotkeys() {
     const panelCommand = this.commands.find(command => command.langKey === 'togglePanel')
     if (panelCommand) {
-      panelCommand.hotkey = toCommandHotkey(DEFAULT_SETTINGS.panelHotkey)
-      panelCommand.customHotkey = toCommandHotkey(this.settingsData.panelHotkey)
+      panelCommand.hotkey = this.toRegisteredHotkey(DEFAULT_SETTINGS.panelHotkey)
+      panelCommand.customHotkey = this.toRegisteredHotkey(this.settingsData.panelHotkey)
     }
 
     const replaceCommand = this.commands.find(command => command.langKey === 'toggleReplacePanel')
     if (replaceCommand) {
-      replaceCommand.hotkey = toCommandHotkey(DEFAULT_SETTINGS.replacePanelHotkey)
-      replaceCommand.customHotkey = toCommandHotkey(this.settingsData.replacePanelHotkey)
+      replaceCommand.hotkey = this.toRegisteredHotkey(DEFAULT_SETTINGS.replacePanelHotkey)
+      replaceCommand.customHotkey = this.toRegisteredHotkey(this.settingsData.replacePanelHotkey)
     }
+  }
+
+  private toRegisteredHotkey(hotkey: string) {
+    const normalizedHotkey = normalizeHotkey(hotkey) || hotkey
+    return adaptHotkey(normalizedHotkey)
   }
 
   private openPanelFromCommand(
@@ -229,6 +275,17 @@ export default class FriendlySearchReplacePlugin extends Plugin {
   ) {
     if (protyle) {
       onEditorContextChanged(createEditorContextFromProtyleLike(protyle))
+    }
+
+    openPanel(true, replaceVisible)
+  }
+
+  private openPanelFromKeyboardEvent(event: KeyboardEvent, replaceVisible?: boolean) {
+    const target = event.target instanceof Element ? event.target : null
+    const protyle = target?.closest('.protyle')
+    const context = createEditorContextFromElement(protyle instanceof HTMLElement ? protyle : null)
+    if (context) {
+      onEditorContextChanged(context)
     }
 
     openPanel(true, replaceVisible)
@@ -257,6 +314,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     const input = document.createElement('input')
     input.className = 'b3-text-field fn__size200'
     input.autocomplete = 'off'
+    input.setAttribute(HOTKEY_CAPTURE_INPUT_ATTRIBUTE, 'true')
     input.placeholder = '\u70b9\u51fb\u540e\u6309\u4e0b\u5feb\u6377\u952e'
     input.readOnly = true
     input.spellcheck = false

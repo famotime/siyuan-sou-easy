@@ -10,6 +10,23 @@ export const getFrontend = vi.fn(() => 'desktop')
 
 export const showMessage = vi.fn()
 
+export const adaptHotkey = vi.fn((hotkey: string) => {
+  const tokens = hotkey.split('+').map(token => token.trim()).filter(Boolean)
+  const modifierMap: Record<string, string> = {
+    Win: '⌃',
+    Alt: '⌥',
+    Shift: '⇧',
+    Ctrl: '⌘',
+  }
+  const modifierOrder = ['Win', 'Alt', 'Shift', 'Ctrl']
+  const modifiers = modifierOrder
+    .filter(modifier => tokens.includes(modifier))
+    .map(modifier => modifierMap[modifier] ?? '')
+    .join('')
+  const key = tokens.find(token => !modifierOrder.includes(token)) ?? ''
+  return `${modifiers}${key}`
+})
+
 export class Setting {
   addItem() {
     return this

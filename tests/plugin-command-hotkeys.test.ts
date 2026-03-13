@@ -13,11 +13,11 @@ const loadSettings = vi.fn().mockResolvedValue({
   defaultReplaceVisible: false,
   includeCodeBlock: false,
   minimapVisible: false,
-  panelHotkey: 'Ctrl+F11',
+  panelHotkey: 'Ctrl+Alt+Shift+G',
   preserveCase: false,
   preloadSelection: true,
   rememberPanelPosition: true,
-  replacePanelHotkey: 'Ctrl+F12',
+  replacePanelHotkey: 'Ctrl+Alt+Shift+H',
 })
 
 const onEditorContextChanged = vi.fn()
@@ -27,6 +27,7 @@ const createEditorContextFromProtyleLike = vi.fn((protyle) => ({
   rootId: protyle.block.rootID,
   title: 'Doc 1',
 }))
+const createEditorContextFromElement = vi.fn(() => null)
 
 vi.mock('@/main', () => ({
   destroy: vi.fn(),
@@ -40,6 +41,7 @@ vi.mock('@/features/search-replace/store', () => ({
 }))
 
 vi.mock('@/features/search-replace/editor', () => ({
+  createEditorContextFromElement,
   createEditorContextFromProtyleLike,
 }))
 
@@ -66,8 +68,9 @@ describe('plugin command hotkeys', () => {
     vi.resetModules()
   })
 
-  it('registers panel commands with SiYuan command hotkey symbols', async () => {
+  it('registers panel commands with the adapted persisted hotkeys', async () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
+    const siyuan = await import('siyuan')
 
     const plugin = new FriendlySearchReplacePlugin()
     plugin.i18n = {
@@ -80,14 +83,18 @@ describe('plugin command hotkeys', () => {
       expect.objectContaining({
         langKey: 'togglePanel',
         hotkey: '⌘F11',
-        customHotkey: '⌘F11',
+        customHotkey: '⌥⇧⌘G',
       }),
       expect.objectContaining({
         langKey: 'toggleReplacePanel',
         hotkey: '⌘F12',
-        customHotkey: '⌘F12',
+        customHotkey: '⌥⇧⌘H',
       }),
     ]))
+    expect(siyuan.adaptHotkey).toHaveBeenCalledWith('Ctrl+F11')
+    expect(siyuan.adaptHotkey).toHaveBeenCalledWith('Ctrl+Alt+Shift+G')
+    expect(siyuan.adaptHotkey).toHaveBeenCalledWith('Ctrl+F12')
+    expect(siyuan.adaptHotkey).toHaveBeenCalledWith('Ctrl+Alt+Shift+H')
   })
 
   it('registers an editor callback that opens the panel with the current protyle context', async () => {
@@ -115,6 +122,38 @@ describe('plugin command hotkeys', () => {
       rootId: 'root-1',
       title: 'Doc 1',
     }))
+    expect(openPanel).toHaveBeenCalledWith(true, undefined)
+  })
+
+  it('opens the panel from a saved hotkey even when command routing does not provide a context callback', async () => {
+    const { default: FriendlySearchReplacePlugin } = await import('@/index')
+
+    const plugin = new FriendlySearchReplacePlugin()
+    plugin.i18n = {
+      addTopBarIcon: 'Friendly Search Replace',
+    }
+
+    await plugin.onload()
+    openPanel.mockClear()
+    createEditorContextFromElement.mockClear()
+
+    const target = document.createElement('div')
+    target.addEventListener('keydown', (event) => {
+      event.stopPropagation()
+    })
+    document.body.appendChild(target)
+
+    target.dispatchEvent(new KeyboardEvent('keydown', {
+      altKey: true,
+      bubbles: true,
+      cancelable: true,
+      code: 'KeyG',
+      ctrlKey: true,
+      key: 'g',
+      shiftKey: true,
+    }))
+
+    expect(createEditorContextFromElement).toHaveBeenCalledWith(null)
     expect(openPanel).toHaveBeenCalledWith(true, undefined)
   })
 })
