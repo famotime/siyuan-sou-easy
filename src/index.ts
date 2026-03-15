@@ -31,6 +31,7 @@ import {
   applyPluginSettings,
   onEditorContextChanged,
   openPanel,
+  searchReplaceState,
 } from '@/features/search-replace/store'
 import {
   createEditorContextFromElement,
@@ -84,7 +85,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
   }
 
   private readonly openFindPanelCommand = () => {
-    this.openPanelFromCommand()
+    this.openPanelFromCommand(false)
   }
 
   private readonly openReplacePanelCommand = () => {
@@ -97,7 +98,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     }
     element?: HTMLElement
   }) => {
-    this.openPanelFromCommand(undefined, protyle)
+    this.openPanelFromCommand(false, protyle)
   }
 
   private readonly openReplacePanelFromEditorCommand = (protyle: {
@@ -132,7 +133,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     if (normalizedHotkey === this.settingsData.panelHotkey) {
       event.preventDefault()
       event.stopPropagation()
-      this.openPanelFromKeyboardEvent(event)
+      this.openPanelFromKeyboardEvent(event, false)
       return
     }
 
@@ -277,7 +278,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
       onEditorContextChanged(createEditorContextFromProtyleLike(protyle))
     }
 
-    openPanel(true, replaceVisible)
+    this.togglePanel(replaceVisible)
   }
 
   private openPanelFromKeyboardEvent(event: KeyboardEvent, replaceVisible?: boolean) {
@@ -288,7 +289,17 @@ export default class FriendlySearchReplacePlugin extends Plugin {
       onEditorContextChanged(context)
     }
 
-    openPanel(true, replaceVisible)
+    this.togglePanel(replaceVisible)
+  }
+
+  private togglePanel(replaceVisible?: boolean) {
+    if (!searchReplaceState.visible) {
+      openPanel(true, replaceVisible)
+      return
+    }
+
+    const shouldClose = replaceVisible === searchReplaceState.replaceVisible
+    openPanel(!shouldClose, replaceVisible)
   }
 
   private async updateHotkeySetting(settingKey: HotkeySettingKey, value: string) {
@@ -359,7 +370,14 @@ export default class FriendlySearchReplacePlugin extends Plugin {
   }
 
   private findHotkeySettingConflict(settingKey: HotkeySettingKey, hotkey: string) {
-    const ignoredHotkeys = [this.settingsData[settingKey]]
+    const ignoredLangKeys = settingKey === 'panelHotkey' ? ['togglePanel'] : ['toggleReplacePanel']
+    const ignoredHotkeys = [
+      this.settingsData[settingKey],
+      ...this.commands
+        .filter(cmd => ignoredLangKeys.includes(cmd.langKey || ''))
+        .map(cmd => cmd.customHotkey || cmd.hotkey)
+        .filter(Boolean),
+    ]
     return findHotkeyConflict(hotkey, this.getKnownHotkeySources(settingKey), ignoredHotkeys)
   }
 
