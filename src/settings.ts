@@ -26,14 +26,13 @@ export const DEFAULT_SETTINGS: PluginSettings = {
   preserveCase: false,
 }
 
-const SETTINGS_STORAGE = 'settings.json'
+export const SETTINGS_STORAGE = 'settings.json'
 
 export async function loadSettings(plugin: Plugin): Promise<PluginSettings> {
   try {
     const data = await plugin.loadData(SETTINGS_STORAGE) as Partial<PluginSettings> | null
     return normalizeSettings(data)
-  } catch (error) {
-    console.warn('Failed to load plugin settings', error)
+  } catch {
     return normalizeSettings()
   }
 }

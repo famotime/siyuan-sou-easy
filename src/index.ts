@@ -33,6 +33,7 @@ import {
   openPanel,
   searchReplaceState,
 } from '@/features/search-replace/store'
+import { UI_STATE_STORAGE } from '@/features/search-replace/store/ui-state'
 import {
   createEditorContextFromElement,
   createEditorContextFromProtyleLike,
@@ -43,6 +44,7 @@ import {
 } from '@/main'
 import {
   DEFAULT_SETTINGS,
+  SETTINGS_STORAGE,
   type PluginSettings,
   loadSettings,
   normalizeSettings,
@@ -57,8 +59,7 @@ const HOTKEY_CAPTURE_INPUT_ATTRIBUTE = 'data-friendly-search-hotkey-input'
 
 try {
   pluginInfo = PluginInfoString
-} catch (error) {
-  console.warn('Plugin info parse error', error)
+} catch {
 }
 
 const { version } = pluginInfo
@@ -202,6 +203,11 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     unbindEditorContextEvents(this.eventBus, this.handleEditorEvent)
     window.removeEventListener('keydown', this.handleDocumentKeydown, true)
     destroy()
+  }
+
+  async uninstall() {
+    await this.removeData(SETTINGS_STORAGE)
+    await this.removeData(UI_STATE_STORAGE)
   }
 
   openSetting() {

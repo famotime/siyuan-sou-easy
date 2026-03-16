@@ -195,6 +195,23 @@ describe('search store ui state', () => {
 
     expect(editorMocks.getCurrentSelectionScope).not.toHaveBeenCalled()
   })
+
+  it('falls back silently when stored panel position cannot be loaded', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    plugin.loadData.mockRejectedValue(new Error('boom'))
+
+    bindPlugin(plugin as any)
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      rememberPanelPosition: true,
+    })
+
+    await initializeUiState()
+
+    expect(searchReplaceState.panelPosition).toBeNull()
+    expect(warnSpy).not.toHaveBeenCalled()
+    warnSpy.mockRestore()
+  })
 })
 
 function resetState() {

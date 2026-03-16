@@ -4,7 +4,7 @@ import type {
   PersistedUiState,
 } from './state'
 
-const UI_STATE_STORAGE = 'ui-state.json'
+export const UI_STATE_STORAGE = 'ui-state.json'
 
 let pluginInstance: Plugin | null = null
 let persistTimer = 0
@@ -30,8 +30,7 @@ export async function loadStoredPanelPosition() {
     }
 
     return normalizePanelPosition(data.panelPosition)
-  } catch (error) {
-    console.warn('Failed to load search-replace UI state', error)
+  } catch {
     return undefined
   }
 }
@@ -58,9 +57,7 @@ export async function persistUiState(position: PanelPosition | null) {
 
   try {
     await pluginInstance.saveData(UI_STATE_STORAGE, payload)
-  } catch (error) {
-    console.warn('Failed to save search-replace UI state', error)
-  }
+  } catch {}
 }
 
 export function normalizePanelPosition(position: PanelPosition | null | undefined) {

@@ -43,6 +43,7 @@ vi.mock('@/settings', () => ({
     rememberPanelPosition: true,
     replacePanelHotkey: 'Ctrl+F12',
   },
+  SETTINGS_STORAGE: 'settings.json',
   loadSettings,
   normalizeSettings: vi.fn(value => value),
   saveSettings: vi.fn(),

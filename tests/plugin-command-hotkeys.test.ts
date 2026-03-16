@@ -8,6 +8,13 @@ import {
   vi,
 } from 'vitest'
 
+const storeState = vi.hoisted(() => ({
+  searchReplaceState: {
+    replaceVisible: false,
+    visible: false,
+  },
+}))
+
 const loadSettings = vi.fn().mockResolvedValue({
   debugLog: false,
   defaultReplaceVisible: false,
@@ -38,6 +45,7 @@ vi.mock('@/features/search-replace/store', () => ({
   applyPluginSettings: vi.fn(),
   onEditorContextChanged,
   openPanel,
+  searchReplaceState: storeState.searchReplaceState,
 }))
 
 vi.mock('@/features/search-replace/editor', () => ({
@@ -57,6 +65,7 @@ vi.mock('@/settings', () => ({
     rememberPanelPosition: true,
     replacePanelHotkey: 'Ctrl+F12',
   },
+  SETTINGS_STORAGE: 'settings.json',
   loadSettings,
   normalizeSettings: vi.fn(value => value),
   saveSettings: vi.fn(),
@@ -66,6 +75,8 @@ describe('plugin command hotkeys', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.resetModules()
+    storeState.searchReplaceState.visible = false
+    storeState.searchReplaceState.replaceVisible = false
   })
 
   it('registers panel commands with the adapted persisted hotkeys', async () => {
@@ -122,7 +133,7 @@ describe('plugin command hotkeys', () => {
       rootId: 'root-1',
       title: 'Doc 1',
     }))
-    expect(openPanel).toHaveBeenCalledWith(true, undefined)
+    expect(openPanel).toHaveBeenCalledWith(true, false)
   })
 
   it('opens the panel from a saved hotkey even when command routing does not provide a context callback', async () => {
@@ -154,6 +165,6 @@ describe('plugin command hotkeys', () => {
     }))
 
     expect(createEditorContextFromElement).toHaveBeenCalledWith(null)
-    expect(openPanel).toHaveBeenCalledWith(true, undefined)
+    expect(openPanel).toHaveBeenCalledWith(true, false)
   })
 })

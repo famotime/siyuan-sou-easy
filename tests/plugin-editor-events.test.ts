@@ -52,6 +52,7 @@ vi.mock('@/settings', () => ({
     rememberPanelPosition: true,
     replacePanelHotkey: 'Ctrl+H',
   },
+  SETTINGS_STORAGE: 'settings.json',
   loadSettings,
   normalizeSettings: vi.fn(value => value),
   saveSettings: vi.fn(),
@@ -127,5 +128,21 @@ describe('plugin editor context events', () => {
       'loaded-protyle-static',
       'destroy-protyle',
     ])
+  })
+
+  it('removes persisted plugin data during uninstall', async () => {
+    const { default: FriendlySearchReplacePlugin } = await import('@/index')
+
+    const plugin = new FriendlySearchReplacePlugin()
+    plugin.i18n = {
+      addTopBarIcon: 'Friendly Search Replace',
+    }
+    plugin.removeData = vi.fn().mockResolvedValue(null)
+
+    await plugin.uninstall?.()
+
+    expect(plugin.removeData).toHaveBeenCalledTimes(2)
+    expect(plugin.removeData).toHaveBeenNthCalledWith(1, 'settings.json')
+    expect(plugin.removeData).toHaveBeenNthCalledWith(2, 'ui-state.json')
   })
 })

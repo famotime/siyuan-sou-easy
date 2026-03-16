@@ -1,30 +1,27 @@
 {
   "name": "siyuan-sou-easy",
-  "author": "",
-  "url": "",
-  "version": "0.0.1",
+  "author": "QuincyZou",
+  "url": "https://github.com/famotime/siyuan-sou-easy",
+  "version": "1.0.0",
   "minAppVersion": "3.5.7",
   "disabledInPublish": false,
   "backends": [
     "all"
   ],
   "frontends": [
-    "all"
+    "desktop",
+    "desktop-window",
+    "browser-desktop"
   ],
   "displayName": {
     "default": "搜 easy",
-    "en_US": "Sou Easy",
     "zh_CN": "搜 easy"
   },
   "description": {
-    "default": "VS Code style find-and-replace for the current SiYuan document.",
-    "en_US": "VS Code style find-and-replace for the current SiYuan document.",
-    "zh_CN": "为思源当前文档提供更接近 VS Code 的逐条查找与替换体验。"
+    "default": "为思源文档提供更接近 VS Code 的逐条查找与替换体验。"
   },
   "readme": {
-    "default": "README.md",
-    "en_US": "README.md",
-    "zh_CN": "README_zh_CN.md"
+    "default": "README.md"
   },
   "funding": {
     "custom": []

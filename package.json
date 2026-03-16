@@ -1,6 +1,6 @@
 {
   "name": "siyuan-sou-easy",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "type": "module",
   "description": "A SiYuan plugin that adds VS Code style find-and-replace for the current document.",
   "author": "QuincyZou",

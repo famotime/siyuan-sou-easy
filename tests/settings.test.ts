@@ -1,7 +1,13 @@
-import { describe, expect, it } from 'vitest'
+import {
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import {
   DEFAULT_SETTINGS,
   createSearchOptionsFromSettings,
+  loadSettings,
   normalizeSettings,
 } from '@/settings'
 
@@ -47,5 +53,22 @@ describe('createSearchOptionsFromSettings', () => {
       useRegex: false,
       wholeWord: false,
     })
+  })
+})
+
+describe('loadSettings', () => {
+  it('falls back to defaults without console warnings when stored settings cannot be read', async () => {
+    const plugin = {
+      loadData: async () => {
+        throw new Error('boom')
+      },
+    }
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const settings = await loadSettings(plugin as any)
+
+    expect(settings).toEqual(DEFAULT_SETTINGS)
+    expect(warnSpy).not.toHaveBeenCalled()
+    warnSpy.mockRestore()
   })
 })
