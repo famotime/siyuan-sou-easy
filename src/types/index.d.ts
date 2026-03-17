@@ -121,6 +121,7 @@ interface Window {
     user: any;
     ws: any;
     languages: any;
+    zIndex?: number;
   };
 }
 

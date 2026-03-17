@@ -13,6 +13,15 @@ let pluginInstance: Plugin | null = null
 let app: VueApp<Element> | null = null
 let hostElement: HTMLDivElement | null = null
 
+function resolveHostZIndex() {
+  const currentZIndex = Number(window.siyuan?.zIndex)
+  if (Number.isFinite(currentZIndex) && currentZIndex > 1) {
+    return String(Math.floor(currentZIndex) - 1)
+  }
+
+  return '1'
+}
+
 export function getPlugin() {
   return pluginInstance
 }
@@ -29,6 +38,7 @@ export async function init(plugin: Plugin) {
   hostElement = document.createElement('div')
   hostElement.id = 'siyuan-friendly-search-replace'
   hostElement.className = 'sfsr-root'
+  hostElement.style.zIndex = resolveHostZIndex()
   document.body.appendChild(hostElement)
 
   app = createApp(App)

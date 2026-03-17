@@ -79,7 +79,39 @@ export function collectPrecheckIssues(payload) {
     })
   }
 
+  const displayNameMap = toObject(payload.pluginJson.displayName)
+  const expectedDisplayNameDefault = readString(payload.i18nEn.addTopBarIcon) || readString(displayNameMap.en_US)
+  const displayNameDefault = readString(displayNameMap.default)
+  if (expectedDisplayNameDefault && displayNameDefault && displayNameDefault !== expectedDisplayNameDefault) {
+    issues.push({
+      code: 'display_name_default_mismatch',
+      level: 'error',
+      message: `plugin.json displayName.default 应与英文标题一致：当前为 ${displayNameDefault}，期望为 ${expectedDisplayNameDefault}`,
+    })
+  }
+
+  const descriptionMap = toObject(payload.pluginJson.description)
+  const descriptionDefault = readString(descriptionMap.default)
+  const descriptionEn = readString(descriptionMap.en_US)
+  if (descriptionDefault && descriptionEn && descriptionDefault !== descriptionEn) {
+    issues.push({
+      code: 'description_default_mismatch',
+      level: 'error',
+      message: 'plugin.json description.default 应与英文描述一致',
+    })
+  }
+
   const readmeMap = toObject(payload.pluginJson.readme)
+  const readmeDefault = readString(readmeMap.default)
+  const readmeEn = readString(readmeMap.en_US)
+  if (readmeDefault && readmeEn && readmeDefault !== readmeEn) {
+    issues.push({
+      code: 'readme_default_mismatch',
+      level: 'error',
+      message: `plugin.json readme.default 应指向英文 README：当前为 ${readmeDefault}，期望为 ${readmeEn}`,
+    })
+  }
+
   Object.entries(readmeMap).forEach(([locale, readmePath]) => {
     const value = readString(readmePath)
     if (!value) {
@@ -174,4 +206,3 @@ if (isExecutedDirectly()) {
     process.exitCode = 1
   }
 }
-

@@ -14,14 +14,19 @@
     "browser-desktop"
   ],
   "displayName": {
-    "default": "搜 easy",
+    "default": "Friendly Search Replace",
+    "en_US": "Friendly Search Replace",
     "zh_CN": "搜 easy"
   },
   "description": {
-    "default": "为思源文档提供更接近 VS Code 的逐条查找与替换体验。"
+    "default": "VS Code style find-and-replace for the current SiYuan document.",
+    "en_US": "VS Code style find-and-replace for the current SiYuan document.",
+    "zh_CN": "为思源当前文档提供更接近 VS Code 的逐条查找与替换体验。"
   },
   "readme": {
-    "default": "README.md"
+    "default": "README.md",
+    "en_US": "README.md",
+    "zh_CN": "README_zh_CN.md"
   },
   "funding": {
     "custom": []

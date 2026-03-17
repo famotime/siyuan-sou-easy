@@ -78,4 +78,42 @@ describe('collectPrecheckIssues', () => {
     expect(issues.map(issue => issue.code)).toContain('i18n_key_mismatch')
     expect(issues.map(issue => issue.code)).toContain('missing_readme_file')
   })
+
+  it('reports plugin metadata when the default locale does not use the English-facing values', () => {
+    const issues = collectPrecheckIssues({
+      docsFiles: new Set(['README.md', 'README_zh_CN.md']),
+      i18nEn: {
+        addTopBarIcon: 'Friendly Search Replace',
+      },
+      i18nZh: {
+        addTopBarIcon: '搜 easy',
+      },
+      packageJson: {
+        version: '1.2.3',
+      },
+      pluginJson: {
+        description: {
+          default: '中文描述',
+          en_US: 'VS Code style find-and-replace for the current SiYuan document.',
+          zh_CN: '中文描述',
+        },
+        displayName: {
+          default: '搜 easy',
+          en_US: 'Friendly Search Replace',
+          zh_CN: '搜 easy',
+        },
+        minAppVersion: '3.5.7',
+        readme: {
+          default: 'README_zh_CN.md',
+          en_US: 'README.md',
+          zh_CN: 'README_zh_CN.md',
+        },
+        version: '1.2.3',
+      },
+    })
+
+    expect(issues.map(issue => issue.code)).toContain('display_name_default_mismatch')
+    expect(issues.map(issue => issue.code)).toContain('description_default_mismatch')
+    expect(issues.map(issue => issue.code)).toContain('readme_default_mismatch')
+  })
 })
