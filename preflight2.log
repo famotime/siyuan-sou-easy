@@ -1,0 +1,40 @@
+PASS
+- Found `plugin.json`
+- Found `README.md`
+- Found `icon.png`
+- Found `preview.png`
+- Found `package.zip`
+- Parsed `plugin.json`
+- Read `README.md`
+- `plugin.json` contains `name`
+- `plugin.json` contains `author`
+- `plugin.json` contains `url`
+- `plugin.json` contains `version`
+- `plugin.json` contains `minAppVersion`
+- `plugin.json` contains `backends`
+- `plugin.json` contains `frontends`
+- `plugin.json` contains `displayName`
+- `plugin.json` contains `description`
+- `plugin.json` contains `readme`
+- Plugin name is `siyuan-sou-easy`
+- Plugin version `1.0.0` looks like semver
+- Plugin URL looks valid: `https://github.com/famotime/siyuan-sou-easy`
+- `displayName` has valid localized text
+- `description` has valid localized text
+- `readme.default` points to `README.md`
+- `backends` declares 1 target(s)
+- `frontends` declares 3 target(s)
+- `package.json.version` matches `plugin.json.version` at `1.0.0`
+- `package.zip` is newer than the core listing files
+- `package.zip` contains `plugin.json` at the archive root
+- `package.zip` contains `README.md` at the archive root
+- `package.zip` contains `icon.png` at the archive root
+- `package.zip` contains `preview.png` at the archive root
+- `package.zip` contains `index.js` at the archive root
+- `package.zip` contains `index.css`
+- Packaged `plugin.json.version` matches repo version `1.0.0`
+- Packaged `plugin.json.name` matches repo name `siyuan-sou-easy`
+- Packaged `preview.png` matches the repo copy
+- Packaged `icon.png` matches the repo copy
+- Packaged `README.md` matches the repo copy
+
