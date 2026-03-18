@@ -132,7 +132,41 @@ export function collectPrecheckIssues(payload) {
     }
   })
 
+  const redundantEnUsFields = collectRedundantEnUsMetadataFields(payload.pluginJson)
+  if (redundantEnUsFields.length > 0) {
+    issues.push({
+      code: 'redundant_en_us_metadata',
+      level: 'error',
+      message: `plugin.json 不应包含多余的 en_US 字段：${redundantEnUsFields.join(', ')}`,
+    })
+  }
+
   return issues
+}
+
+export function getReleaseStaticCopyTargets() {
+  return [
+    {
+      src: './README*.md',
+      dest: './',
+    },
+    {
+      src: './icon.png',
+      dest: './',
+    },
+    {
+      src: './preview.png',
+      dest: './',
+    },
+    {
+      src: './plugin.json',
+      dest: './',
+    },
+    {
+      src: './src/i18n/*.json',
+      dest: './i18n/',
+    },
+  ]
 }
 
 export function runPrecheckFromWorkspace(workspaceRoot) {
@@ -180,6 +214,12 @@ function readString(value) {
 
 function readJson(filePath) {
   return JSON.parse(readFileSync(filePath, 'utf-8'))
+}
+
+function collectRedundantEnUsMetadataFields(pluginJson) {
+  return ['displayName', 'description', 'readme']
+    .filter(field => Object.hasOwn(toObject(pluginJson[field]), 'en_US'))
+    .map(field => `${field}.en_US`)
 }
 
 function printIssues(issues) {

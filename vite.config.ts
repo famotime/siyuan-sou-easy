@@ -10,6 +10,7 @@ import {
 } from "vite"
 import { viteStaticCopy } from "vite-plugin-static-copy"
 import zipPack from "vite-plugin-zip-pack"
+import { getReleaseStaticCopyTargets } from "./scripts/release-precheck.mjs"
 
 const pluginInfo = require("./plugin.json")
 
@@ -53,28 +54,7 @@ export default defineConfig(({
     plugins: [
       vue(),
       viteStaticCopy({
-        targets: [
-          {
-            src: "./README*.md",
-            dest: "./",
-          },
-          {
-            src: "./icon.png",
-            dest: "./",
-          },
-          {
-            src: "./preview.png",
-            dest: "./",
-          },
-          {
-            src: "./plugin.json",
-            dest: "./",
-          },
-          {
-            src: "./src/i18n/**",
-            dest: "./i18n/",
-          },
-        ],
+        targets: getReleaseStaticCopyTargets(),
       }),
     ],
 
