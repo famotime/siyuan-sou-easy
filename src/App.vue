@@ -23,8 +23,8 @@
         :class="{ 'sfsr-replace-toggle--expanded': state.replaceVisible }"
         type="button"
         :aria-expanded="String(state.replaceVisible)"
-        aria-label="展开或折叠替换栏"
-        title="展开或折叠替换栏"
+        :aria-label="t('replaceToggle')"
+        :title="t('replaceToggle')"
         @click="toggleReplaceVisible"
       >
         <span
@@ -40,7 +40,7 @@
             ref="findInputRef"
             :value="state.query"
             class="b3-text-field sfsr-input"
-            placeholder="查找"
+            :placeholder="t('findPlaceholder')"
             @compositionstart="onFindCompositionStart"
             @compositionend="onFindCompositionEnd"
             @input="onFindInput"
@@ -50,7 +50,7 @@
           <button
             :class="optionButtonClass(state.options.matchCase)"
             class="sfsr-button"
-            title="区分大小写"
+            :title="t('matchCase')"
             @click="toggleOption('matchCase')"
           >
             Aa
@@ -58,7 +58,7 @@
           <button
             :class="optionButtonClass(state.options.wholeWord)"
             class="sfsr-button"
-            title="全词匹配"
+            :title="t('wholeWord')"
             @click="toggleOption('wholeWord')"
           >
             ab
@@ -66,7 +66,7 @@
           <button
             :class="optionButtonClass(state.options.useRegex)"
             class="sfsr-button"
-            title="使用正则"
+            :title="t('useRegex')"
             @click="toggleOption('useRegex')"
           >
             .*
@@ -74,8 +74,8 @@
           <button
             :class="optionButtonClass(state.options.selectionOnly)"
             class="sfsr-button sfsr-icon-button"
-            aria-label="仅在选中范围内查找和替换"
-            title="仅在选中范围内查找和替换"
+            :aria-label="t('selectionOnly')"
+            :title="t('selectionOnly')"
             @pointerdown.prevent.stop="onSelectionOnlyPointerDown"
             @click.stop="onSelectionOnlyClick"
           >
@@ -103,21 +103,21 @@
 
           <button
             class="sfsr-button"
-            title="上一项"
+            :title="t('previousMatch')"
             @click="goPrev"
           >
             ↑
           </button>
           <button
             class="sfsr-button"
-            title="下一项"
+            :title="t('nextMatch')"
             @click="goNext"
           >
             ↓
           </button>
           <button
             class="sfsr-button"
-            title="关闭"
+            :title="t('closePanel')"
             @click="closePanel"
           >
             ×
@@ -132,7 +132,7 @@
             ref="replaceInputRef"
             :value="state.replacement"
             class="b3-text-field sfsr-input"
-            placeholder="替换"
+            :placeholder="t('replacePlaceholder')"
             @compositionstart="onReplaceCompositionStart"
             @compositionend="onReplaceCompositionEnd"
             @input="onReplaceInput"
@@ -143,21 +143,21 @@
             :disabled="!canReplaceCurrent"
             @click="replaceCurrent"
           >
-            替换当前
+            {{ t('replaceAction') }}
           </SyButton>
           <SyButton
             class="sfsr-action"
             :disabled="!state.matches.length"
             @click="skipCurrent"
           >
-            跳过
+            {{ t('skipAction') }}
           </SyButton>
           <SyButton
             class="sfsr-action"
             :disabled="!state.matches.length"
             @click="replaceAll"
           >
-            全部替换
+            {{ t('replaceAllAction') }}
           </SyButton>
         </div>
 
@@ -255,6 +255,7 @@ import {
   ref,
   watch,
 } from 'vue'
+import { t } from '@/i18n/runtime'
 import SyButton from '@/components/SiyuanTheme/SyButton.vue'
 import {
   captureCurrentSelectionScope,
@@ -274,11 +275,6 @@ import {
   toggleOption,
   toggleReplaceVisible,
 } from '@/features/search-replace/store'
-import {
-  REGEX_HELP_EXAMPLES,
-  REGEX_HELP_NOTE,
-  REGEX_HELP_TITLE,
-} from '@/features/search-replace/ui/regex-help'
 import { useComposedInput } from '@/features/search-replace/ui/use-composed-input'
 import { usePanelFrame } from '@/features/search-replace/ui/use-panel-frame'
 import { usePanelMinimap } from '@/features/search-replace/ui/use-panel-minimap'
@@ -287,20 +283,28 @@ const findInputRef = ref<HTMLInputElement>()
 const replaceInputRef = ref<HTMLInputElement>()
 const panelRef = ref<HTMLDivElement>()
 const currentMatch = computed(() => getCurrentMatch())
-const regexHelpTitle = REGEX_HELP_TITLE
-const regexHelpNote = REGEX_HELP_NOTE
-const regexHelpExamples = REGEX_HELP_EXAMPLES
+const regexHelpTitle = computed(() => t('regexHelpTitle'))
+const regexHelpNote = computed(() => t('regexHelpNote'))
+const regexHelpExamples = computed(() => [
+  {
+    description: t('regexHelpDescAlternation'),
+    pattern: t('regexHelpPatternAlternation'),
+  },
+  {
+    description: t('regexHelpDescWhitespace'),
+    pattern: t('regexHelpPatternWhitespace'),
+  },
+  {
+    description: t('regexHelpDescVersion'),
+    pattern: t('regexHelpPatternVersion'),
+  },
+])
 const showRegexHelp = computed(() => state.options.useRegex)
 const counterText = computed(() => {
-  if (!state.query) {
-    return '0 of 0'
-  }
+  const current = state.query && state.matches.length ? state.currentIndex + 1 : 0
+  const total = state.query ? state.matches.length : 0
 
-  if (!state.matches.length) {
-    return '0 of 0'
-  }
-
-  return `${state.currentIndex + 1} of ${state.matches.length}`
+  return t('matchCounter', { current, total })
 })
 
 const statusText = computed(() => {
@@ -309,14 +313,11 @@ const statusText = computed(() => {
   }
 
   const parts: string[] = []
-  if (state.currentTitle) {
-    parts.push(`当前文档：${state.currentTitle}`)
-  }
   if (currentMatch.value?.previewText) {
     parts.push(currentMatch.value.previewText)
   }
   if (currentMatch.value && !currentMatch.value.replaceable) {
-    parts.push('当前命中跨越复杂格式，暂不支持直接替换')
+    parts.push(t('replaceCurrentUnsupported'))
   }
   return parts.join(' · ')
 })

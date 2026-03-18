@@ -4,6 +4,7 @@ import type {
   EditorContext,
   SearchMatch,
 } from '../types'
+import { t } from '@/i18n/runtime'
 import type { SearchReplaceState } from './state'
 
 interface ReplaceCurrentDependencies {
@@ -62,7 +63,7 @@ export async function replaceCurrentMatch({
     preserveCase: state.settings.preserveCase,
   })
   if (!outcome.clone || outcome.appliedCount === 0) {
-    showMessage('当前命中跨越复杂格式，暂不支持直接替换', 4000, 'error')
+    showMessage(t('replaceCurrentUnsupported'), 4000, 'error')
     return
   }
 
@@ -83,7 +84,7 @@ export async function replaceCurrentMatch({
       blockId: match.blockId,
       nextIndex: state.currentIndex,
     })
-    showMessage('已替换当前命中', 2000, 'info')
+    showMessage(t('replaceCurrentDone'), 2000, 'info')
   } finally {
     state.busy = false
   }
@@ -106,14 +107,14 @@ export async function replaceAllMatches({
     count: state.matches.length,
   })
 
-  const confirmed = window.confirm(`确定替换当前文档内的 ${state.matches.length} 处命中吗？`)
+  const confirmed = window.confirm(t('replaceAllConfirm', { count: state.matches.length }))
   if (!confirmed) {
     return
   }
 
   const context = resolveEditorContext()
   if (!context) {
-    state.error = '未找到当前文档'
+    state.error = t('currentDocumentMissing')
     return
   }
 
@@ -162,7 +163,7 @@ export async function replaceAllMatches({
       replacedCount,
       skippedCount,
     })
-    showMessage(`替换完成：${replacedCount} 处，跳过 ${skippedCount} 处`, 4000, 'info')
+    showMessage(t('replaceAllResult', { replacedCount, skippedCount }), 4000, 'info')
   } finally {
     state.busy = false
   }

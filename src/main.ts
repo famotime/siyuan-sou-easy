@@ -3,13 +3,16 @@ import { createApp } from 'vue'
 import type { Plugin } from 'siyuan'
 import App from './App.vue'
 import {
+  getPluginInstance,
+  setPluginInstance,
+} from './plugin-instance'
+import {
   bindPlugin,
   closePanel,
   initializeUiState,
   unbindPlugin,
 } from '@/features/search-replace/store'
 
-let pluginInstance: Plugin | null = null
 let app: VueApp<Element> | null = null
 let hostElement: HTMLDivElement | null = null
 
@@ -23,11 +26,11 @@ function resolveHostZIndex() {
 }
 
 export function getPlugin() {
-  return pluginInstance
+  return getPluginInstance()
 }
 
 export async function init(plugin: Plugin) {
-  pluginInstance = plugin
+  setPluginInstance(plugin)
   bindPlugin(plugin)
   await initializeUiState()
 
@@ -56,5 +59,5 @@ export function destroy() {
   }
 
   hostElement = null
-  pluginInstance = null
+  setPluginInstance(null)
 }

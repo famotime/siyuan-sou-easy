@@ -19,6 +19,7 @@ import type {
   SearchOptions,
 } from './types'
 import { debugLog, setDebugLoggingEnabled } from './debug'
+import { t } from '@/i18n/runtime'
 import type { PluginSettings } from '@/settings'
 import {
   clearSelectionScope,
@@ -49,9 +50,12 @@ let selectionRevealTimer = 0
 let liveRefreshObserver: MutationObserver | null = null
 let liveRefreshTarget: HTMLElement | null = null
 let documentListenersBound = false
-const NO_SELECTION_SCOPE_ERROR = '选区模式已开启，但当前没有可用选区'
 
 export { searchReplaceState } from './store/state'
+
+function getNoSelectionScopeError() {
+  return t('selectionOnlyNoScope')
+}
 
 export function bindPlugin(plugin: Plugin) {
   bindUiStatePlugin(plugin)
@@ -304,7 +308,7 @@ async function refreshMatches() {
     searchReplaceState.currentTitle = ''
     searchReplaceState.matches = []
     searchReplaceState.currentIndex = 0
-    searchReplaceState.error = '未找到当前文档'
+    searchReplaceState.error = t('currentDocumentMissing')
     clearSearchDecorations()
     return
   }
@@ -328,7 +332,7 @@ async function refreshMatches() {
     const validation = findMatches([], searchReplaceState.query, searchReplaceState.options)
     searchReplaceState.matches = []
     searchReplaceState.currentIndex = 0
-    searchReplaceState.error = validation.error || NO_SELECTION_SCOPE_ERROR
+    searchReplaceState.error = validation.error || getNoSelectionScopeError()
     clearSearchDecorations(context)
     return
   }
