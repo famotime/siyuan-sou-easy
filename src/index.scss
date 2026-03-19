@@ -84,10 +84,38 @@
   padding: 0;
 }
 
+.sfsr-icon-button--wide {
+  width: 38px;
+  min-width: 38px;
+}
+
+.sfsr-icon-button--compact {
+  width: 34px;
+  min-width: 34px;
+}
+
 .sfsr-toolbar-icon {
   width: 14px;
   height: 14px;
   flex: 0 0 auto;
+}
+
+.sfsr-toolbar-icon--whole-word {
+  width: 20px;
+  height: 20px;
+  overflow: visible;
+}
+
+.sfsr-toolbar-icon--whole-word-wide {
+  width: 24px;
+}
+
+.sfsr-toolbar-icon-word {
+  fill: currentColor;
+  font-family: ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 8.25px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
 }
 
 .sfsr-replace-toggle {

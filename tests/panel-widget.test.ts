@@ -52,8 +52,10 @@ describe('search panel replace toggle', () => {
     await nextTick()
 
     const replaceToggle = host?.querySelector<HTMLButtonElement>('.sfsr-replace-toggle')
+    const count = host?.querySelector<HTMLElement>('.sfsr-count')
 
     expect(replaceToggle).not.toBeNull()
+    expect(count?.textContent?.trim()).toBe('0 / 0')
     expect(replaceToggle?.getAttribute('aria-expanded')).toBe('false')
     expect(host?.querySelector('.sfsr-drag-handle')).toBeNull()
     expect(host?.querySelector('.sfsr-row--secondary')).toBeNull()
@@ -132,6 +134,28 @@ describe('search panel replace toggle', () => {
 
     expect((searchReplaceState.options as any).selectionOnly).toBe(true)
     expect(selectionButton?.classList.contains('sfsr-button--active')).toBe(true)
+  })
+
+  it('renders whole-word matching as a dedicated boundary icon instead of plain text', async () => {
+    mountPanel()
+    applyPluginSettings({ ...DEFAULT_SETTINGS })
+    openPanel(true)
+    await nextTick()
+
+    const wholeWordButton = host?.querySelector<HTMLButtonElement>('button[title="全词匹配"]')
+    const wholeWordIcon = wholeWordButton?.querySelector<SVGElement>('.sfsr-toolbar-icon--whole-word')
+    const plainTextNodes = Array.from(wholeWordButton?.childNodes ?? []).filter(node => (
+      node.nodeType === Node.TEXT_NODE && node.textContent?.trim()
+    ))
+
+    expect(wholeWordButton).not.toBeNull()
+    expect(wholeWordIcon).not.toBeNull()
+    expect(wholeWordButton?.classList.contains('sfsr-icon-button--wide')).toBe(true)
+    expect(wholeWordButton?.classList.contains('sfsr-icon-button--compact')).toBe(true)
+    expect(wholeWordIcon?.classList.contains('sfsr-toolbar-icon--whole-word-wide')).toBe(true)
+    expect(plainTextNodes).toHaveLength(0)
+    expect(wholeWordIcon?.querySelectorAll('.sfsr-toolbar-icon-boundary')).toHaveLength(2)
+    expect(wholeWordIcon?.querySelector('.sfsr-toolbar-icon-word')?.textContent).toBe('ab')
   })
 
   it('shows a preserve-case toggle in the replace toolbar and updates the runtime state', async () => {

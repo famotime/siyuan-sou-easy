@@ -34,7 +34,7 @@
   "replaceAction": "Replace",
   "skipAction": "Skip",
   "replaceAllAction": "Replace all",
-  "matchCounter": "{current} of {total}",
+  "matchCounter": "{current} / {total}",
   "currentDocumentLabel": "Current document",
   "replaceCurrentUnsupported": "The current match spans complex formatting and cannot be replaced directly yet.",
   "replaceCurrentDone": "Current match replaced",

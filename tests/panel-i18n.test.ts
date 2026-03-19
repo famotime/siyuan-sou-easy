@@ -38,6 +38,7 @@ describe('search panel i18n', () => {
         currentDocumentLabel: 'Current document',
         findPlaceholder: 'Find',
         matchCase: 'Match case',
+        matchCounter: '{current} / {total}',
         nextMatch: 'Next match',
         previousMatch: 'Previous match',
         regexHelpDescAlternation: 'matches either install or deploy',
@@ -74,6 +75,7 @@ describe('search panel i18n', () => {
     mountPanel()
     applyPluginSettings({ ...DEFAULT_SETTINGS })
     searchReplaceState.currentTitle = 'Daily Notes'
+    searchReplaceState.query = 'foo'
     searchReplaceState.matches = [{
       blockId: 'block-1',
       blockIndex: 0,
@@ -99,6 +101,7 @@ describe('search panel i18n', () => {
     expect(host?.querySelector('button[title="Previous match"]')).not.toBeNull()
     expect(host?.querySelector('button[title="Next match"]')).not.toBeNull()
     expect(host?.querySelector('button[title="Close"]')).not.toBeNull()
+    expect(host?.querySelector('.sfsr-count')?.textContent?.trim()).toBe('1 / 1')
     expect(host?.textContent).toContain('Replace')
     expect(host?.textContent).toContain('Skip')
     expect(host?.textContent).toContain('Replace all')

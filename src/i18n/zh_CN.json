@@ -34,7 +34,7 @@
   "replaceAction": "替换当前",
   "skipAction": "跳过",
   "replaceAllAction": "全部替换",
-  "matchCounter": "{current} of {total}",
+  "matchCounter": "{current} / {total}",
   "currentDocumentLabel": "当前文档",
   "replaceCurrentUnsupported": "当前命中跨越复杂格式，暂不支持直接替换",
   "replaceCurrentDone": "已替换当前命中",

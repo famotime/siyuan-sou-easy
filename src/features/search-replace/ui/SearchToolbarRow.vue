@@ -21,11 +21,47 @@
     </button>
     <button
       :class="optionButtonClass(props.wholeWord)"
-      class="sfsr-button"
+      class="sfsr-button sfsr-icon-button sfsr-icon-button--wide sfsr-icon-button--compact"
       :title="t('wholeWord')"
       @click="props.onToggleOption('wholeWord')"
     >
-      ab
+      <svg
+        aria-hidden="true"
+        class="sfsr-toolbar-icon sfsr-toolbar-icon--whole-word sfsr-toolbar-icon--whole-word-wide"
+        viewBox="0 0 22 18"
+      >
+        <path
+          class="sfsr-toolbar-icon-boundary"
+          d="M2.6 3.2V14.8M2.6 3.2H4.9M2.6 14.8H4.9"
+          fill="none"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="1.35"
+        />
+        <path
+          class="sfsr-toolbar-icon-boundary"
+          d="M19.4 3.2V14.8M17.1 3.2H19.4M17.1 14.8H19.4"
+          fill="none"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="1.35"
+        />
+        <text
+          class="sfsr-toolbar-icon-word"
+          x="11"
+          y="10.35"
+          text-anchor="middle"
+        >ab</text>
+        <path
+          d="M7.25 13.2H14.75"
+          fill="none"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-width="1.15"
+        />
+      </svg>
     </button>
     <button
       :class="optionButtonClass(props.useRegex)"
