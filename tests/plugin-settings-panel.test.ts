@@ -14,7 +14,6 @@ const loadSettings = vi.fn().mockResolvedValue({
   includeCodeBlock: false,
   minimapVisible: false,
   panelHotkey: 'Ctrl+F11',
-  preserveCase: false,
   preloadSelection: true,
   rememberPanelPosition: true,
   replacePanelHotkey: 'Ctrl+F12',
@@ -38,7 +37,6 @@ vi.mock('@/settings', () => ({
     includeCodeBlock: false,
     minimapVisible: false,
     panelHotkey: 'Ctrl+F11',
-    preserveCase: false,
     preloadSelection: true,
     rememberPanelPosition: true,
     replacePanelHotkey: 'Ctrl+F12',
@@ -74,8 +72,6 @@ describe('plugin settings panel', () => {
       settingPanelHotkeyTitle: 'Panel hotkey',
       settingPreloadSelectionDesc: 'preload selection',
       settingPreloadSelectionTitle: 'Preload selection',
-      settingPreserveCaseDesc: 'preserve case',
-      settingPreserveCaseTitle: 'Preserve case',
       settingRememberPositionDesc: 'remember position',
       settingRememberPositionTitle: 'Remember position',
       settingReplaceHotkeyDesc: 'replace hotkey',
@@ -85,7 +81,7 @@ describe('plugin settings panel', () => {
 
     plugin.openSetting()
 
-    expect(addItemSpy).toHaveBeenCalledTimes(9)
+    expect(addItemSpy).toHaveBeenCalledTimes(8)
     expect(addItemSpy.mock.calls.map(([item]) => ({
       description: item.description,
       title: item.title,
@@ -121,10 +117,6 @@ describe('plugin settings panel', () => {
       {
         description: 'debug',
         title: 'Debug',
-      },
-      {
-        description: 'preserve case',
-        title: 'Preserve case',
       },
     ])
   })

@@ -196,6 +196,10 @@ export function toggleReplaceVisible() {
   searchReplaceState.replaceVisible = !searchReplaceState.replaceVisible
 }
 
+export function togglePreserveCase() {
+  searchReplaceState.preserveCase = !searchReplaceState.preserveCase
+}
+
 export function captureCurrentSelectionScope() {
   const context = getActiveEditorContext()
   if (!context) {

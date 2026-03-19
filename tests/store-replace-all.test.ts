@@ -304,12 +304,52 @@ describe('search store replaceAll', () => {
       '<div data-node-id="block-2" data-type="NodeParagraph"><div contenteditable="true">bar</div></div>',
     )
   })
+
+  it('uses the runtime preserve-case toggle instead of plugin settings during replacement', async () => {
+    searchReplaceState.visible = true
+    searchReplaceState.query = 'foo'
+    searchReplaceState.replacement = 'bar'
+    searchReplaceState.preserveCase = true
+    searchReplaceState.settings.preserveCase = false as any
+    searchReplaceState.matches = [{
+      blockId: 'block-1',
+      blockIndex: 0,
+      blockType: 'NodeParagraph',
+      end: 3,
+      id: 'block-1:0:3',
+      matchedText: 'FOO',
+      previewText: '[FOO]',
+      replaceable: true,
+      rootId: 'root-1',
+      start: 0,
+    }]
+
+    editorMocks.getBlockElement.mockReturnValue({
+      dataset: { nodeId: 'block-1' },
+    } as HTMLElement)
+    editorMocks.applyReplacementsToClone.mockReturnValue({
+      appliedCount: 1,
+      clone: {
+        outerHTML: '<div data-node-id="block-1">BAR</div>',
+      },
+    })
+
+    await replaceAll()
+
+    expect(editorMocks.applyReplacementsToClone).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      'bar',
+      { preserveCase: true },
+    )
+  })
 })
 
 function resetState() {
   searchReplaceState.visible = false
   searchReplaceState.replaceVisible = DEFAULT_SETTINGS.defaultReplaceVisible
   searchReplaceState.minimapVisible = false
+  searchReplaceState.preserveCase = false
   searchReplaceState.panelPosition = null
   searchReplaceState.settings = { ...DEFAULT_SETTINGS }
   searchReplaceState.query = ''

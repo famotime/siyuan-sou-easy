@@ -75,7 +75,7 @@ export async function replaceCurrentMatch({
   }
 
   const outcome = applyReplacementsToClone(blockElement, [match], state.replacement, {
-    preserveCase: state.settings.preserveCase,
+    preserveCase: state.preserveCase,
   })
   if (!outcome.clone || outcome.appliedCount === 0) {
     showMessage(t('replaceCurrentUnsupported'), 4000, 'error')
@@ -167,7 +167,7 @@ export async function replaceAllMatches({
       }
 
       const outcome = applyReplacementsToClone(blockElement, matches, state.replacement, {
-        preserveCase: state.settings.preserveCase,
+        preserveCase: state.preserveCase,
       })
       if (!outcome.clone || outcome.appliedCount === 0) {
         skippedCount += matches.length

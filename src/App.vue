@@ -138,6 +138,14 @@
             @input="onReplaceInput"
             @keydown.enter.prevent="replaceCurrent"
           />
+          <button
+            :class="optionButtonClass(state.preserveCase)"
+            class="sfsr-button"
+            :title="t('settingPreserveCaseTitle')"
+            @click="togglePreserveCase"
+          >
+            Aa*
+          </button>
           <SyButton
             class="sfsr-action"
             :disabled="!canReplaceCurrent"
@@ -273,6 +281,7 @@ import {
   setReplacement,
   skipCurrent,
   toggleOption,
+  togglePreserveCase,
   toggleReplaceVisible,
 } from '@/features/search-replace/store'
 import { useComposedInput } from '@/features/search-replace/ui/use-composed-input'

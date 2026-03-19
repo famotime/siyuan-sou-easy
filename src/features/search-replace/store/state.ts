@@ -22,6 +22,7 @@ export interface SearchReplaceState {
   visible: boolean
   replaceVisible: boolean
   minimapVisible: boolean
+  preserveCase: boolean
   panelPosition: PanelPosition | null
   settings: PluginSettings
   query: string
@@ -40,6 +41,7 @@ function createInitialSearchReplaceState(): SearchReplaceState {
     visible: false,
     replaceVisible: DEFAULT_SETTINGS.defaultReplaceVisible,
     minimapVisible: false,
+    preserveCase: false,
     panelPosition: null,
     settings: { ...DEFAULT_SETTINGS },
     query: '',

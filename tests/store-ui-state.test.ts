@@ -225,6 +225,7 @@ function resetState() {
   searchReplaceState.visible = false
   searchReplaceState.replaceVisible = DEFAULT_SETTINGS.defaultReplaceVisible
   searchReplaceState.minimapVisible = false
+  searchReplaceState.preserveCase = false
   searchReplaceState.panelPosition = null
   searchReplaceState.settings = { ...DEFAULT_SETTINGS }
   searchReplaceState.query = ''

@@ -120,6 +120,7 @@ describe('search panel i18n', () => {
     searchReplaceState.visible = false
     searchReplaceState.replaceVisible = DEFAULT_SETTINGS.defaultReplaceVisible
     searchReplaceState.minimapVisible = false
+    searchReplaceState.preserveCase = false
     searchReplaceState.panelPosition = null
     searchReplaceState.query = ''
     searchReplaceState.replacement = ''

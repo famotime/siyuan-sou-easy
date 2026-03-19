@@ -8,7 +8,6 @@ type BooleanSettingKey =
   | 'includeCodeBlock'
   | 'minimapVisible'
   | 'preloadSelection'
-  | 'preserveCase'
   | 'rememberPanelPosition'
 
 interface SettingDefinition<TKey extends keyof PluginSettings> {
@@ -60,10 +59,5 @@ export const BOOLEAN_SETTING_DEFINITIONS: ReadonlyArray<SettingDefinition<Boolea
     descriptionKey: 'settingDebugLogDesc',
     settingKey: 'debugLog',
     titleKey: 'settingDebugLogTitle',
-  },
-  {
-    descriptionKey: 'settingPreserveCaseDesc',
-    settingKey: 'preserveCase',
-    titleKey: 'settingPreserveCaseTitle',
   },
 ]

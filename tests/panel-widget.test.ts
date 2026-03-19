@@ -134,6 +134,24 @@ describe('search panel replace toggle', () => {
     expect(selectionButton?.classList.contains('sfsr-button--active')).toBe(true)
   })
 
+  it('shows a preserve-case toggle in the replace toolbar and updates the runtime state', async () => {
+    mountPanel()
+    applyPluginSettings({ ...DEFAULT_SETTINGS })
+    openPanel(true, true)
+    await nextTick()
+
+    const preserveCaseButton = host?.querySelector<HTMLButtonElement>('button[title="保留大小写"]')
+
+    expect(preserveCaseButton).not.toBeNull()
+    expect(searchReplaceState.preserveCase).toBe(false)
+
+    preserveCaseButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await nextTick()
+
+    expect(searchReplaceState.preserveCase).toBe(true)
+    expect(preserveCaseButton?.classList.contains('sfsr-button--active')).toBe(true)
+  })
+
   it('does not show minimap controls inside the search toolbar', async () => {
     mountPanel()
     applyPluginSettings({ ...DEFAULT_SETTINGS })
@@ -362,6 +380,7 @@ describe('search panel replace toggle', () => {
     searchReplaceState.visible = false
     searchReplaceState.replaceVisible = DEFAULT_SETTINGS.defaultReplaceVisible
     ;(searchReplaceState as any).minimapVisible = false
+    ;(searchReplaceState as any).preserveCase = false
     searchReplaceState.panelPosition = null
     searchReplaceState.query = ''
     searchReplaceState.replacement = ''
