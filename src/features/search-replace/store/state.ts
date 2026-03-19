@@ -7,6 +7,7 @@ import {
 import type {
   SearchMatch,
   SearchOptions,
+  SearchableBlockSummary,
 } from '../types'
 
 export interface PanelPosition {
@@ -30,6 +31,9 @@ export interface SearchReplaceState {
   options: SearchOptions
   currentRootId: string
   currentTitle: string
+  navigationHint: string
+  minimapBlocks: SearchableBlockSummary[]
+  searchableBlockCount: number
   matches: SearchMatch[]
   currentIndex: number
   error: string
@@ -49,6 +53,9 @@ function createInitialSearchReplaceState(): SearchReplaceState {
     options: createSearchOptionsFromSettings(DEFAULT_SETTINGS),
     currentRootId: '',
     currentTitle: '',
+    navigationHint: '',
+    minimapBlocks: [],
+    searchableBlockCount: 0,
     matches: [],
     currentIndex: 0,
     error: '',

@@ -9,6 +9,7 @@ import { locateTextRange } from './ranges'
 import type {
   EditorContext,
   SearchMatch,
+  ScrollMatchResult,
 } from '../types'
 
 export function buildPreview(text: string, start: number, end: number, windowSize = 18) {
@@ -58,25 +59,27 @@ export function scrollMatchIntoView(
   context: EditorContext,
   match: SearchMatch | null,
   mode: 'always' | 'if-needed' = 'always',
-) {
+): ScrollMatchResult {
   if (!match) {
-    return
+    return 'idle'
   }
 
   const element = getBlockElement(context, match.blockId)
   if (!element) {
-    return
+    return 'missing'
   }
 
   const scrollContainer = resolveScrollContainer(context)
   if (mode === 'if-needed' && isElementVisibleWithinContainer(element, scrollContainer)) {
-    return
+    return 'visible'
   }
 
   element.scrollIntoView({
     behavior: 'smooth',
     block: 'center',
   })
+
+  return 'scrolled'
 }
 
 function resolveScrollContainer(context: EditorContext) {

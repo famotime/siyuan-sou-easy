@@ -63,6 +63,15 @@ describe('match scrolling', () => {
 
     expect(scrollSpy).toHaveBeenCalledTimes(1)
   })
+
+  it('reports missing when the target block has not been loaded into the editor DOM yet', () => {
+    const { context } = setupEditor()
+    document.querySelector('[data-node-id="block-1"]')?.remove()
+
+    const result = scrollMatchIntoView(context, createMatch(), 'if-needed')
+
+    expect(result).toBe('missing')
+  })
 })
 
 function setupEditor(): { block: HTMLElement, context: EditorContext } {

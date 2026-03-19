@@ -28,6 +28,12 @@ export interface SearchableBlock {
   element: HTMLElement
 }
 
+export interface SearchableBlockSummary {
+  blockId: string
+  blockIndex: number
+  blockType: string
+}
+
 export interface SearchMatch {
   id: string
   blockId: string
@@ -40,6 +46,8 @@ export interface SearchMatch {
   previewText: string
   replaceable: boolean
 }
+
+export type ScrollMatchResult = 'idle' | 'missing' | 'scrolled' | 'visible'
 
 export interface ReplacementOutcome {
   clone: HTMLElement | null

@@ -139,6 +139,9 @@ export function closePanel() {
   searchReplaceState.visible = false
   searchReplaceState.busy = false
   searchReplaceState.error = ''
+  searchReplaceState.navigationHint = ''
+  searchReplaceState.minimapBlocks = []
+  searchReplaceState.searchableBlockCount = 0
   clearCachedEditorState()
   searchController.resetSearchSession()
 }

@@ -41,6 +41,7 @@
   "replaceAllConfirm": "Replace {count} matches in the current document?",
   "replaceAllResult": "Replacement complete: {replacedCount} replaced, {skippedCount} skipped",
   "currentDocumentMissing": "Current document not found",
+  "navigationPending": "Locating the current match. Content is still loading and the panel will scroll to it automatically.",
   "selectionOnlyNoScope": "Selection-only mode is enabled, but there is no active selection",
   "regexHelpTitle": "Regex search help",
   "regexHelpNote": "Regex search is supported. Replacement text is still inserted literally, so backreferences like $1 and \\1 are not supported yet.",

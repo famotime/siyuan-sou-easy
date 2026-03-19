@@ -220,6 +220,9 @@ const statusText = computed(() => {
   if (currentMatch.value?.previewText) {
     parts.push(currentMatch.value.previewText)
   }
+  if (state.navigationHint) {
+    parts.push(state.navigationHint)
+  }
   if (currentMatch.value && !currentMatch.value.replaceable) {
     parts.push(t('replaceCurrentUnsupported'))
   }

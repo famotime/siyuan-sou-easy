@@ -78,8 +78,11 @@ function resetState() {
   searchReplaceState.options = createSearchOptionsFromSettings(DEFAULT_SETTINGS)
   searchReplaceState.currentRootId = ''
   searchReplaceState.currentTitle = ''
+  searchReplaceState.navigationHint = ''
+  searchReplaceState.minimapBlocks = []
   searchReplaceState.matches = []
   searchReplaceState.currentIndex = 0
   searchReplaceState.error = ''
   searchReplaceState.busy = false
+  searchReplaceState.searchableBlockCount = 0
 }

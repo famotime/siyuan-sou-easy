@@ -20,11 +20,13 @@ import { DEFAULT_SETTINGS, createSearchOptionsFromSettings } from '@/settings'
 describe('search panel minimap', () => {
   let host: HTMLDivElement | null = null
   let app: ReturnType<typeof createApp> | null = null
+  let scrollHeight = 1200
   let scrollTop = 300
   let scrollContainer: HTMLElement | null = null
 
   beforeEach(() => {
     resetState()
+    scrollHeight = 1200
     scrollTop = 300
     document.body.innerHTML = `
       <div class="protyle">
@@ -50,7 +52,7 @@ describe('search panel minimap', () => {
     })
     Object.defineProperty(scrollContainer, 'scrollHeight', {
       configurable: true,
-      value: 1200,
+      get: () => scrollHeight,
     })
     Object.defineProperty(scrollContainer, 'scrollTop', {
       configurable: true,
@@ -114,6 +116,7 @@ describe('search panel minimap', () => {
     searchReplaceState.minimapVisible = true
     searchReplaceState.currentRootId = 'root-1'
     searchReplaceState.currentTitle = 'Doc 1'
+    searchReplaceState.searchableBlockCount = 2
     searchReplaceState.matches = [
       {
         blockId: 'block-1',
@@ -162,6 +165,77 @@ describe('search panel minimap', () => {
     expect(currentMarker).not.toBeNull()
   })
 
+  it('renders keyword markers for snapshot matches whose blocks are not loaded in the editor DOM', async () => {
+    mountPanel()
+    searchReplaceState.visible = true
+    searchReplaceState.minimapVisible = true
+    searchReplaceState.currentRootId = 'root-1'
+    searchReplaceState.currentTitle = 'Doc 1'
+    searchReplaceState.searchableBlockCount = 10
+    searchReplaceState.matches = [
+      {
+        blockId: 'block-1',
+        blockIndex: 0,
+        blockType: 'NodeParagraph',
+        end: 5,
+        id: 'block-1:0:5',
+        matchedText: 'First',
+        previewText: '[First] block',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+      {
+        blockId: 'block-9',
+        blockIndex: 8,
+        blockType: 'NodeParagraph',
+        end: 5,
+        id: 'block-9:0:5',
+        matchedText: 'Ninth',
+        previewText: '[Ninth] block',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+    ]
+    searchReplaceState.currentIndex = 1
+
+    await nextTick()
+    await nextTick()
+
+    const markers = host?.querySelectorAll<HTMLElement>('.sfsr-minimap__marker')
+    const currentMarker = host?.querySelector<HTMLElement>('.sfsr-minimap__marker--current')
+    const markerTops = Array.from(markers ?? []).map(marker => Number.parseFloat(marker.style.top))
+
+    expect(markers).toHaveLength(2)
+    expect(currentMarker).not.toBeNull()
+    expect(markerTops[1]).toBeGreaterThan(markerTops[0] ?? 0)
+  })
+
+  it('renders a stable full-document outline from snapshot blocks instead of only loaded DOM blocks', async () => {
+    mountPanel()
+    searchReplaceState.visible = true
+    searchReplaceState.minimapVisible = true
+    searchReplaceState.currentRootId = 'root-1'
+    searchReplaceState.currentTitle = 'Doc 1'
+    searchReplaceState.searchableBlockCount = 6
+    searchReplaceState.minimapBlocks = [
+      { blockId: 'block-1', blockIndex: 0, blockType: 'NodeHeading' },
+      { blockId: 'block-2', blockIndex: 1, blockType: 'NodeParagraph' },
+      { blockId: 'block-3', blockIndex: 2, blockType: 'NodeParagraph' },
+      { blockId: 'block-4', blockIndex: 3, blockType: 'NodeParagraph' },
+      { blockId: 'block-5', blockIndex: 4, blockType: 'NodeParagraph' },
+      { blockId: 'block-6', blockIndex: 5, blockType: 'NodeParagraph' },
+    ]
+
+    await nextTick()
+    await nextTick()
+
+    const docBlocks = host?.querySelectorAll<HTMLElement>('.sfsr-minimap__doc-block')
+
+    expect(docBlocks).toHaveLength(6)
+  })
+
   it('jumps to another document position when clicking the minimap', async () => {
     mountPanel()
     searchReplaceState.visible = true
@@ -184,6 +258,39 @@ describe('search panel minimap', () => {
     }))
 
     expect(scrollTop).toBeGreaterThan(300)
+  })
+
+  it('keeps the viewport near the clicked document region while lazy loading increases scroll height', async () => {
+    mountPanel()
+    searchReplaceState.visible = true
+    searchReplaceState.minimapVisible = true
+    searchReplaceState.currentRootId = 'root-1'
+    searchReplaceState.currentTitle = 'Doc 1'
+
+    await nextTick()
+    await nextTick()
+
+    const track = host?.querySelector<HTMLElement>('.sfsr-minimap__track')
+    const viewport = () => host?.querySelector<HTMLElement>('.sfsr-minimap__viewport')
+    const initialTop = Number.parseFloat(viewport()?.style.top ?? '0')
+
+    track?.dispatchEvent(new MouseEvent('click', {
+      bubbles: true,
+      clientX: 10,
+      clientY: 500,
+    }))
+    await nextTick()
+
+    const clickedTop = Number.parseFloat(viewport()?.style.top ?? '0')
+
+    scrollHeight = 2400
+    scrollContainer?.dispatchEvent(new Event('scroll'))
+    await nextTick()
+
+    const loadedTop = Number.parseFloat(viewport()?.style.top ?? '0')
+
+    expect(clickedTop).toBeGreaterThan(initialTop)
+    expect(loadedTop).toBeGreaterThan(180)
   })
 
   it('removes the scroll listener from the minimap container when unmounted', async () => {
@@ -221,9 +328,12 @@ describe('search panel minimap', () => {
     searchReplaceState.options = createSearchOptionsFromSettings(DEFAULT_SETTINGS)
     searchReplaceState.currentRootId = ''
     searchReplaceState.currentTitle = ''
+    searchReplaceState.navigationHint = ''
     searchReplaceState.matches = []
     searchReplaceState.currentIndex = 0
     searchReplaceState.error = ''
     searchReplaceState.busy = false
+    searchReplaceState.minimapBlocks = []
+    searchReplaceState.searchableBlockCount = 0
   }
 })

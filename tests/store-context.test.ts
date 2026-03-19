@@ -391,6 +391,105 @@ describe('search store editor context fallback', () => {
     expect(searchReplaceState.matches).toHaveLength(2)
   })
 
+  it('keeps navigating toward unloaded long-document matches and shows a loading hint until the target block is available', async () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-background" data-node-id="root-1"></div>
+        <div class="protyle-title" data-node-id="root-1"></div>
+        <input class="protyle-title__input" value="Doc 1" />
+        <div class="protyle-content">
+          <div class="protyle-wysiwyg">
+            <div data-node-id="block-1" data-type="NodeParagraph"><div contenteditable="true">foo</div></div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    const scrollContainer = document.querySelector<HTMLElement>('.protyle-content')!
+    let scrollTop = 0
+    let targetLoaded = false
+
+    Object.defineProperty(scrollContainer, 'clientHeight', {
+      configurable: true,
+      value: 300,
+    })
+    Object.defineProperty(scrollContainer, 'scrollHeight', {
+      configurable: true,
+      value: 1200,
+    })
+    Object.defineProperty(scrollContainer, 'scrollTop', {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value: number) => {
+        scrollTop = value
+      },
+    })
+    scrollContainer.scrollTo = vi.fn(({ top }: { top?: number }) => {
+      scrollTop = top ?? scrollTop
+    }) as any
+
+    editorMocks.state.context = {
+      protyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    editorMocks.scrollMatchIntoView.mockImplementation((_context, match) => {
+      if (match?.id === 'block-8:0:3') {
+        return targetLoaded ? 'scrolled' : 'missing'
+      }
+
+      return 'visible'
+    })
+
+    searchReplaceState.visible = true
+    searchReplaceState.matches = [
+      {
+        blockId: 'block-1',
+        blockIndex: 0,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-1:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+      {
+        blockId: 'block-8',
+        blockIndex: 7,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-8:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+    ]
+    searchReplaceState.currentIndex = 0
+    searchReplaceState.searchableBlockCount = 10
+    searchReplaceState.minimapBlocks = Array.from({ length: 10 }, (_, index) => ({
+      blockId: `block-${index + 1}`,
+      blockIndex: index,
+      blockType: 'NodeParagraph',
+    }))
+
+    goNext()
+
+    expect(searchReplaceState.currentIndex).toBe(1)
+    expect(searchReplaceState.navigationHint).toContain('等待内容加载')
+    expect(scrollContainer.scrollTo).toHaveBeenCalled()
+    expect(scrollTop).toBeGreaterThan(0)
+
+    targetLoaded = true
+    await vi.runOnlyPendingTimersAsync()
+
+    expect(searchReplaceState.navigationHint).toBe('')
+  })
+
   it('replaces the current match even when the panel has taken focus from the editor', async () => {
     applyPluginSettings({
       ...DEFAULT_SETTINGS,
@@ -629,8 +728,11 @@ function resetState() {
   searchReplaceState.options = createSearchOptionsFromSettings(DEFAULT_SETTINGS)
   searchReplaceState.currentRootId = ''
   searchReplaceState.currentTitle = ''
+  searchReplaceState.navigationHint = ''
+  searchReplaceState.minimapBlocks = []
   searchReplaceState.matches = []
   searchReplaceState.currentIndex = 0
   searchReplaceState.error = ''
   searchReplaceState.busy = false
+  searchReplaceState.searchableBlockCount = 0
 }

@@ -41,6 +41,9 @@ export function createSearchController({
   state,
 }: SearchControllerOptions) {
   let refreshTimer = 0
+  let pendingNavigationTimer = 0
+  let pendingNavigationAttempts = 0
+  let pendingNavigationMatchId = ''
   let selectionRevealTimer = 0
   let liveRefreshObserver: MutationObserver | null = null
   let liveRefreshTarget: HTMLElement | null = null
@@ -71,6 +74,7 @@ export function createSearchController({
   }
 
   function resetSearchSession() {
+    clearPendingNavigation()
     clearSelectionRevealTimer()
     disconnectLiveRefreshObserver()
     clearDocumentSnapshotCache()
@@ -120,6 +124,9 @@ export function createSearchController({
     if (!context) {
       state.currentRootId = ''
       state.currentTitle = ''
+      state.navigationHint = ''
+      state.minimapBlocks = []
+      state.searchableBlockCount = 0
       state.matches = []
       state.currentIndex = 0
       state.error = t('currentDocumentMissing')
@@ -131,6 +138,9 @@ export function createSearchController({
     state.currentTitle = context.title
 
     if (!state.query.trim()) {
+      clearPendingNavigation()
+      state.minimapBlocks = []
+      state.searchableBlockCount = 0
       state.matches = []
       state.currentIndex = 0
       state.error = ''
@@ -144,6 +154,9 @@ export function createSearchController({
       : new Map()
     if (state.options.selectionOnly && selectionScope.size === 0) {
       const validation = findMatches([], state.query, state.options)
+      clearPendingNavigation()
+      state.minimapBlocks = []
+      state.searchableBlockCount = 0
       state.matches = []
       state.currentIndex = 0
       state.error = validation.error || t('selectionOnlyNoScope')
@@ -152,6 +165,12 @@ export function createSearchController({
     }
 
     const result = findMatches(blocks, state.query, state.options, selectionScope)
+    state.minimapBlocks = blocks.map(block => ({
+      blockId: block.blockId,
+      blockIndex: block.blockIndex,
+      blockType: block.blockType,
+    }))
+    state.searchableBlockCount = blocks.length
     state.error = result.error
     state.matches = result.matches
     debugLog('refresh-matches', {
@@ -162,6 +181,7 @@ export function createSearchController({
     })
 
     if (!state.matches.length) {
+      clearPendingNavigation()
       state.currentIndex = 0
       clearSearchDecorations(context)
       return
@@ -197,17 +217,33 @@ export function createSearchController({
     scrollMode: 'if-needed' | 'none' = 'none',
   ) {
     if (!context) {
+      clearPendingNavigation()
       clearSearchDecorations()
       return
     }
 
     const currentMatch = getCurrentMatch()
     syncSearchDecorations(context, state.matches, currentMatch)
-    if (scrollMode === 'none') {
+    if (!currentMatch) {
+      clearPendingNavigation()
       return
     }
 
-    scrollMatchIntoView(context, currentMatch, scrollMode)
+    if (scrollMode === 'none') {
+      if (pendingNavigationMatchId === currentMatch.id) {
+        attemptPendingNavigation()
+      }
+      return
+    }
+
+    const scrollResult = scrollMatchIntoView(context, currentMatch, scrollMode)
+    if (scrollResult === 'missing') {
+      beginPendingNavigation(currentMatch)
+      attemptPendingNavigation()
+      return
+    }
+
+    clearPendingNavigation()
   }
 
   return {
@@ -334,6 +370,86 @@ export function createSearchController({
 
   function clearSelectionRevealTimer() {
     window.clearTimeout(selectionRevealTimer)
+  }
+
+  function beginPendingNavigation(match: SearchMatch) {
+    pendingNavigationMatchId = match.id
+    pendingNavigationAttempts = 0
+    state.navigationHint = t('navigationPending')
+  }
+
+  function clearPendingNavigation() {
+    window.clearTimeout(pendingNavigationTimer)
+    pendingNavigationTimer = 0
+    pendingNavigationAttempts = 0
+    pendingNavigationMatchId = ''
+    state.navigationHint = ''
+  }
+
+  function attemptPendingNavigation() {
+    const currentMatch = getCurrentMatch()
+    const context = resolveEditorContext()
+    if (!state.visible || !context || !currentMatch || currentMatch.id !== pendingNavigationMatchId) {
+      clearPendingNavigation()
+      return
+    }
+
+    const directScrollResult = scrollMatchIntoView(context, currentMatch, 'always')
+    if (directScrollResult !== 'missing') {
+      clearPendingNavigation()
+      return
+    }
+
+    if (!scrollApproximateMatchIntoView(context, currentMatch)) {
+      clearPendingNavigation()
+      return
+    }
+
+    pendingNavigationAttempts += 1
+    if (pendingNavigationAttempts >= 40) {
+      clearPendingNavigation()
+      return
+    }
+
+    window.clearTimeout(pendingNavigationTimer)
+    pendingNavigationTimer = window.setTimeout(() => {
+      attemptPendingNavigation()
+    }, 120)
+  }
+
+  function scrollApproximateMatchIntoView(context: EditorContext, match: SearchMatch) {
+    const scrollContainer = resolveScrollContainer(context)
+    if (!scrollContainer || state.searchableBlockCount <= 0) {
+      return false
+    }
+
+    const ratio = (match.blockIndex + 0.5) / state.searchableBlockCount
+    const scrollHeight = Math.max(scrollContainer.scrollHeight || 0, scrollContainer.clientHeight || 0, 1)
+    const clientHeight = Math.max(scrollContainer.clientHeight || 0, 1)
+    const nextScrollTop = Math.max(
+      0,
+      Math.min(
+        Math.max(0, scrollHeight - clientHeight),
+        (ratio * scrollHeight) - (clientHeight / 2),
+      ),
+    )
+
+    if (typeof scrollContainer.scrollTo === 'function') {
+      scrollContainer.scrollTo({
+        behavior: 'auto',
+        top: nextScrollTop,
+      })
+    } else {
+      scrollContainer.scrollTop = nextScrollTop
+    }
+
+    return true
+  }
+
+  function resolveScrollContainer(context: EditorContext) {
+    return context.protyle.querySelector<HTMLElement>('.protyle-content')
+      ?? context.protyle.querySelector<HTMLElement>('.protyle-wysiwyg')
+      ?? null
   }
 
   function handleDocumentFocusIn(event: FocusEvent) {

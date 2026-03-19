@@ -39,6 +39,7 @@ describe('search panel i18n', () => {
         findPlaceholder: 'Find',
         matchCase: 'Match case',
         matchCounter: '{current} / {total}',
+        navigationPending: 'Locating the current match. Content is still loading and the panel will scroll to it automatically.',
         nextMatch: 'Next match',
         previousMatch: 'Previous match',
         regexHelpDescAlternation: 'matches either install or deploy',
@@ -88,6 +89,7 @@ describe('search panel i18n', () => {
       rootId: 'root-1',
       start: 0,
     }]
+    searchReplaceState.navigationHint = 'Locating the current match. Content is still loading and the panel will scroll to it automatically.'
     searchReplaceState.options.useRegex = true
     openPanel(true, true)
     await nextTick()
@@ -109,6 +111,7 @@ describe('search panel i18n', () => {
     expect(host?.textContent).toContain('install|deploy')
     expect(host?.textContent).not.toContain('Daily Notes')
     expect(host?.textContent).not.toContain('Current document:')
+    expect(host?.textContent).toContain('Locating the current match. Content is still loading and the panel will scroll to it automatically.')
     expect(host?.textContent).toContain('The current match spans complex formatting and cannot be replaced directly yet.')
   })
 
@@ -130,9 +133,12 @@ describe('search panel i18n', () => {
     searchReplaceState.options = createSearchOptionsFromSettings(DEFAULT_SETTINGS)
     searchReplaceState.currentRootId = ''
     searchReplaceState.currentTitle = ''
+    searchReplaceState.navigationHint = ''
     searchReplaceState.matches = []
     searchReplaceState.currentIndex = 0
     searchReplaceState.error = ''
     searchReplaceState.busy = false
+    searchReplaceState.minimapBlocks = []
+    searchReplaceState.searchableBlockCount = 0
   }
 })
