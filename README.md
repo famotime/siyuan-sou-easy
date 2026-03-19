@@ -1,5 +1,7 @@
 # Friendly Search Replace
 
+**English** · [简体中文](README_zh_CN.md)
+
 A SiYuan plugin that brings a VS Code style find-and-replace workflow to the current document.
 
 ## Features
