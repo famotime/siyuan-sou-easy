@@ -23,10 +23,13 @@ import {
   unbindEditorContextEvents,
 } from '@/features/search-replace/plugin-events'
 import {
-  BOOLEAN_SETTING_DEFINITIONS,
-  HOTKEY_SETTING_DEFINITIONS,
   type HotkeySettingKey,
 } from '@/features/search-replace/settings-panel'
+import {
+  createPanelCommands,
+  syncPanelCommandHotkeys,
+} from '@/features/search-replace/plugin-command-config'
+import { registerSearchReplaceSettings } from '@/features/search-replace/plugin-settings-ui'
 import {
   applyPluginSettings,
   onEditorContextChanged,
@@ -175,25 +178,17 @@ export default class FriendlySearchReplacePlugin extends Plugin {
       },
     })
 
-    this.addCommand({
-      langKey: 'togglePanel',
-      hotkey: this.toRegisteredHotkey(DEFAULT_SETTINGS.panelHotkey),
-      customHotkey: this.toRegisteredHotkey(this.settingsData.panelHotkey),
-      callback: this.openFindPanelCommand,
-      dockCallback: this.openFindPanelCommand,
-      editorCallback: this.openFindPanelFromEditorCommand,
-      fileTreeCallback: this.openFindPanelCommand,
+    const panelCommands = createPanelCommands({
+      callbacks: {
+        openFindPanel: this.openFindPanelCommand,
+        openFindPanelFromEditor: this.openFindPanelFromEditorCommand,
+        openReplacePanel: this.openReplacePanelCommand,
+        openReplacePanelFromEditor: this.openReplacePanelFromEditorCommand,
+      },
+      settings: this.settingsData,
+      toRegisteredHotkey: this.toRegisteredHotkey.bind(this),
     })
-
-    this.addCommand({
-      langKey: 'toggleReplacePanel',
-      hotkey: this.toRegisteredHotkey(DEFAULT_SETTINGS.replacePanelHotkey),
-      customHotkey: this.toRegisteredHotkey(this.settingsData.replacePanelHotkey),
-      callback: this.openReplacePanelCommand,
-      dockCallback: this.openReplacePanelCommand,
-      editorCallback: this.openReplacePanelFromEditorCommand,
-      fileTreeCallback: this.openReplacePanelCommand,
-    })
+    panelCommands.forEach(command => this.addCommand(command))
 
     bindEditorContextEvents(this.eventBus, this.handleEditorEvent)
     window.addEventListener('keydown', this.handleDocumentKeydown, true)
@@ -215,27 +210,21 @@ export default class FriendlySearchReplacePlugin extends Plugin {
       width: '620px',
     })
 
-    HOTKEY_SETTING_DEFINITIONS.forEach(({ descriptionKey, settingKey, titleKey }) => {
-      setting.addItem({
-        title: this.i18n[titleKey],
-        description: this.i18n[descriptionKey],
-        createActionElement: () => this.createHotkeyInput(this.settingsData[settingKey], async (value) => {
-          return await this.updateHotkeySetting(settingKey, value)
-        }),
-      })
-    })
-
-    BOOLEAN_SETTING_DEFINITIONS.forEach(({ descriptionKey, settingKey, titleKey }) => {
-      setting.addItem({
-        title: this.i18n[titleKey],
-        description: this.i18n[descriptionKey],
-        createActionElement: () => this.createCheckbox(this.settingsData[settingKey], async (checked) => {
-          await this.applySettings({
-            ...this.settingsData,
-            [settingKey]: checked,
-          })
-        }),
-      })
+    registerSearchReplaceSettings({
+      createCheckbox: this.createCheckbox.bind(this),
+      createHotkeyInput: this.createHotkeyInput.bind(this),
+      i18n: this.i18n,
+      onBooleanChange: async (settingKey, checked) => {
+        await this.applySettings({
+          ...this.settingsData,
+          [settingKey]: checked,
+        })
+      },
+      onHotkeyChange: async (settingKey, value) => {
+        return await this.updateHotkeySetting(settingKey, value)
+      },
+      setting,
+      settings: this.settingsData,
     })
 
     setting.open(this.name)
@@ -253,17 +242,11 @@ export default class FriendlySearchReplacePlugin extends Plugin {
   }
 
   private syncCommandHotkeys() {
-    const panelCommand = this.commands.find(command => command.langKey === 'togglePanel')
-    if (panelCommand) {
-      panelCommand.hotkey = this.toRegisteredHotkey(DEFAULT_SETTINGS.panelHotkey)
-      panelCommand.customHotkey = this.toRegisteredHotkey(this.settingsData.panelHotkey)
-    }
-
-    const replaceCommand = this.commands.find(command => command.langKey === 'toggleReplacePanel')
-    if (replaceCommand) {
-      replaceCommand.hotkey = this.toRegisteredHotkey(DEFAULT_SETTINGS.replacePanelHotkey)
-      replaceCommand.customHotkey = this.toRegisteredHotkey(this.settingsData.replacePanelHotkey)
-    }
+    syncPanelCommandHotkeys({
+      commands: this.commands,
+      settings: this.settingsData,
+      toRegisteredHotkey: this.toRegisteredHotkey.bind(this),
+    })
   }
 
   private toRegisteredHotkey(hotkey: string) {

@@ -10,7 +10,7 @@ import type {
 } from '../types'
 
 export function collectSearchableBlocks(context: EditorContext, options: SearchOptions): SearchableBlock[] {
-  const searchRoot = context.protyle.querySelector<HTMLElement>('.protyle-wysiwyg') ?? context.protyle
+  const searchRoot = resolveSearchRoot(context.protyle)
   return collectSearchableBlocksFromRoot(searchRoot, context.rootId, options)
 }
 
@@ -32,7 +32,7 @@ export function collectSearchableBlocksFromDocumentContent(
 ) {
   const container = document.createElement('div')
   container.innerHTML = content
-  const searchRoot = container.querySelector<HTMLElement>('.protyle-wysiwyg') ?? container
+  const searchRoot = resolveSearchRoot(container)
   return collectSearchableBlocksFromRoot(searchRoot, rootId, options)
 }
 
@@ -47,15 +47,35 @@ export function createBlockElementFromDom(dom: string) {
     ?? container.firstElementChild as HTMLElement | null
 }
 
-function collectSearchableBlocksFromRoot(root: ParentNode, rootId: string, options: SearchOptions): SearchableBlock[] {
-  const blockElements = Array.from(root.querySelectorAll<HTMLElement>('[data-node-id][data-type]'))
-  const blocks: SearchableBlock[] = []
+export function resolveSearchRoot(root: ParentNode) {
+  return root.querySelector<HTMLElement>('.protyle-wysiwyg') ?? root
+}
+
+export function getUniqueBlockElements(root: ParentNode) {
   const seen = new Set<string>()
 
-  blockElements.forEach((element, blockIndex) => {
+  return Array.from(resolveSearchRoot(root).querySelectorAll<HTMLElement>('[data-node-id][data-type]')).filter((element) => {
+    const blockId = element.dataset.nodeId
+    if (!blockId || seen.has(blockId)) {
+      return false
+    }
+
+    seen.add(blockId)
+    return true
+  })
+}
+
+export function getBlockTextLength(blockElement: HTMLElement) {
+  return getOwnedTextNodes(blockElement)
+    .reduce((length, node) => length + (node.nodeValue?.length ?? 0), 0)
+}
+
+function collectSearchableBlocksFromRoot(root: ParentNode, rootId: string, options: SearchOptions): SearchableBlock[] {
+  const blocks: SearchableBlock[] = []
+  getUniqueBlockElements(root).forEach((element, blockIndex) => {
     const blockId = element.dataset.nodeId
     const blockType = element.dataset.type
-    if (!blockId || !blockType || seen.has(blockId) || !isSupportedBlockType(blockType, options)) {
+    if (!blockId || !blockType || !isSupportedBlockType(blockType, options)) {
       return
     }
 
@@ -64,7 +84,6 @@ function collectSearchableBlocksFromRoot(root: ParentNode, rootId: string, optio
       return
     }
 
-    seen.add(blockId)
     blocks.push({
       blockId,
       rootId,

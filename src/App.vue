@@ -35,160 +35,48 @@
       </button>
 
       <div class="sfsr-main">
-        <div class="sfsr-row">
-          <input
-            ref="findInputRef"
-            :value="state.query"
-            class="b3-text-field sfsr-input"
-            :placeholder="t('findPlaceholder')"
-            @compositionstart="onFindCompositionStart"
-            @compositionend="onFindCompositionEnd"
-            @input="onFindInput"
-            @keydown.enter.prevent="onFindEnter"
-          />
+        <SearchToolbarRow
+          ref="searchToolbarRef"
+          :counter-text="counterText"
+          :match-case="state.options.matchCase"
+          :on-close="closePanel"
+          :on-find-composition-end="onFindCompositionEnd"
+          :on-find-composition-start="onFindCompositionStart"
+          :on-find-enter="onFindEnter"
+          :on-find-input="onFindInput"
+          :on-go-next="goNext"
+          :on-go-prev="goPrev"
+          :on-selection-only-click="onSelectionOnlyClick"
+          :on-selection-only-pointer-down="onSelectionOnlyPointerDown"
+          :on-toggle-option="toggleOption"
+          :query="state.query"
+          :selection-only="state.options.selectionOnly"
+          :use-regex="state.options.useRegex"
+          :whole-word="state.options.wholeWord"
+        />
 
-          <button
-            :class="optionButtonClass(state.options.matchCase)"
-            class="sfsr-button"
-            :title="t('matchCase')"
-            @click="toggleOption('matchCase')"
-          >
-            Aa
-          </button>
-          <button
-            :class="optionButtonClass(state.options.wholeWord)"
-            class="sfsr-button"
-            :title="t('wholeWord')"
-            @click="toggleOption('wholeWord')"
-          >
-            ab
-          </button>
-          <button
-            :class="optionButtonClass(state.options.useRegex)"
-            class="sfsr-button"
-            :title="t('useRegex')"
-            @click="toggleOption('useRegex')"
-          >
-            .*
-          </button>
-          <button
-            :class="optionButtonClass(state.options.selectionOnly)"
-            class="sfsr-button sfsr-icon-button"
-            :aria-label="t('selectionOnly')"
-            :title="t('selectionOnly')"
-            @pointerdown.prevent.stop="onSelectionOnlyPointerDown"
-            @click.stop="onSelectionOnlyClick"
-          >
-            <svg
-              aria-hidden="true"
-              class="sfsr-toolbar-icon"
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.4"
-            >
-              <path d="M4 2.75H2.75V5" />
-              <path d="M12 2.75H13.25V5" />
-              <path d="M4 13.25H2.75V11" />
-              <path d="M12 13.25H13.25V11" />
-              <path d="M5.25 6H10.75" />
-              <path d="M5.25 8H10.75" />
-              <path d="M5.25 10H8.75" />
-            </svg>
-          </button>
-
-          <div class="sfsr-count">{{ counterText }}</div>
-
-          <button
-            class="sfsr-button"
-            :title="t('previousMatch')"
-            @click="goPrev"
-          >
-            ↑
-          </button>
-          <button
-            class="sfsr-button"
-            :title="t('nextMatch')"
-            @click="goNext"
-          >
-            ↓
-          </button>
-          <button
-            class="sfsr-button"
-            :title="t('closePanel')"
-            @click="closePanel"
-          >
-            ×
-          </button>
-        </div>
-
-        <div
+        <ReplaceActionRow
           v-if="state.replaceVisible"
-          class="sfsr-row sfsr-row--secondary"
-        >
-          <input
-            ref="replaceInputRef"
-            :value="state.replacement"
-            class="b3-text-field sfsr-input"
-            :placeholder="t('replacePlaceholder')"
-            @compositionstart="onReplaceCompositionStart"
-            @compositionend="onReplaceCompositionEnd"
-            @input="onReplaceInput"
-            @keydown.enter.prevent="replaceCurrent"
-          />
-          <button
-            :class="optionButtonClass(state.preserveCase)"
-            class="sfsr-button"
-            :title="t('settingPreserveCaseTitle')"
-            @click="togglePreserveCase"
-          >
-            Aa*
-          </button>
-          <SyButton
-            class="sfsr-action"
-            :disabled="!canReplaceCurrent"
-            @click="replaceCurrent"
-          >
-            {{ t('replaceAction') }}
-          </SyButton>
-          <SyButton
-            class="sfsr-action"
-            :disabled="!state.matches.length"
-            @click="skipCurrent"
-          >
-            {{ t('skipAction') }}
-          </SyButton>
-          <SyButton
-            class="sfsr-action"
-            :disabled="!state.matches.length"
-            @click="replaceAll"
-          >
-            {{ t('replaceAllAction') }}
-          </SyButton>
-        </div>
+          ref="replaceToolbarRef"
+          :can-replace-current="canReplaceCurrent"
+          :has-matches="Boolean(state.matches.length)"
+          :on-replace-all="replaceAll"
+          :on-replace-composition-end="onReplaceCompositionEnd"
+          :on-replace-composition-start="onReplaceCompositionStart"
+          :on-replace-current="replaceCurrent"
+          :on-replace-input="onReplaceInput"
+          :on-skip-current="skipCurrent"
+          :on-toggle-preserve-case="togglePreserveCase"
+          :preserve-case="state.preserveCase"
+          :replacement="state.replacement"
+        />
 
-        <div
+        <RegexHelpPanel
           v-if="showRegexHelp"
-          class="sfsr-regex-help"
-        >
-          <div class="sfsr-regex-help__title">
-            {{ regexHelpTitle }}
-          </div>
-          <div class="sfsr-regex-help__note">
-            {{ regexHelpNote }}
-          </div>
-          <ul class="sfsr-regex-help__examples">
-            <li
-              v-for="example in regexHelpExamples"
-              :key="example.pattern"
-            >
-              <code>{{ example.pattern }}</code>
-              <span>{{ example.description }}</span>
-            </li>
-          </ul>
-        </div>
+          :examples="regexHelpExamples"
+          :note="regexHelpNote"
+          :title="regexHelpTitle"
+        />
       </div>
     </div>
 
@@ -264,7 +152,6 @@ import {
   watch,
 } from 'vue'
 import { t } from '@/i18n/runtime'
-import SyButton from '@/components/SiyuanTheme/SyButton.vue'
 import {
   captureCurrentSelectionScope,
   closePanel,
@@ -284,13 +171,21 @@ import {
   togglePreserveCase,
   toggleReplaceVisible,
 } from '@/features/search-replace/store'
+import RegexHelpPanel from '@/features/search-replace/ui/RegexHelpPanel.vue'
+import ReplaceActionRow from '@/features/search-replace/ui/ReplaceActionRow.vue'
+import SearchToolbarRow from '@/features/search-replace/ui/SearchToolbarRow.vue'
 import { useComposedInput } from '@/features/search-replace/ui/use-composed-input'
 import { usePanelFrame } from '@/features/search-replace/ui/use-panel-frame'
 import { usePanelMinimap } from '@/features/search-replace/ui/use-panel-minimap'
 
-const findInputRef = ref<HTMLInputElement>()
-const replaceInputRef = ref<HTMLInputElement>()
 const panelRef = ref<HTMLDivElement>()
+const searchToolbarRef = ref<{
+  focusInput: () => void
+  selectInput: () => void
+}>()
+const replaceToolbarRef = ref<{
+  focusInput: () => void
+}>()
 const currentMatch = computed(() => getCurrentMatch())
 const regexHelpTitle = computed(() => t('regexHelpTitle'))
 const regexHelpNote = computed(() => t('regexHelpNote'))
@@ -369,12 +264,6 @@ const {
   onInput: onReplaceInput,
 } = useComposedInput(setReplacement)
 
-function optionButtonClass(active: boolean) {
-  return {
-    'sfsr-button--active': active,
-  }
-}
-
 function onSelectionOnlyPointerDown() {
   if (!state.options.selectionOnly) {
     captureCurrentSelectionScope()
@@ -414,8 +303,8 @@ watch(
 
     await nextTick()
     syncPanelBoundsToViewport()
-    findInputRef.value?.focus()
-    findInputRef.value?.select()
+    searchToolbarRef.value?.focusInput()
+    searchToolbarRef.value?.selectInput()
     refreshMinimap()
   },
 )
@@ -432,7 +321,7 @@ watch(
       return
     }
 
-    replaceInputRef.value?.focus()
+    replaceToolbarRef.value?.focusInput()
   },
 )
 </script>

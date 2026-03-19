@@ -1,4 +1,8 @@
-import { getOwnedTextNodes } from './blocks'
+import {
+  getBlockTextLength,
+  getOwnedTextNodes,
+  getUniqueBlockElements,
+} from './blocks'
 import type {
   EditorContext,
   SelectionScope,
@@ -23,18 +27,12 @@ export function getCurrentSelectionScope(context: EditorContext): SelectionScope
 
 function getSelectionScopeFromTextRanges(context: EditorContext, selection: Selection): SelectionScope {
   const scope: SelectionScope = new Map()
-  const blockElements = Array.from(
-    context.protyle.querySelectorAll<HTMLElement>('.protyle-wysiwyg [data-node-id][data-type]'),
-  )
-  const seen = new Set<string>()
-
-  blockElements.forEach((blockElement) => {
+  getUniqueBlockElements(context.protyle).forEach((blockElement) => {
     const blockId = blockElement.dataset.nodeId
-    if (!blockId || seen.has(blockId)) {
+    if (!blockId) {
       return
     }
 
-    seen.add(blockId)
     const ranges = getSelectionRangesWithinBlock(blockElement, selection)
     if (!ranges.length) {
       return
@@ -100,11 +98,6 @@ function resolveSelectedBlockElements(selectedElement: HTMLElement) {
 
 function getDescendantBlockElements(rootElement: HTMLElement) {
   return Array.from(rootElement.querySelectorAll<HTMLElement>('[data-node-id][data-type]'))
-}
-
-function getBlockTextLength(blockElement: HTMLElement) {
-  return getOwnedTextNodes(blockElement)
-    .reduce((length, node) => length + (node.nodeValue?.length ?? 0), 0)
 }
 
 function getSelectionRangesWithinBlock(blockElement: HTMLElement, selection: Selection) {

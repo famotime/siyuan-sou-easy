@@ -1,30 +1,21 @@
 import type { Plugin } from 'siyuan'
 import {
   applyReplacementsToClone,
-  clearSearchDecorations,
-  collectSearchableBlocks,
   createBlockElementFromDom,
-  createEditorContextFromElement,
-  findEditorContextByRootId,
   getActiveEditorContext,
   getBlockElement,
   getCurrentSelectionScope,
   getCurrentSelectionText,
-  scrollMatchIntoView,
-  syncSearchDecorations,
 } from './editor'
 import {
   getBlockDoms,
-  getDocumentContent,
   updateDomBlock,
 } from './kernel'
-import { findMatches } from './search-engine'
 import type {
   EditorContext,
   SearchOptions,
 } from './types'
 import { debugLog, setDebugLoggingEnabled } from './debug'
-import { t } from '@/i18n/runtime'
 import type { PluginSettings } from '@/settings'
 import {
   clearSelectionScope,
@@ -32,15 +23,10 @@ import {
   rememberEditorContext,
   rememberHintedEditorContext,
   rememberSelectionScope,
-  resolveEditorContext as resolveCachedEditorContext,
-  resolveSelectionScope as resolveCachedSelectionScope,
 } from './store/context-cache'
-import {
-  clearDocumentSnapshotCache,
-  invalidateDocumentSnapshot,
-  resolveDocumentBlocks,
-} from './store/document-snapshot'
+import { invalidateDocumentSnapshot } from './store/document-snapshot'
 import { replaceAllMatches, replaceCurrentMatch } from './store/replacement'
+import { createSearchController } from './store/search-controller'
 import {
   type PanelPosition,
   searchReplaceState,
@@ -54,44 +40,21 @@ import {
   unbindUiStatePlugin,
 } from './store/ui-state'
 
-let refreshTimer = 0
-let selectionRevealTimer = 0
-let liveRefreshObserver: MutationObserver | null = null
-let liveRefreshTarget: HTMLElement | null = null
-let documentListenersBound = false
-
 export { searchReplaceState } from './store/state'
-
-function getNoSelectionScopeError() {
-  return t('selectionOnlyNoScope')
-}
+const searchController = createSearchController({
+  getCurrentMatch: () => getCurrentMatch(),
+  state: searchReplaceState,
+})
 
 export function bindPlugin(plugin: Plugin) {
   bindUiStatePlugin(plugin)
-
-  if (documentListenersBound) {
-    return
-  }
-
-  document.addEventListener('selectionchange', handleDocumentSelectionChange)
-  document.addEventListener('focusin', handleDocumentFocusIn, true)
-  document.addEventListener('input', handleDocumentInput, true)
-  documentListenersBound = true
-  rememberEditorContext(getActiveEditorContext())
+  searchController.bindDocumentListeners()
 }
 
 export function unbindPlugin() {
-  if (documentListenersBound) {
-    clearSelectionRevealTimer()
-    document.removeEventListener('selectionchange', handleDocumentSelectionChange)
-    document.removeEventListener('focusin', handleDocumentFocusIn, true)
-    document.removeEventListener('input', handleDocumentInput, true)
-    documentListenersBound = false
-  }
-
-  disconnectLiveRefreshObserver()
+  searchController.unbindDocumentListeners()
   clearCachedEditorState()
-  clearDocumentSnapshotCache()
+  searchController.resetSearchSession()
   unbindUiStatePlugin()
 }
 
@@ -169,23 +132,20 @@ export function openPanel(forceVisible?: boolean, replaceVisible?: boolean) {
     }
   }
 
-  scheduleRefresh(0)
+  searchController.scheduleRefresh(0)
 }
 
 export function closePanel() {
   searchReplaceState.visible = false
   searchReplaceState.busy = false
   searchReplaceState.error = ''
-  clearSelectionRevealTimer()
   clearCachedEditorState()
-  disconnectLiveRefreshObserver()
-  clearDocumentSnapshotCache()
-  clearSearchDecorations()
+  searchController.resetSearchSession()
 }
 
 export function setQuery(value: string) {
   searchReplaceState.query = value
-  scheduleRefresh()
+  searchController.scheduleRefresh()
 }
 
 export function setReplacement(value: string) {
@@ -222,40 +182,11 @@ export function toggleOption(option: keyof SearchOptions) {
   if (option === 'selectionOnly' && !searchReplaceState.options.selectionOnly) {
     clearSelectionScope()
   }
-  scheduleRefresh(0)
+  searchController.scheduleRefresh(0)
 }
 
 export function onEditorContextChanged(contextHint?: EditorContext | null) {
-  if (
-    searchReplaceState.options.selectionOnly
-    && contextHint?.rootId
-    && searchReplaceState.currentRootId
-    && contextHint.rootId !== searchReplaceState.currentRootId
-  ) {
-    clearSelectionScope()
-  }
-
-  if (contextHint) {
-    rememberHintedEditorContext(contextHint)
-    rememberEditorContext(contextHint)
-    if (searchReplaceState.options.selectionOnly) {
-      const scope = getCurrentSelectionScope(contextHint)
-      if (scope.size > 0) {
-        rememberSelectionScope(contextHint, scope)
-      } else {
-        clearSelectionScope(contextHint.rootId)
-      }
-    }
-  } else {
-    rememberEditorContext(getActiveEditorContext())
-  }
-
-  if (!searchReplaceState.visible) {
-    return
-  }
-
-  debugLog('editor-context-changed')
-  scheduleRefresh(80)
+  searchController.onEditorContextChanged(contextHint)
 }
 
 export function getCurrentMatch() {
@@ -268,7 +199,7 @@ export function goNext() {
   }
 
   searchReplaceState.currentIndex = (searchReplaceState.currentIndex + 1) % searchReplaceState.matches.length
-  revealCurrentMatch(undefined, 'if-needed')
+  searchController.revealCurrentMatch(undefined, 'if-needed')
 }
 
 export function goPrev() {
@@ -277,7 +208,7 @@ export function goPrev() {
   }
 
   searchReplaceState.currentIndex = (searchReplaceState.currentIndex - 1 + searchReplaceState.matches.length) % searchReplaceState.matches.length
-  revealCurrentMatch(undefined, 'if-needed')
+  searchController.revealCurrentMatch(undefined, 'if-needed')
 }
 
 export function skipCurrent() {
@@ -293,9 +224,9 @@ export async function replaceCurrent() {
     getBlockElement,
     getCurrentMatch,
     invalidateDocumentSnapshot,
-    refreshMatches,
-    resolveEditorContext,
-    revealCurrentMatch,
+    refreshMatches: searchController.refreshMatches,
+    resolveEditorContext: searchController.resolveEditorContext,
+    revealCurrentMatch: searchController.revealCurrentMatch,
     state: searchReplaceState,
     updateDomBlock,
   })
@@ -309,277 +240,9 @@ export async function replaceAll() {
     getBlockDoms,
     getBlockElement,
     invalidateDocumentSnapshot,
-    refreshMatches,
-    resolveEditorContext,
+    refreshMatches: searchController.refreshMatches,
+    resolveEditorContext: searchController.resolveEditorContext,
     state: searchReplaceState,
     updateDomBlock,
   })
-}
-
-async function refreshMatches() {
-  if (!searchReplaceState.visible) {
-    return
-  }
-
-  const context = resolveEditorContext()
-  syncLiveRefreshObserver(context)
-  if (!context) {
-    searchReplaceState.currentRootId = ''
-    searchReplaceState.currentTitle = ''
-    searchReplaceState.matches = []
-    searchReplaceState.currentIndex = 0
-    searchReplaceState.error = t('currentDocumentMissing')
-    clearSearchDecorations()
-    return
-  }
-
-  searchReplaceState.currentRootId = context.rootId
-  searchReplaceState.currentTitle = context.title
-
-  if (!searchReplaceState.query.trim()) {
-    searchReplaceState.matches = []
-    searchReplaceState.currentIndex = 0
-    searchReplaceState.error = ''
-    clearSearchDecorations(context)
-    return
-  }
-
-  const blocks = await resolveBlocksForSearch(context)
-  const selectionScope = searchReplaceState.options.selectionOnly
-    ? resolveSelectionScope(context)
-    : new Map()
-  if (searchReplaceState.options.selectionOnly && selectionScope.size === 0) {
-    const validation = findMatches([], searchReplaceState.query, searchReplaceState.options)
-    searchReplaceState.matches = []
-    searchReplaceState.currentIndex = 0
-    searchReplaceState.error = validation.error || getNoSelectionScopeError()
-    clearSearchDecorations(context)
-    return
-  }
-
-  const result = findMatches(blocks, searchReplaceState.query, searchReplaceState.options, selectionScope)
-  searchReplaceState.error = result.error
-  searchReplaceState.matches = result.matches
-  debugLog('refresh-matches', {
-    error: result.error,
-    matchCount: result.matches.length,
-    query: searchReplaceState.query,
-    rootId: context.rootId,
-  })
-
-  if (!searchReplaceState.matches.length) {
-    searchReplaceState.currentIndex = 0
-    clearSearchDecorations(context)
-    return
-  }
-
-  if (searchReplaceState.currentIndex >= searchReplaceState.matches.length) {
-    searchReplaceState.currentIndex = searchReplaceState.matches.length - 1
-  }
-
-  revealCurrentMatch(context, 'none')
-}
-
-function resolveEditorContext() {
-  return resolveCachedEditorContext({
-    findEditorContextByRootId,
-    getActiveEditorContext,
-  })
-}
-
-function resolveSelectionScope(context: EditorContext) {
-  return resolveCachedSelectionScope(context, getCurrentSelectionScope)
-}
-
-function scheduleRefresh(delay = 120) {
-  window.clearTimeout(refreshTimer)
-  refreshTimer = window.setTimeout(() => {
-    void refreshMatches()
-  }, delay)
-}
-
-function syncLiveRefreshObserver(context: EditorContext | null) {
-  const nextTarget = resolveLiveRefreshTarget(context)
-  if (liveRefreshTarget === nextTarget) {
-    return
-  }
-
-  disconnectLiveRefreshObserver()
-  if (!nextTarget || typeof MutationObserver !== 'function') {
-    return
-  }
-
-  liveRefreshObserver = new MutationObserver((mutations) => {
-    if (!searchReplaceState.visible || searchReplaceState.busy || !searchReplaceState.query.trim()) {
-      return
-    }
-
-    const hasContentChange = mutations.some(mutation => mutation.type === 'childList' || mutation.type === 'characterData')
-    if (!hasContentChange) {
-      return
-    }
-
-    if (searchReplaceState.options.selectionOnly && context) {
-      const liveSelectionScope = getCurrentSelectionScope(context)
-      if (liveSelectionScope.size === 0) {
-        clearSelectionScope(context.rootId)
-      }
-    }
-
-    if (context?.rootId) {
-      invalidateDocumentSnapshot(context.rootId)
-    }
-    debugLog('editor-dom-changed')
-    scheduleRefresh(80)
-  })
-  liveRefreshObserver.observe(nextTarget, {
-    childList: true,
-    characterData: true,
-    subtree: true,
-  })
-  liveRefreshTarget = nextTarget
-}
-
-function disconnectLiveRefreshObserver() {
-  liveRefreshObserver?.disconnect()
-  liveRefreshObserver = null
-  liveRefreshTarget = null
-}
-
-function resolveLiveRefreshTarget(context: EditorContext | null) {
-  if (!(context?.protyle instanceof HTMLElement)) {
-    return null
-  }
-
-  return context.protyle.querySelector<HTMLElement>('.protyle-wysiwyg') ?? context.protyle
-}
-
-function handleDocumentSelectionChange() {
-  const selection = window.getSelection()
-  const anchorElement = selection?.anchorNode instanceof Element
-    ? selection.anchorNode
-    : selection?.anchorNode?.parentElement
-  const selectionContext = createEditorContextFromElement(anchorElement?.closest('.protyle'))
-
-  if (selectionContext) {
-    const selectionScope = getCurrentSelectionScope(selectionContext)
-    const hasCollapsedCaret = Boolean(selection && selection.rangeCount > 0 && selection.isCollapsed)
-    rememberHintedEditorContext(selectionContext)
-    rememberEditorContext(selectionContext)
-    if (selectionScope.size > 0) {
-      rememberSelectionScope(selectionContext, selectionScope)
-    }
-    if (searchReplaceState.visible && searchReplaceState.options.selectionOnly) {
-      if (selectionScope.size > 0) {
-        scheduleRefresh(0)
-        scheduleSelectionHighlightReveal(selectionContext)
-      } else if (hasCollapsedCaret) {
-        clearSelectionRevealTimer()
-      }
-    }
-    return
-  }
-
-  rememberEditorContext(getActiveEditorContext())
-}
-
-function scheduleSelectionHighlightReveal(context: EditorContext) {
-  clearSelectionRevealTimer()
-  if (!searchReplaceState.query.trim()) {
-    return
-  }
-
-  selectionRevealTimer = window.setTimeout(() => {
-    if (!searchReplaceState.visible || !searchReplaceState.options.selectionOnly) {
-      return
-    }
-
-    const scope = getCurrentSelectionScope(context)
-    if (scope.size > 0) {
-      rememberHintedEditorContext(context)
-      rememberEditorContext(context)
-      rememberSelectionScope(context, scope)
-    }
-
-    const selection = window.getSelection()
-    if (selection?.rangeCount) {
-      selection.removeAllRanges()
-    }
-    scheduleRefresh(0)
-  }, 80)
-}
-
-function clearSelectionRevealTimer() {
-  window.clearTimeout(selectionRevealTimer)
-}
-
-function handleDocumentFocusIn(event: FocusEvent) {
-  const target = event.target instanceof Element ? event.target : null
-  const protyle = target?.closest('.protyle')
-  const context = createEditorContextFromElement(protyle instanceof HTMLElement ? protyle : null)
-  rememberHintedEditorContext(context)
-  rememberEditorContext(context)
-}
-
-function handleDocumentInput(event: Event) {
-  const target = event.target instanceof Element ? event.target : null
-  const protyle = target?.closest('.protyle')
-  const context = createEditorContextFromElement(protyle instanceof HTMLElement ? protyle : null)
-  if (!context) {
-    return
-  }
-
-  rememberHintedEditorContext(context)
-  rememberEditorContext(context)
-  invalidateDocumentSnapshot(context.rootId)
-  if (!searchReplaceState.visible || searchReplaceState.busy) {
-    return
-  }
-
-  const resolvedContext = resolveEditorContext()
-  if (!resolvedContext || resolvedContext.protyle !== context.protyle) {
-    return
-  }
-
-  debugLog('editor-input')
-  scheduleRefresh(50)
-}
-
-async function resolveBlocksForSearch(context: EditorContext) {
-  const liveBlocks = collectSearchableBlocks(context, searchReplaceState.options)
-  if (searchReplaceState.options.selectionOnly) {
-    return liveBlocks
-  }
-
-  try {
-    return await resolveDocumentBlocks({
-      context,
-      fetchDocumentContent: getDocumentContent,
-      options: searchReplaceState.options,
-    })
-  } catch (error) {
-    debugLog('document-snapshot:failed', {
-      error: error instanceof Error ? error.message : String(error),
-      rootId: context.rootId,
-    })
-    return liveBlocks
-  }
-}
-
-function revealCurrentMatch(
-  context = resolveEditorContext(),
-  scrollMode: 'if-needed' | 'none' = 'none',
-) {
-  if (!context) {
-    clearSearchDecorations()
-    return
-  }
-
-  const currentMatch = getCurrentMatch()
-  syncSearchDecorations(context, searchReplaceState.matches, currentMatch)
-  if (scrollMode === 'none') {
-    return
-  }
-
-  scrollMatchIntoView(context, currentMatch, scrollMode)
 }

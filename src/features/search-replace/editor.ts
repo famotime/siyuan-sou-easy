@@ -8,8 +8,11 @@ export {
   collectSearchableBlocks,
   collectSearchableBlocksFromDocumentContent,
   createBlockElementFromDom,
+  getBlockTextLength,
   getBlockElement,
   getBlockPlainText,
+  getUniqueBlockElements,
+  resolveSearchRoot,
 } from './editor/blocks'
 export {
   getCurrentSelectionScope,

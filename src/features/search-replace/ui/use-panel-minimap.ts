@@ -9,6 +9,7 @@ import {
   findEditorContextByRootId,
   getActiveEditorContext,
   getBlockElement,
+  getUniqueBlockElements,
 } from '@/features/search-replace/editor'
 import type { SearchReplaceState } from '../store/state'
 import type {
@@ -233,18 +234,11 @@ export function usePanelMinimap({
     scrollHeight: number,
     minimapHeight: number,
   ) {
-    const blockElements = Array.from(
-      context.protyle.querySelectorAll<HTMLElement>('.protyle-wysiwyg [data-node-id][data-type]'),
-    )
-    const seen = new Set<string>()
-
-    return blockElements.flatMap((blockElement) => {
+    return getUniqueBlockElements(context.protyle).flatMap((blockElement) => {
       const blockId = blockElement.dataset.nodeId
-      if (!blockId || seen.has(blockId)) {
+      if (!blockId) {
         return []
       }
-
-      seen.add(blockId)
       const projectedBlock = projectMinimapDocBlock(
         blockElement,
         scrollContainer,
