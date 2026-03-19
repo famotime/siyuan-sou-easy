@@ -6,6 +6,8 @@ export {
 } from './editor/context'
 export {
   collectSearchableBlocks,
+  collectSearchableBlocksFromDocumentContent,
+  createBlockElementFromDom,
   getBlockElement,
   getBlockPlainText,
 } from './editor/blocks'

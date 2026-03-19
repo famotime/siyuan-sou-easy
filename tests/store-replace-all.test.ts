@@ -35,6 +35,11 @@ const editorMocks = vi.hoisted(() => {
     applyReplacementsToClone: vi.fn(),
     clearSearchDecorations: vi.fn(),
     collectSearchableBlocks: vi.fn(() => state.blocks),
+    createBlockElementFromDom: vi.fn((dom: string) => {
+      const container = document.createElement('div')
+      container.innerHTML = dom
+      return container.firstElementChild as HTMLElement | null
+    }),
     createEditorContextFromElement: vi.fn(() => state.context),
     findEditorContextByRootId: vi.fn(() => (state.contextAvailable ? state.context : null)),
     getActiveEditorContext: vi.fn(() => (state.contextAvailable ? state.context : null)),
@@ -54,6 +59,12 @@ const searchEngineMocks = vi.hoisted(() => ({
 }))
 
 const kernelMocks = vi.hoisted(() => ({
+  getBlockDoms: vi.fn(async () => ({})),
+  getDocumentContent: vi.fn(async () => ({
+    blockCount: 0,
+    content: '',
+    eof: true,
+  })),
   updateDomBlock: vi.fn(async () => null),
 }))
 
@@ -224,6 +235,74 @@ describe('search store replaceAll', () => {
     expect(editorMocks.getBlockElement).not.toHaveBeenCalled()
     expect(kernelMocks.updateDomBlock).not.toHaveBeenCalled()
     expect(searchEngineMocks.findMatches).not.toHaveBeenCalled()
+  })
+
+  it('fetches DOM for unloaded blocks so replace-all still covers the whole document', async () => {
+    searchReplaceState.visible = true
+    searchReplaceState.query = 'foo'
+    searchReplaceState.replacement = 'bar'
+    searchReplaceState.matches = [
+      {
+        blockId: 'block-1',
+        blockIndex: 0,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-1:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+      {
+        blockId: 'block-2',
+        blockIndex: 1,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-2:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+    ]
+
+    editorMocks.getBlockElement.mockImplementation((_context, blockId: string) => {
+      if (blockId === 'block-1') {
+        return {
+          dataset: {
+            nodeId: blockId,
+          },
+        } as HTMLElement
+      }
+
+      return null
+    })
+    kernelMocks.getBlockDoms.mockResolvedValue({
+      'block-2': '<div data-node-id="block-2" data-type="NodeParagraph"><div contenteditable="true">foo</div></div>',
+    })
+    editorMocks.applyReplacementsToClone.mockImplementation((blockElement: HTMLElement, matches: Array<{ blockId: string }>) => ({
+      appliedCount: matches.length,
+      clone: {
+        outerHTML: `<div data-node-id="${blockElement.dataset.nodeId}" data-type="NodeParagraph"><div contenteditable="true">bar</div></div>`,
+      },
+    }))
+
+    await replaceAll()
+
+    expect(kernelMocks.getBlockDoms).toHaveBeenCalledWith(['block-2'])
+    expect(kernelMocks.updateDomBlock).toHaveBeenCalledTimes(2)
+    expect(kernelMocks.updateDomBlock).toHaveBeenNthCalledWith(
+      1,
+      'block-1',
+      '<div data-node-id="block-1" data-type="NodeParagraph"><div contenteditable="true">bar</div></div>',
+    )
+    expect(kernelMocks.updateDomBlock).toHaveBeenNthCalledWith(
+      2,
+      'block-2',
+      '<div data-node-id="block-2" data-type="NodeParagraph"><div contenteditable="true">bar</div></div>',
+    )
   })
 })
 

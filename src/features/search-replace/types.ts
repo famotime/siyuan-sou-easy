@@ -45,3 +45,9 @@ export interface ReplacementOutcome {
   clone: HTMLElement | null
   appliedCount: number
 }
+
+export interface DocumentContentSnapshot {
+  blockCount: number
+  content: string
+  eof: boolean
+}

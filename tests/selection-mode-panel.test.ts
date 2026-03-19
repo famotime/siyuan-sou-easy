@@ -52,13 +52,14 @@ describe('selection mode from panel interaction', () => {
     mountPanel()
   })
 
-  afterEach(() => {
+  afterEach(async () => {
     closePanel()
     unbindPlugin()
     app?.unmount()
     host?.remove()
     document.body.innerHTML = ''
     window.getSelection()?.removeAllRanges()
+    await vi.runOnlyPendingTimersAsync()
     vi.useRealTimers()
     vi.restoreAllMocks()
     host = null
@@ -74,8 +75,7 @@ describe('selection mode from panel interaction', () => {
     searchReplaceState.options.selectionOnly = true
 
     openPanel(true)
-    await nextTick()
-    vi.runOnlyPendingTimers()
+    await flushPanel()
 
     const textNode = document.querySelector('[data-node-id="block-1"] [contenteditable="true"]')?.firstChild as Text
     const range = document.createRange()
@@ -87,8 +87,7 @@ describe('selection mode from panel interaction', () => {
     selection.addRange(range)
     document.dispatchEvent(new Event('selectionchange'))
 
-    vi.runOnlyPendingTimers()
-    await nextTick()
+    await flushPanel()
 
     expect(searchReplaceState.matches).toHaveLength(1)
     expect(clearSelectionSpy).toHaveBeenCalledTimes(2)
@@ -102,8 +101,7 @@ describe('selection mode from panel interaction', () => {
     searchReplaceState.query = 'foo'
 
     openPanel(true)
-    await nextTick()
-    vi.runOnlyPendingTimers()
+    await flushPanel()
 
     const textNode = document.querySelector('[data-node-id="block-1"] [contenteditable="true"]')?.firstChild as Text
     const range = document.createRange()
@@ -116,8 +114,7 @@ describe('selection mode from panel interaction', () => {
 
     const selectionButton = host?.querySelector<HTMLButtonElement>('button[title="仅在选中范围内查找和替换"]')
     selectionButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    await nextTick()
-    vi.runOnlyPendingTimers()
+    await flushPanel()
 
     expect(searchReplaceState.options.selectionOnly).toBe(true)
     expect(searchReplaceState.matches).toHaveLength(1)
@@ -134,8 +131,7 @@ describe('selection mode from panel interaction', () => {
     searchReplaceState.options.selectionOnly = true
 
     openPanel(true)
-    await nextTick()
-    vi.runOnlyPendingTimers()
+    await flushPanel()
 
     const textNode = document.querySelector('[data-node-id="block-1"] [contenteditable="true"]')?.firstChild as Text
     const range = document.createRange()
@@ -147,8 +143,7 @@ describe('selection mode from panel interaction', () => {
     selection.addRange(range)
     document.dispatchEvent(new Event('selectionchange'))
 
-    vi.runOnlyPendingTimers()
-    await nextTick()
+    await flushPanel()
 
     expect(clearSelectionSpy).toHaveBeenCalledTimes(1)
     expect(window.getSelection()?.rangeCount).toBe(1)
@@ -163,8 +158,7 @@ describe('selection mode from panel interaction', () => {
     searchReplaceState.options.selectionOnly = true
 
     openPanel(true)
-    await nextTick()
-    vi.runOnlyPendingTimers()
+    await flushPanel()
 
     expect(searchReplaceState.matches).toEqual([])
     expect(searchReplaceState.error).toBe('选区模式已开启，但当前没有可用选区')
@@ -195,8 +189,7 @@ describe('selection mode from panel interaction', () => {
     searchReplaceState.options.selectionOnly = true
 
     openPanel(true)
-    await nextTick()
-    vi.runOnlyPendingTimers()
+    await flushPanel()
 
     expect(searchReplaceState.error).toBe('')
     expect(searchReplaceState.matches).toHaveLength(2)
@@ -212,28 +205,24 @@ describe('selection mode from panel interaction', () => {
     searchReplaceState.query = 'foo'
 
     openPanel(true)
-    await nextTick()
-    vi.runOnlyPendingTimers()
+    await flushPanel()
 
     selectNestedListItemText('paragraph-1', 0, 14)
 
     const selectionButton = host?.querySelector<HTMLButtonElement>('button[title="仅在选中范围内查找和替换"]')
     selectionButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    await nextTick()
-    vi.runOnlyPendingTimers()
+    await flushPanel()
 
     expect(searchReplaceState.matches).toHaveLength(1)
     expect(searchReplaceState.matches[0]?.blockId).toBe('paragraph-1')
 
     selectionButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    await nextTick()
-    vi.runOnlyPendingTimers()
+    await flushPanel()
 
     expect(searchReplaceState.options.selectionOnly).toBe(false)
 
     selectionButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    await nextTick()
-    vi.runOnlyPendingTimers()
+    await flushPanel()
 
     expect(searchReplaceState.options.selectionOnly).toBe(true)
     expect(searchReplaceState.error).toBe('')
@@ -251,20 +240,17 @@ describe('selection mode from panel interaction', () => {
     searchReplaceState.options.selectionOnly = true
 
     openPanel(true)
-    await nextTick()
-    vi.runOnlyPendingTimers()
+    await flushPanel()
 
     selectNestedListItemText('paragraph-1', 0, 14)
-    vi.runOnlyPendingTimers()
-    await nextTick()
+    await flushPanel()
 
     expect(searchReplaceState.error).toBe('')
     expect(searchReplaceState.matches).toHaveLength(1)
     expect(searchReplaceState.matches[0]?.blockId).toBe('paragraph-1')
 
     selectNestedListItemText('paragraph-2', 0, 15)
-    vi.runOnlyPendingTimers()
-    await nextTick()
+    await flushPanel()
 
     expect(searchReplaceState.error).toBe('')
     expect(searchReplaceState.matches).toHaveLength(1)
@@ -331,3 +317,9 @@ describe('selection mode from panel interaction', () => {
     searchReplaceState.busy = false
   }
 })
+
+async function flushPanel() {
+  await nextTick()
+  await vi.runOnlyPendingTimersAsync()
+  await nextTick()
+}

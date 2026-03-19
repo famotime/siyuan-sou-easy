@@ -34,6 +34,7 @@ const editorMocks = vi.hoisted(() => {
     applyReplacementsToClone: vi.fn(),
     clearSearchDecorations: vi.fn(),
     collectSearchableBlocks: vi.fn(() => state.blocks),
+    createBlockElementFromDom: vi.fn(),
     findEditorContextByRootId: vi.fn(() => (state.contextAvailable ? state.context : null)),
     getActiveEditorContext: vi.fn(() => (state.contextAvailable ? state.context : null)),
     getBlockElement: vi.fn(),
@@ -93,9 +94,9 @@ describe('search store live refresh', () => {
     resetState()
   })
 
-  afterEach(() => {
+  afterEach(async () => {
     closePanel()
-    vi.runOnlyPendingTimers()
+    await vi.runOnlyPendingTimersAsync()
     vi.useRealTimers()
     document.body.innerHTML = ''
   })
@@ -124,7 +125,7 @@ describe('search store live refresh', () => {
     }))
 
     openPanel(true)
-    vi.runOnlyPendingTimers()
+    await flushRefresh()
 
     editorMocks.scrollMatchIntoView.mockClear()
     editorMocks.syncSearchDecorations.mockClear()
@@ -134,7 +135,7 @@ describe('search store live refresh', () => {
     editorMocks.state.context!.protyle.querySelector('.protyle-wysiwyg')?.appendChild(changedNode)
 
     await Promise.resolve()
-    vi.runOnlyPendingTimers()
+    await flushRefresh()
 
     expect(editorMocks.syncSearchDecorations).toHaveBeenCalledTimes(1)
     expect(editorMocks.scrollMatchIntoView).not.toHaveBeenCalled()
@@ -169,7 +170,7 @@ describe('search store live refresh', () => {
       }))
 
     openPanel(true)
-    vi.runOnlyPendingTimers()
+    await flushRefresh()
 
     expect(searchReplaceState.matches).toHaveLength(0)
     expect(searchEngineMocks.findMatches).toHaveBeenCalledTimes(1)
@@ -188,7 +189,7 @@ describe('search store live refresh', () => {
     editorMocks.state.context!.protyle.querySelector('.protyle-wysiwyg')?.appendChild(changedNode)
 
     await Promise.resolve()
-    vi.runOnlyPendingTimers()
+    await flushRefresh()
 
     expect(searchEngineMocks.findMatches).toHaveBeenCalledTimes(2)
     expect(searchReplaceState.matches).toHaveLength(1)
@@ -237,7 +238,7 @@ describe('search store live refresh', () => {
     })
 
     openPanel(true)
-    vi.runOnlyPendingTimers()
+    await flushRefresh()
 
     expect(searchReplaceState.matches).toHaveLength(1)
 
@@ -246,12 +247,16 @@ describe('search store live refresh', () => {
     editorMocks.state.context!.protyle.querySelector('.protyle-wysiwyg')?.appendChild(changedNode)
 
     await Promise.resolve()
-    vi.runOnlyPendingTimers()
+    await flushRefresh()
 
     expect(searchReplaceState.matches).toEqual([])
     expect(searchReplaceState.error).toBe('选区模式已开启，但当前没有可用选区')
   })
 })
+
+async function flushRefresh() {
+  await vi.runOnlyPendingTimersAsync()
+}
 
 function resetState() {
   searchReplaceState.visible = false

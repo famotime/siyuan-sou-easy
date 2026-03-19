@@ -10,8 +10,11 @@ import type { SearchReplaceState } from './state'
 interface ReplaceCurrentDependencies {
   applyReplacementsToClone: typeof import('../editor').applyReplacementsToClone
   clearSelectionScope: (rootId?: string) => void
+  createBlockElementFromDom: typeof import('../editor').createBlockElementFromDom
+  getBlockDoms: typeof import('../kernel').getBlockDoms
   getBlockElement: typeof import('../editor').getBlockElement
   getCurrentMatch: () => SearchMatch | null
+  invalidateDocumentSnapshot: (rootId?: string) => void
   refreshMatches: () => Promise<void>
   resolveEditorContext: () => EditorContext | null
   revealCurrentMatch: (context?: EditorContext, scrollMode?: 'if-needed' | 'none') => void
@@ -22,7 +25,10 @@ interface ReplaceCurrentDependencies {
 interface ReplaceAllDependencies {
   applyReplacementsToClone: typeof import('../editor').applyReplacementsToClone
   clearSelectionScope: (rootId?: string) => void
+  createBlockElementFromDom: typeof import('../editor').createBlockElementFromDom
+  getBlockDoms: typeof import('../kernel').getBlockDoms
   getBlockElement: typeof import('../editor').getBlockElement
+  invalidateDocumentSnapshot: (rootId?: string) => void
   refreshMatches: () => Promise<void>
   resolveEditorContext: () => EditorContext | null
   state: SearchReplaceState
@@ -32,8 +38,11 @@ interface ReplaceAllDependencies {
 export async function replaceCurrentMatch({
   applyReplacementsToClone,
   clearSelectionScope,
+  createBlockElementFromDom,
+  getBlockDoms,
   getBlockElement,
   getCurrentMatch,
+  invalidateDocumentSnapshot,
   refreshMatches,
   resolveEditorContext,
   revealCurrentMatch,
@@ -53,7 +62,13 @@ export async function replaceCurrentMatch({
     return
   }
 
-  const blockElement = getBlockElement(context, match.blockId)
+  const blockElement = await resolveBlockElement({
+    blockId: match.blockId,
+    context,
+    createBlockElementFromDom,
+    getBlockDoms,
+    getBlockElement,
+  })
   if (!blockElement) {
     await refreshMatches()
     return
@@ -72,6 +87,7 @@ export async function replaceCurrentMatch({
   try {
     state.busy = true
     await updateDomBlock(match.blockId, outcome.clone.outerHTML)
+    invalidateDocumentSnapshot(match.rootId)
     if (state.options.selectionOnly) {
       clearSelectionScope(match.rootId)
     }
@@ -93,7 +109,10 @@ export async function replaceCurrentMatch({
 export async function replaceAllMatches({
   applyReplacementsToClone,
   clearSelectionScope,
+  createBlockElementFromDom,
+  getBlockDoms,
   getBlockElement,
+  invalidateDocumentSnapshot,
   refreshMatches,
   resolveEditorContext,
   state,
@@ -134,9 +153,14 @@ export async function replaceAllMatches({
 
   try {
     state.busy = true
+    const missingBlockIds = Array.from(groupedMatches.keys()).filter(blockId => !getBlockElement(context, blockId))
+    const fallbackDoms = missingBlockIds.length
+      ? await getBlockDoms(missingBlockIds)
+      : {}
 
     for (const [blockId, matches] of groupedMatches) {
       const blockElement = getBlockElement(context, blockId)
+        ?? createBlockElementFromDom(fallbackDoms[blockId] ?? '')
       if (!blockElement) {
         skippedCount += matches.length
         continue
@@ -155,6 +179,9 @@ export async function replaceAllMatches({
       skippedCount += Math.max(0, matches.length - outcome.appliedCount)
     }
 
+    if (replacedCount > 0) {
+      invalidateDocumentSnapshot(context.rootId)
+    }
     if (replacedCount > 0 && state.options.selectionOnly) {
       clearSelectionScope(context.rootId)
     }
@@ -167,4 +194,26 @@ export async function replaceAllMatches({
   } finally {
     state.busy = false
   }
+}
+
+async function resolveBlockElement({
+  blockId,
+  context,
+  createBlockElementFromDom,
+  getBlockDoms,
+  getBlockElement,
+}: {
+  blockId: string
+  context: EditorContext
+  createBlockElementFromDom: typeof import('../editor').createBlockElementFromDom
+  getBlockDoms: typeof import('../kernel').getBlockDoms
+  getBlockElement: typeof import('../editor').getBlockElement
+}) {
+  const localElement = getBlockElement(context, blockId)
+  if (localElement) {
+    return localElement
+  }
+
+  const doms = await getBlockDoms([blockId])
+  return createBlockElementFromDom(doms[blockId] ?? '')
 }

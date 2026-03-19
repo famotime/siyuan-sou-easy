@@ -3,6 +3,7 @@ import {
   applyReplacementsToClone,
   clearSearchDecorations,
   collectSearchableBlocks,
+  createBlockElementFromDom,
   createEditorContextFromElement,
   findEditorContextByRootId,
   getActiveEditorContext,
@@ -12,7 +13,11 @@ import {
   scrollMatchIntoView,
   syncSearchDecorations,
 } from './editor'
-import { updateDomBlock } from './kernel'
+import {
+  getBlockDoms,
+  getDocumentContent,
+  updateDomBlock,
+} from './kernel'
 import { findMatches } from './search-engine'
 import type {
   EditorContext,
@@ -24,13 +29,17 @@ import type { PluginSettings } from '@/settings'
 import {
   clearSelectionScope,
   clearCachedEditorState,
-  clearResolvedEditorContext,
   rememberEditorContext,
   rememberHintedEditorContext,
   rememberSelectionScope,
   resolveEditorContext as resolveCachedEditorContext,
   resolveSelectionScope as resolveCachedSelectionScope,
 } from './store/context-cache'
+import {
+  clearDocumentSnapshotCache,
+  invalidateDocumentSnapshot,
+  resolveDocumentBlocks,
+} from './store/document-snapshot'
 import { replaceAllMatches, replaceCurrentMatch } from './store/replacement'
 import {
   type PanelPosition,
@@ -82,6 +91,7 @@ export function unbindPlugin() {
 
   disconnectLiveRefreshObserver()
   clearCachedEditorState()
+  clearDocumentSnapshotCache()
   unbindUiStatePlugin()
 }
 
@@ -167,9 +177,9 @@ export function closePanel() {
   searchReplaceState.busy = false
   searchReplaceState.error = ''
   clearSelectionRevealTimer()
-  clearSelectionScope()
-  clearResolvedEditorContext()
+  clearCachedEditorState()
   disconnectLiveRefreshObserver()
+  clearDocumentSnapshotCache()
   clearSearchDecorations()
 }
 
@@ -274,8 +284,11 @@ export async function replaceCurrent() {
   await replaceCurrentMatch({
     applyReplacementsToClone,
     clearSelectionScope,
+    createBlockElementFromDom,
+    getBlockDoms,
     getBlockElement,
     getCurrentMatch,
+    invalidateDocumentSnapshot,
     refreshMatches,
     resolveEditorContext,
     revealCurrentMatch,
@@ -288,7 +301,10 @@ export async function replaceAll() {
   await replaceAllMatches({
     applyReplacementsToClone,
     clearSelectionScope,
+    createBlockElementFromDom,
+    getBlockDoms,
     getBlockElement,
+    invalidateDocumentSnapshot,
     refreshMatches,
     resolveEditorContext,
     state: searchReplaceState,
@@ -324,7 +340,7 @@ async function refreshMatches() {
     return
   }
 
-  const blocks = collectSearchableBlocks(context, searchReplaceState.options)
+  const blocks = await resolveBlocksForSearch(context)
   const selectionScope = searchReplaceState.options.selectionOnly
     ? resolveSelectionScope(context)
     : new Map()
@@ -406,6 +422,9 @@ function syncLiveRefreshObserver(context: EditorContext | null) {
       }
     }
 
+    if (context?.rootId) {
+      invalidateDocumentSnapshot(context.rootId)
+    }
     debugLog('editor-dom-changed')
     scheduleRefresh(80)
   })
@@ -508,6 +527,7 @@ function handleDocumentInput(event: Event) {
 
   rememberHintedEditorContext(context)
   rememberEditorContext(context)
+  invalidateDocumentSnapshot(context.rootId)
   if (!searchReplaceState.visible || searchReplaceState.busy) {
     return
   }
@@ -519,6 +539,27 @@ function handleDocumentInput(event: Event) {
 
   debugLog('editor-input')
   scheduleRefresh(50)
+}
+
+async function resolveBlocksForSearch(context: EditorContext) {
+  const liveBlocks = collectSearchableBlocks(context, searchReplaceState.options)
+  if (searchReplaceState.options.selectionOnly) {
+    return liveBlocks
+  }
+
+  try {
+    return await resolveDocumentBlocks({
+      context,
+      fetchDocumentContent: getDocumentContent,
+      options: searchReplaceState.options,
+    })
+  } catch (error) {
+    debugLog('document-snapshot:failed', {
+      error: error instanceof Error ? error.message : String(error),
+      rootId: context.rootId,
+    })
+    return liveBlocks
+  }
 }
 
 function revealCurrentMatch(

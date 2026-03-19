@@ -34,6 +34,19 @@ const editorMocks = vi.hoisted(() => {
     applyReplacementsToClone: vi.fn(),
     clearSearchDecorations: vi.fn(),
     collectSearchableBlocks: vi.fn(() => state.blocks),
+    collectSearchableBlocksFromDocumentContent: vi.fn((content: string, rootId: string) => {
+      const container = document.createElement('div')
+      container.innerHTML = content
+      return Array.from(container.querySelectorAll<HTMLElement>('[data-node-id][data-type]')).map((element, blockIndex) => ({
+        blockId: element.dataset.nodeId ?? `block-${blockIndex}`,
+        blockIndex,
+        blockType: element.dataset.type ?? 'NodeParagraph',
+        element,
+        rootId,
+        text: element.textContent ?? '',
+      }))
+    }),
+    createBlockElementFromDom: vi.fn(),
     findEditorContextByRootId: vi.fn(() => (state.contextAvailable ? state.context : null)),
     getActiveEditorContext: vi.fn(() => (state.contextAvailable ? state.context : null)),
     getBlockElement: vi.fn(),
@@ -77,6 +90,12 @@ const searchEngineMocks = vi.hoisted(() => ({
 }))
 
 const kernelMocks = vi.hoisted(() => ({
+  getBlockDoms: vi.fn(async () => ({})),
+  getDocumentContent: vi.fn(async () => ({
+    blockCount: 0,
+    content: '',
+    eof: true,
+  })),
   updateDomBlock: vi.fn(async () => null),
 }))
 
@@ -148,9 +167,9 @@ describe('search store editor context fallback', () => {
     }))
   })
 
-  afterEach(() => {
+  afterEach(async () => {
     closePanel()
-    vi.runOnlyPendingTimers()
+    await vi.runOnlyPendingTimersAsync()
     vi.useRealTimers()
   })
 
@@ -167,7 +186,7 @@ describe('search store editor context fallback', () => {
     })
 
     await Promise.resolve()
-    vi.runOnlyPendingTimers()
+    await flushRefresh()
 
     expect(searchReplaceState.currentRootId).toBe('root-1')
     expect(searchReplaceState.currentTitle).toBe('Doc 1')
@@ -183,7 +202,7 @@ describe('search store editor context fallback', () => {
     searchReplaceState.query = 'foo'
 
     openPanel(true)
-    vi.runOnlyPendingTimers()
+    await flushRefresh()
 
     expect(searchReplaceState.matches).toHaveLength(2)
 
@@ -208,7 +227,7 @@ describe('search store editor context fallback', () => {
 
     onEditorContextChanged(editorMocks.state.context)
     openPanel(true)
-    vi.runOnlyPendingTimers()
+    await flushRefresh()
 
     expect(searchReplaceState.currentRootId).toBe('root-1')
     expect(searchReplaceState.currentTitle).toBe('Doc 1')
@@ -277,7 +296,7 @@ describe('search store editor context fallback', () => {
 
     onEditorContextChanged(currentContext)
     openPanel(true)
-    vi.runOnlyPendingTimers()
+    await flushRefresh()
 
     expect(searchReplaceState.currentRootId).toBe(currentContext.rootId)
     expect(searchReplaceState.currentTitle).toBe(currentContext.title)
@@ -299,7 +318,7 @@ describe('search store editor context fallback', () => {
     editorMocks.getCurrentSelectionScope.mockReturnValue(selectionScope)
 
     openPanel(true)
-    vi.runOnlyPendingTimers()
+    await flushRefresh()
 
     expect(editorMocks.getCurrentSelectionScope).toHaveBeenCalledWith(editorMocks.state.context)
     expect(searchEngineMocks.findMatches).toHaveBeenCalledWith(
@@ -308,6 +327,68 @@ describe('search store editor context fallback', () => {
       searchReplaceState.options,
       selectionScope,
     )
+  })
+
+  it('searches against the full document snapshot when the editor has only loaded part of the document', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+    })
+
+    editorMocks.state.blocks = [{
+      blockId: 'block-1',
+      blockIndex: 0,
+      blockType: 'NodeParagraph',
+      element: {} as HTMLElement,
+      rootId: 'root-1',
+      text: 'foo',
+    }]
+    kernelMocks.getDocumentContent.mockResolvedValue({
+      blockCount: 2,
+      content: `
+        <div class="protyle-wysiwyg">
+          <div data-node-id="block-1" data-type="NodeParagraph">
+            <div contenteditable="true">foo</div>
+          </div>
+          <div data-node-id="block-2" data-type="NodeParagraph">
+            <div contenteditable="true">foo</div>
+          </div>
+        </div>
+      `,
+      eof: true,
+    })
+    searchEngineMocks.findMatches.mockImplementation((blocks) => ({
+      error: '',
+      matches: blocks.flatMap((block: any) => {
+        const start = block.text.indexOf('foo')
+        if (start < 0) {
+          return []
+        }
+
+        return [{
+          blockId: block.blockId,
+          blockIndex: block.blockIndex,
+          blockType: block.blockType,
+          end: start + 3,
+          id: `${block.blockId}:${start}:${start + 3}`,
+          matchedText: 'foo',
+          previewText: `[foo]`,
+          replaceable: true,
+          rootId: block.rootId,
+          start,
+        }]
+      }),
+    }))
+
+    searchReplaceState.query = 'foo'
+
+    openPanel(true)
+    await flushRefresh()
+
+    expect(kernelMocks.getDocumentContent).toHaveBeenLastCalledWith('root-1')
+    const blocks = searchEngineMocks.findMatches.mock.calls.at(-1)?.[0] as Array<{ blockId: string }>
+    expect(blocks.map(block => block.blockId)).toEqual(['block-1', 'block-2'])
+    expect(searchReplaceState.matches).toHaveLength(2)
   })
 
   it('replaces the current match even when the panel has taken focus from the editor', async () => {
@@ -410,7 +491,7 @@ describe('search store editor context fallback', () => {
     })
 
     openPanel(true)
-    vi.runOnlyPendingTimers()
+    await flushRefresh()
 
     expect(searchReplaceState.matches).toHaveLength(1)
 
@@ -464,13 +545,13 @@ describe('search store editor context fallback', () => {
     searchReplaceState.options.selectionOnly = true
 
     openPanel(true)
-    vi.runOnlyPendingTimers()
+    await flushRefresh()
 
     expect(searchReplaceState.matches).toHaveLength(1)
 
     closePanel()
     openPanel(true)
-    vi.runOnlyPendingTimers()
+    await flushRefresh()
 
     expect(searchReplaceState.matches).toEqual([])
     expect(searchReplaceState.error).toBe('选区模式已开启，但当前没有可用选区')
@@ -520,17 +601,21 @@ describe('search store editor context fallback', () => {
     searchReplaceState.options.selectionOnly = true
 
     openPanel(true)
-    vi.runOnlyPendingTimers()
+    await flushRefresh()
 
     expect(searchReplaceState.matches).toHaveLength(1)
 
     onEditorContextChanged(editorMocks.state.context)
-    vi.runOnlyPendingTimers()
+    await flushRefresh()
 
     expect(searchReplaceState.matches).toEqual([])
     expect(searchReplaceState.error).toBe('选区模式已开启，但当前没有可用选区')
   })
 })
+
+async function flushRefresh() {
+  await vi.runOnlyPendingTimersAsync()
+}
 
 function resetState() {
   searchReplaceState.visible = false

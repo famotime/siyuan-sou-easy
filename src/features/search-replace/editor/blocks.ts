@@ -10,9 +10,45 @@ import type {
 } from '../types'
 
 export function collectSearchableBlocks(context: EditorContext, options: SearchOptions): SearchableBlock[] {
-  const blockElements = Array.from(
-    context.protyle.querySelectorAll<HTMLElement>('.protyle-wysiwyg [data-node-id][data-type]'),
-  )
+  const searchRoot = context.protyle.querySelector<HTMLElement>('.protyle-wysiwyg') ?? context.protyle
+  return collectSearchableBlocksFromRoot(searchRoot, context.rootId, options)
+}
+
+export function getBlockElement(context: EditorContext, blockId: string) {
+  return context.protyle.querySelector<HTMLElement>(`.protyle-wysiwyg [data-node-id="${blockId}"][data-type]`)
+    ?? context.protyle.querySelector<HTMLElement>(`[data-node-id="${blockId}"][data-type]`)
+    ?? context.protyle.querySelector<HTMLElement>(`[data-node-id="${blockId}"]`)
+}
+
+export function getBlockPlainText(blockElement: HTMLElement) {
+  const textNodes = getOwnedTextNodes(blockElement)
+  return textNodes.map(node => node.nodeValue ?? '').join('')
+}
+
+export function collectSearchableBlocksFromDocumentContent(
+  content: string,
+  rootId: string,
+  options: SearchOptions,
+) {
+  const container = document.createElement('div')
+  container.innerHTML = content
+  const searchRoot = container.querySelector<HTMLElement>('.protyle-wysiwyg') ?? container
+  return collectSearchableBlocksFromRoot(searchRoot, rootId, options)
+}
+
+export function createBlockElementFromDom(dom: string) {
+  if (!dom.trim()) {
+    return null
+  }
+
+  const container = document.createElement('div')
+  container.innerHTML = dom
+  return container.querySelector<HTMLElement>('[data-node-id][data-type]')
+    ?? container.firstElementChild as HTMLElement | null
+}
+
+function collectSearchableBlocksFromRoot(root: ParentNode, rootId: string, options: SearchOptions): SearchableBlock[] {
+  const blockElements = Array.from(root.querySelectorAll<HTMLElement>('[data-node-id][data-type]'))
   const blocks: SearchableBlock[] = []
   const seen = new Set<string>()
 
@@ -31,7 +67,7 @@ export function collectSearchableBlocks(context: EditorContext, options: SearchO
     seen.add(blockId)
     blocks.push({
       blockId,
-      rootId: context.rootId,
+      rootId,
       blockType,
       blockIndex,
       text,
@@ -40,17 +76,6 @@ export function collectSearchableBlocks(context: EditorContext, options: SearchO
   })
 
   return blocks
-}
-
-export function getBlockElement(context: EditorContext, blockId: string) {
-  return context.protyle.querySelector<HTMLElement>(`.protyle-wysiwyg [data-node-id="${blockId}"][data-type]`)
-    ?? context.protyle.querySelector<HTMLElement>(`[data-node-id="${blockId}"][data-type]`)
-    ?? context.protyle.querySelector<HTMLElement>(`[data-node-id="${blockId}"]`)
-}
-
-export function getBlockPlainText(blockElement: HTMLElement) {
-  const textNodes = getOwnedTextNodes(blockElement)
-  return textNodes.map(node => node.nodeValue ?? '').join('')
 }
 
 export function getOwnedTextNodes(blockElement: HTMLElement) {

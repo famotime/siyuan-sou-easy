@@ -25,6 +25,7 @@ const editorMocks = vi.hoisted(() => {
     applyReplacementsToClone: vi.fn(),
     clearSearchDecorations: vi.fn(),
     collectSearchableBlocks: vi.fn(() => []),
+    createBlockElementFromDom: vi.fn(),
     createEditorContextFromElement: vi.fn((protyle: HTMLElement | null | undefined) => {
       if (!(protyle instanceof HTMLElement)) {
         return null
@@ -56,6 +57,12 @@ const searchEngineMocks = vi.hoisted(() => ({
 }))
 
 const kernelMocks = vi.hoisted(() => ({
+  getBlockDoms: vi.fn(async () => ({})),
+  getDocumentContent: vi.fn(async () => ({
+    blockCount: 0,
+    content: '',
+    eof: true,
+  })),
   updateDomBlock: vi.fn(async () => null),
 }))
 

@@ -2,6 +2,7 @@ import {
   fetchSyncPost,
   showMessage,
 } from 'siyuan'
+import type { DocumentContentSnapshot } from './types'
 
 export async function requestApi<T>(url: string, data?: unknown): Promise<T> {
   const response = await fetchSyncPost(url, data)
@@ -19,5 +20,23 @@ export async function updateDomBlock(id: string, data: string) {
     dataType: 'dom',
     data,
     id,
+  })
+}
+
+export async function getDocumentContent(id: string) {
+  return requestApi<DocumentContentSnapshot>('/api/filetree/getDoc', {
+    id,
+    mode: 3,
+    size: 102400,
+  })
+}
+
+export async function getBlockDoms(ids: string[]) {
+  if (!ids.length) {
+    return {}
+  }
+
+  return requestApi<Record<string, string>>('/api/block/getBlockDOMs', {
+    ids,
   })
 }
