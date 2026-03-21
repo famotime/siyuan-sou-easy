@@ -304,6 +304,34 @@ describe('search store editor context fallback', () => {
     expect(searchReplaceState.matches[0]?.rootId).toBe(currentContext.rootId)
   })
 
+  it('prefers the current selection text over the previous query when preload selection is enabled', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: true,
+    })
+
+    searchReplaceState.query = 'previous keyword'
+    editorMocks.getCurrentSelectionText.mockReturnValue('selected keyword')
+
+    openPanel(true)
+
+    expect(searchReplaceState.query).toBe('selected keyword')
+  })
+
+  it('keeps the previous query when preload selection is enabled but there is no selection text', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: true,
+    })
+
+    searchReplaceState.query = 'previous keyword'
+    editorMocks.getCurrentSelectionText.mockReturnValue('   ')
+
+    openPanel(true)
+
+    expect(searchReplaceState.query).toBe('previous keyword')
+  })
+
   it('passes the current selection scope into search when selection-only mode is enabled', async () => {
     applyPluginSettings({
       ...DEFAULT_SETTINGS,

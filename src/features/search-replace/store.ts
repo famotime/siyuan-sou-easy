@@ -123,13 +123,12 @@ export function openPanel(forceVisible?: boolean, replaceVisible?: boolean) {
     searchReplaceState.replaceVisible = searchReplaceState.settings.defaultReplaceVisible
   }
 
-  if (!searchReplaceState.query) {
-    const selectionText = searchReplaceState.settings.preloadSelection
-      ? getCurrentSelectionText().trim()
-      : ''
-    if (selectionText) {
-      searchReplaceState.query = selectionText
-    }
+  const selectionText = searchReplaceState.settings.preloadSelection
+    ? getCurrentSelectionText().trim()
+    : ''
+
+  if (selectionText) {
+    searchReplaceState.query = selectionText
   }
 
   searchController.scheduleRefresh(0)
