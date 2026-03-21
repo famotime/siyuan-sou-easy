@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-`src/` contains the plugin code. Core search/replace logic lives in `src/features/search-replace/`, shared UI primitives live in `src/components/SiyuanTheme/`, and locale files live in `src/i18n/`. Main entry points are `src/index.ts`, `src/main.ts`, and `src/App.vue`. Tests live in `tests/` with SiYuan mocks in `tests/mocks/`. Project docs are in `docs/`, `reference_docs/` stores development documentation, `plugin-sample-vite-vue/` is the development template, release checks in `scripts/`, and static assets in `asset/`, `icon.png`, and `preview.png`. Build output goes to `dist/` and `package.zip`.
+`src/` contains the plugin code. Core search/replace logic lives in `src/features/search-replace/`, shared UI primitives live in `src/components/SiyuanTheme/`, and locale files live in `src/i18n/`. Main entry points are `src/index.ts`, `src/main.ts`, and `src/App.vue`. Tests live in `tests/` with SiYuan mocks in `tests/mocks/`. Project docs are in `docs/`, `reference_docs/` stores siyuan plugin development reference documentation, `plugin-sample-vite-vue/` is the development template, release checks in `scripts/`, and static assets in `asset/`, `icon.png`, and `preview.png`. Build output goes to `dist/` and `package.zip`.
 
 ## Build, Test, and Development Commands
 - `pnpm install` — install dependencies; CI uses pnpm on Node 18.
