@@ -10,6 +10,7 @@ export interface SearchOptions {
   wholeWord: boolean
   useRegex: boolean
   includeCodeBlock: boolean
+  searchAttributeView: boolean
   selectionOnly: boolean
 }
 
@@ -45,6 +46,17 @@ export interface SearchMatch {
   matchedText: string
   previewText: string
   replaceable: boolean
+  sourceKind?: 'block' | 'attribute-view'
+  attributeView?: {
+    avBlockId: string
+    avID: string
+    columnName: string
+    columnIndex?: number
+    itemID?: string
+    keyID: string
+    rowID?: string
+    rowLabel?: string
+  }
 }
 
 export type ScrollMatchResult = 'idle' | 'missing' | 'scrolled' | 'visible'

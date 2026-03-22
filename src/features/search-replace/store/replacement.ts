@@ -1,5 +1,6 @@
 import { showMessage } from 'siyuan'
 import { debugLog } from '../debug'
+import { hasAttributeViewMatches, isAttributeViewMatch } from '../match-utils'
 import type {
   EditorContext,
   SearchMatch,
@@ -51,6 +52,10 @@ export async function replaceCurrentMatch({
 }: ReplaceCurrentDependencies) {
   const match = getCurrentMatch()
   if (!match || state.busy) {
+    return
+  }
+  if (isAttributeViewMatch(match)) {
+    showMessage(t('replaceAttributeViewUnsupported'), 4000, 'error')
     return
   }
 
@@ -119,6 +124,10 @@ export async function replaceAllMatches({
   updateDomBlock,
 }: ReplaceAllDependencies) {
   if (!state.matches.length || state.busy) {
+    return
+  }
+  if (hasAttributeViewMatches(state.matches)) {
+    showMessage(t('replaceAttributeViewUnsupported'), 4000, 'error')
     return
   }
 

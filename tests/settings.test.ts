@@ -18,6 +18,7 @@ describe('normalizeSettings', () => {
       includeCodeBlock: true,
       minimapVisible: true,
       preserveCase: true,
+      searchAttributeView: true,
     })
 
     expect(settings).toMatchObject({
@@ -25,6 +26,7 @@ describe('normalizeSettings', () => {
       includeCodeBlock: true,
       minimapVisible: true,
       preserveCase: true,
+      searchAttributeView: true,
     })
   })
 
@@ -36,19 +38,22 @@ describe('normalizeSettings', () => {
       includeCodeBlock: DEFAULT_SETTINGS.includeCodeBlock,
       minimapVisible: DEFAULT_SETTINGS.minimapVisible,
       preserveCase: DEFAULT_SETTINGS.preserveCase,
+      searchAttributeView: DEFAULT_SETTINGS.searchAttributeView,
     })
   })
 })
 
 describe('createSearchOptionsFromSettings', () => {
-  it('uses includeCodeBlock as the default search option', () => {
+  it('uses includeCodeBlock and searchAttributeView as the default search options', () => {
     const options = createSearchOptionsFromSettings(normalizeSettings({
       includeCodeBlock: true,
+      searchAttributeView: true,
     }))
 
     expect(options).toEqual({
       includeCodeBlock: true,
       matchCase: false,
+      searchAttributeView: true,
       selectionOnly: false,
       useRegex: false,
       wholeWord: false,

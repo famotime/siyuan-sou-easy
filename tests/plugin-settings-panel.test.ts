@@ -17,6 +17,7 @@ const loadSettings = vi.fn().mockResolvedValue({
   preloadSelection: true,
   rememberPanelPosition: true,
   replacePanelHotkey: 'Ctrl+F12',
+  searchAttributeView: false,
 })
 
 vi.mock('@/main', () => ({
@@ -40,6 +41,7 @@ vi.mock('@/settings', () => ({
     preloadSelection: true,
     rememberPanelPosition: true,
     replacePanelHotkey: 'Ctrl+F12',
+    searchAttributeView: false,
   },
   SETTINGS_STORAGE: 'settings.json',
   loadSettings,
@@ -76,12 +78,14 @@ describe('plugin settings panel', () => {
       settingRememberPositionTitle: 'Remember position',
       settingReplaceHotkeyDesc: 'replace hotkey',
       settingReplaceHotkeyTitle: 'Replace hotkey',
+      settingSearchAttributeViewDesc: 'search database blocks',
+      settingSearchAttributeViewTitle: 'Search database blocks',
     }
     ;(plugin as any).settingsData = await loadSettings()
 
     plugin.openSetting()
 
-    expect(addItemSpy).toHaveBeenCalledTimes(8)
+    expect(addItemSpy).toHaveBeenCalledTimes(9)
     expect(addItemSpy.mock.calls.map(([item]) => ({
       description: item.description,
       title: item.title,
@@ -113,6 +117,10 @@ describe('plugin settings panel', () => {
       {
         description: 'include code',
         title: 'Include code',
+      },
+      {
+        description: 'search database blocks',
+        title: 'Search database blocks',
       },
       {
         description: 'debug',

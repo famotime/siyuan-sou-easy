@@ -34,7 +34,7 @@
     </SyButton>
     <SyButton
       class="sfsr-action"
-      :disabled="!props.hasMatches"
+      :disabled="!props.canReplaceAll"
       @click="props.onReplaceAll"
     >
       {{ t('replaceAllAction') }}
@@ -48,6 +48,7 @@ import { t } from '@/i18n/runtime'
 import SyButton from '@/components/SiyuanTheme/SyButton.vue'
 
 const props = defineProps<{
+  canReplaceAll: boolean
   canReplaceCurrent: boolean
   hasMatches: boolean
   onReplaceAll: () => void

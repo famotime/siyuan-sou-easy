@@ -1,4 +1,5 @@
 import { getBlockElement, getOwnedTextNodes } from './blocks'
+import { findAttributeViewCellElements } from './attribute-view'
 import type {
   EditorContext,
   SearchMatch,
@@ -16,6 +17,10 @@ interface TextPoint {
 }
 
 export function locateTextRange(context: EditorContext, match: SearchMatch) {
+  if (match.sourceKind === 'attribute-view') {
+    return locateAttributeViewTextRange(context, match)
+  }
+
   const blockElement = getBlockElement(context, match.blockId)
   if (!blockElement) {
     return null
@@ -59,6 +64,18 @@ export function locateRangeInSingleTextNode(blockElement: HTMLElement, start: nu
   return null
 }
 
+function locateAttributeViewTextRange(context: EditorContext, match: SearchMatch) {
+  const cells = findAttributeViewCellElements(context, match)
+  for (const cell of cells) {
+    const range = locateTextRangeInContainer(cell, match.matchedText, match.start)
+    if (range) {
+      return range
+    }
+  }
+
+  return null
+}
+
 function locateTextPoint(textNodes: Text[], targetOffset: number): TextPoint | null {
   let cursor = 0
 
@@ -85,4 +102,92 @@ function locateTextPoint(textNodes: Text[], targetOffset: number): TextPoint | n
   }
 
   return null
+}
+
+function locateTextRangeInContainer(container: HTMLElement, matchedText: string, preferredStart: number) {
+  const textNodes = collectDescendantTextNodes(container)
+  if (!textNodes.length || !matchedText) {
+    return null
+  }
+
+  const combinedText = textNodes
+    .map(node => node.nodeValue ?? '')
+    .join('')
+  const start = resolveMatchStart(combinedText, matchedText, preferredStart)
+  if (start < 0) {
+    return null
+  }
+
+  const startPoint = locateTextPoint(textNodes, start)
+  const endPoint = locateTextPoint(textNodes, start + matchedText.length)
+  if (!startPoint || !endPoint) {
+    return null
+  }
+
+  const range = document.createRange()
+  range.setStart(startPoint.node, startPoint.offset)
+  range.setEnd(endPoint.node, endPoint.offset)
+  return range
+}
+
+function collectDescendantTextNodes(container: HTMLElement) {
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      if (!(node instanceof Text) || !node.nodeValue?.trim()) {
+        return NodeFilter.FILTER_REJECT
+      }
+
+      const parentElement = node.parentElement
+      if (!parentElement || parentElement.closest('.protyle-attr, .fn__none, svg, style, script')) {
+        return NodeFilter.FILTER_REJECT
+      }
+
+      return NodeFilter.FILTER_ACCEPT
+    },
+  })
+
+  const textNodes: Text[] = []
+  let currentNode = walker.nextNode()
+  while (currentNode) {
+    textNodes.push(currentNode as Text)
+    currentNode = walker.nextNode()
+  }
+
+  return textNodes
+}
+
+function resolveMatchStart(text: string, matchedText: string, preferredStart: number) {
+  if (!matchedText || !text.includes(matchedText)) {
+    return -1
+  }
+
+  if (preferredStart >= 0 && text.slice(preferredStart, preferredStart + matchedText.length) === matchedText) {
+    return preferredStart
+  }
+
+  const indexes: number[] = []
+  let fromIndex = 0
+  while (fromIndex <= text.length - matchedText.length) {
+    const index = text.indexOf(matchedText, fromIndex)
+    if (index < 0) {
+      break
+    }
+
+    indexes.push(index)
+    fromIndex = index + matchedText.length
+  }
+
+  if (!indexes.length) {
+    return -1
+  }
+
+  if (indexes.length === 1) {
+    return indexes[0]
+  }
+
+  return indexes.reduce((bestIndex, currentIndex) => {
+    return Math.abs(currentIndex - preferredStart) < Math.abs(bestIndex - preferredStart)
+      ? currentIndex
+      : bestIndex
+  })
 }

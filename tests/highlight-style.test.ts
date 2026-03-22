@@ -23,6 +23,8 @@ describe('search highlight styling', () => {
     expect(stylesheet).toContain('text-decoration-color: rgba(176, 122, 0, 0.96);')
     expect(stylesheet).toContain('text-decoration-thickness: 3px;')
     expect(stylesheet).toContain('text-decoration-skip-ink: none;')
+    expect(stylesheet).toContain('.protyle-wysiwyg .sfsr-av-cell-match {')
+    expect(stylesheet).toContain('.protyle-wysiwyg .sfsr-av-cell-current {')
   })
 
   it('uses a compact vscode-like two-row toolbar when replace is expanded', () => {

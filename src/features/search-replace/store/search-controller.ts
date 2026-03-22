@@ -8,6 +8,7 @@ import {
   scrollMatchIntoView,
   syncSearchDecorations,
 } from '../editor'
+import { searchAttributeViewMatches } from '../attribute-view-search'
 import { debugLog } from '../debug'
 import { getDocumentContent } from '../kernel'
 import { findMatches } from '../search-engine'
@@ -27,7 +28,7 @@ import {
 import {
   clearDocumentSnapshotCache,
   invalidateDocumentSnapshot,
-  resolveDocumentBlocks,
+  resolveDocumentSnapshot,
 } from './document-snapshot'
 import type { SearchReplaceState } from './state'
 
@@ -148,7 +149,7 @@ export function createSearchController({
       return
     }
 
-    const blocks = await resolveBlocksForSearch(context)
+    const { blocks, documentContent } = await resolveBlocksForSearch(context)
     const selectionScope = state.options.selectionOnly
       ? resolveSelectionScope(context)
       : new Map()
@@ -165,17 +166,36 @@ export function createSearchController({
     }
 
     const result = findMatches(blocks, state.query, state.options, selectionScope)
-    state.minimapBlocks = blocks.map(block => ({
+    const minimapBlocks = blocks.map(block => ({
       blockId: block.blockId,
       blockIndex: block.blockIndex,
       blockType: block.blockType,
     }))
-    state.searchableBlockCount = blocks.length
+    let matches = result.matches
+    if (!result.error) {
+      const attributeViewSearch = await searchAttributeViewMatches({
+        context,
+        documentContent,
+        options: state.options,
+        query: state.query,
+        startingBlockIndex: minimapBlocks.length,
+      })
+      minimapBlocks.push(...attributeViewSearch.blocks)
+      matches = [...matches, ...attributeViewSearch.matches].sort((left, right) => {
+        if (left.blockIndex !== right.blockIndex) {
+          return left.blockIndex - right.blockIndex
+        }
+        return left.id.localeCompare(right.id)
+      })
+    }
+
+    state.minimapBlocks = minimapBlocks
+    state.searchableBlockCount = minimapBlocks.length
     state.error = result.error
-    state.matches = result.matches
+    state.matches = matches
     debugLog('refresh-matches', {
       error: result.error,
-      matchCount: result.matches.length,
+      matchCount: matches.length,
       query: state.query,
       rootId: context.rootId,
     })
@@ -487,21 +507,31 @@ export function createSearchController({
   async function resolveBlocksForSearch(context: EditorContext) {
     const liveBlocks = collectSearchableBlocks(context, state.options)
     if (state.options.selectionOnly) {
-      return liveBlocks
+      return {
+        blocks: liveBlocks,
+        documentContent: '',
+      }
     }
 
     try {
-      return await resolveDocumentBlocks({
+      const snapshot = await resolveDocumentSnapshot({
         context,
         fetchDocumentContent: getDocumentContent,
         options: state.options,
       })
+      return {
+        blocks: snapshot.blocks,
+        documentContent: snapshot.content,
+      }
     } catch (error) {
       debugLog('document-snapshot:failed', {
         error: error instanceof Error ? error.message : String(error),
         rootId: context.rootId,
       })
-      return liveBlocks
+      return {
+        blocks: liveBlocks,
+        documentContent: '',
+      }
     }
   }
 }

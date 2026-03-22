@@ -19,6 +19,7 @@ import type { SearchOptions } from '@/features/search-replace/types'
 const defaultOptions: SearchOptions = {
   includeCodeBlock: false,
   matchCase: false,
+  searchAttributeView: false,
   selectionOnly: false,
   useRegex: false,
   wholeWord: false,

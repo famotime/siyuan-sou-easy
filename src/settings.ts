@@ -10,6 +10,7 @@ export interface PluginSettings {
   minimapVisible: boolean
   preloadSelection: boolean
   includeCodeBlock: boolean
+  searchAttributeView: boolean
   debugLog: boolean
   preserveCase: boolean
 }
@@ -22,6 +23,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
   minimapVisible: false,
   preloadSelection: true,
   includeCodeBlock: false,
+  searchAttributeView: false,
   debugLog: false,
   preserveCase: false,
 }
@@ -60,6 +62,9 @@ export function normalizeSettings(settings?: Partial<PluginSettings> | null): Pl
     includeCodeBlock: typeof settings?.includeCodeBlock === 'boolean'
       ? settings.includeCodeBlock
       : DEFAULT_SETTINGS.includeCodeBlock,
+    searchAttributeView: typeof settings?.searchAttributeView === 'boolean'
+      ? settings.searchAttributeView
+      : DEFAULT_SETTINGS.searchAttributeView,
     debugLog: typeof settings?.debugLog === 'boolean'
       ? settings.debugLog
       : DEFAULT_SETTINGS.debugLog,
@@ -75,6 +80,7 @@ export function createSearchOptionsFromSettings(settings: PluginSettings): Searc
     wholeWord: false,
     useRegex: false,
     includeCodeBlock: settings.includeCodeBlock,
+    searchAttributeView: settings.searchAttributeView,
     selectionOnly: false,
   }
 }

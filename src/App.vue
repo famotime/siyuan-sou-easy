@@ -58,6 +58,7 @@
         <ReplaceActionRow
           v-if="state.replaceVisible"
           ref="replaceToolbarRef"
+          :can-replace-all="canReplaceAll"
           :can-replace-current="canReplaceCurrent"
           :has-matches="Boolean(state.matches.length)"
           :on-replace-all="replaceAll"
@@ -152,6 +153,7 @@ import {
   watch,
 } from 'vue'
 import { t } from '@/i18n/runtime'
+import { hasAttributeViewMatches, isAttributeViewMatch } from '@/features/search-replace/match-utils'
 import {
   captureCurrentSelectionScope,
   closePanel,
@@ -223,13 +225,16 @@ const statusText = computed(() => {
   if (state.navigationHint) {
     parts.push(state.navigationHint)
   }
-  if (currentMatch.value && !currentMatch.value.replaceable) {
+  if (currentMatch.value && isAttributeViewMatch(currentMatch.value)) {
+    parts.push(t('replaceAttributeViewUnsupported'))
+  } else if (currentMatch.value && !currentMatch.value.replaceable) {
     parts.push(t('replaceCurrentUnsupported'))
   }
   return parts.join(' · ')
 })
 
 const canReplaceCurrent = computed(() => Boolean(currentMatch.value?.replaceable) && !state.busy)
+const canReplaceAll = computed(() => Boolean(state.matches.length) && !hasAttributeViewMatches(state.matches) && !state.busy)
 const {
   clearMinimap,
   minimapRef,

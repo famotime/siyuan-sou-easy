@@ -33,6 +33,7 @@ const editorMocks = vi.hoisted(() => {
   return {
     state,
     applyReplacementsToClone: vi.fn(),
+    buildPreview: vi.fn((text: string, start: number, end: number) => `${text.slice(0, start)}[${text.slice(start, end)}]${text.slice(end)}`),
     clearSearchDecorations: vi.fn(),
     collectSearchableBlocks: vi.fn(() => state.blocks),
     createBlockElementFromDom: vi.fn((dom: string) => {
@@ -46,6 +47,7 @@ const editorMocks = vi.hoisted(() => {
     getBlockElement: vi.fn(),
     getCurrentSelectionScope: vi.fn(() => new Map()),
     getCurrentSelectionText: vi.fn(() => ''),
+    getUniqueBlockElements: vi.fn((root: ParentNode) => Array.from(root.querySelectorAll<HTMLElement>('[data-node-id][data-type]'))),
     scrollMatchIntoView: vi.fn(),
     syncSearchDecorations: vi.fn(),
   }
@@ -59,12 +61,15 @@ const searchEngineMocks = vi.hoisted(() => ({
 }))
 
 const kernelMocks = vi.hoisted(() => ({
+  getAttributeViewKeysByAvID: vi.fn(async () => []),
+  getBlockAttrs: vi.fn(async () => ({})),
   getBlockDoms: vi.fn(async () => ({})),
   getDocumentContent: vi.fn(async () => ({
     blockCount: 0,
     content: '',
     eof: true,
   })),
+  renderAttributeView: vi.fn(async () => null),
   updateDomBlock: vi.fn(async () => null),
 }))
 
@@ -115,6 +120,7 @@ describe('search store replaceAll', () => {
     applyPluginSettings({
       ...DEFAULT_SETTINGS,
       preloadSelection: false,
+      searchAttributeView: false,
     })
   })
 
@@ -342,6 +348,40 @@ describe('search store replaceAll', () => {
       'bar',
       { preserveCase: true },
     )
+  })
+
+  it('does not replace anything when the current result set contains attribute view matches', async () => {
+    searchReplaceState.visible = true
+    searchReplaceState.query = '热辣滚烫'
+    searchReplaceState.replacement = '你好，李焕英'
+    searchReplaceState.matches = [{
+      attributeView: {
+        avBlockId: 'av-block-1',
+        avID: 'av-1',
+        columnName: '电影',
+        itemID: 'item-1',
+        keyID: 'col-1',
+      },
+      blockId: 'av-block-1',
+      blockIndex: 0,
+      blockType: 'NodeAttributeView',
+      end: 4,
+      id: 'av:av-block-1:item-1:col-1:0:4',
+      matchedText: '热辣滚烫',
+      previewText: '电影: [热辣滚烫]',
+      replaceable: false,
+      rootId: 'root-1',
+      sourceKind: 'attribute-view',
+      start: 0,
+    }]
+
+    await replaceAll()
+
+    expect(window.confirm).not.toHaveBeenCalled()
+    expect(editorMocks.getBlockElement).not.toHaveBeenCalled()
+    expect(kernelMocks.updateDomBlock).not.toHaveBeenCalled()
+    expect(searchEngineMocks.findMatches).not.toHaveBeenCalled()
+    expect(siyuan.showMessage).toHaveBeenCalled()
   })
 })
 

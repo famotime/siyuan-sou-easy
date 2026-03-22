@@ -96,4 +96,77 @@ describe('current block highlight', () => {
     expect(headingBlock?.classList.contains('sfsr-block-match')).toBe(true)
     expect(headingBlock?.classList.contains('sfsr-block-current')).toBe(true)
   })
+
+  it('adds block and cell highlight classes for attribute view matches when the cell can be located', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-wysiwyg">
+          <div data-node-id="av-block-1" data-type="NodeAttributeView" class="av" data-av-id="av-1" data-render="true">
+            <div class="av__row av__row--header">
+              <div class="av__body">
+                <div class="av__cell av__cell--header"><div class="av__celltext">电影</div></div>
+                <div class="av__cell av__cell--header"><div class="av__celltext">导演</div></div>
+              </div>
+            </div>
+            <div class="av__row" data-id="item-1">
+              <div class="av__body">
+                <div class="av__cell"><div class="av__celltext" data-dtype="block">热辣滚烫</div></div>
+                <div class="av__cell"><div class="av__celltext">贾玲</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector('.protyle') as HTMLElement
+    const context: EditorContext = {
+      protyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    const match: SearchMatch = {
+      attributeView: {
+        avBlockId: 'av-block-1',
+        avID: 'av-1',
+        columnName: '电影',
+        columnIndex: 0,
+        itemID: 'item-1',
+        keyID: 'col-1',
+        rowID: 'item-1',
+      },
+      blockId: 'av-block-1',
+      blockIndex: 0,
+      blockType: 'NodeAttributeView',
+      end: 4,
+      id: 'av:av-block-1:item-1:col-1:0:4',
+      matchedText: '热辣滚烫',
+      previewText: '电影: [热辣滚烫]',
+      replaceable: false,
+      rootId: 'root-1',
+      sourceKind: 'attribute-view',
+      start: 0,
+    }
+
+    const highlights = new Map<string, { ranges: Range[] }>()
+    ;(globalThis as typeof globalThis & { Highlight?: new (...ranges: Range[]) => { ranges: Range[] } }).Highlight = class {
+      ranges: Range[]
+
+      constructor(...ranges: Range[]) {
+        this.ranges = ranges
+      }
+    }
+    ;(globalThis as typeof globalThis & { CSS?: { highlights?: Map<string, { ranges: Range[] }> } }).CSS = {
+      highlights,
+    }
+
+    syncSearchDecorations(context, [match], match)
+
+    expect(protyle.querySelector('[data-node-id="av-block-1"]')?.classList.contains('sfsr-block-match')).toBe(true)
+    expect(protyle.querySelector('[data-node-id="av-block-1"]')?.classList.contains('sfsr-block-current')).toBe(true)
+    expect(protyle.querySelector('.av__row[data-id="item-1"] .av__body > .av__cell')?.classList.contains('sfsr-av-cell-match')).toBe(true)
+    expect(protyle.querySelector('.av__row[data-id="item-1"] .av__body > .av__cell')?.classList.contains('sfsr-av-cell-current')).toBe(true)
+    expect(highlights.get('sfsr-match')?.ranges.map(range => range.toString())).toContain('热辣滚烫')
+    expect(highlights.get('sfsr-current-match')?.ranges.map(range => range.toString())).toContain('热辣滚烫')
+  })
 })

@@ -23,6 +23,7 @@ const editorMocks = vi.hoisted(() => {
   return {
     state,
     applyReplacementsToClone: vi.fn(),
+    buildPreview: vi.fn((text: string, start: number, end: number) => `${text.slice(0, start)}[${text.slice(start, end)}]${text.slice(end)}`),
     clearSearchDecorations: vi.fn(),
     collectSearchableBlocks: vi.fn(() => []),
     createBlockElementFromDom: vi.fn(),
@@ -44,6 +45,7 @@ const editorMocks = vi.hoisted(() => {
       ['block-1', [{ end: 3, start: 0 }]],
     ])),
     getCurrentSelectionText: vi.fn(() => ''),
+    getUniqueBlockElements: vi.fn((root: ParentNode) => Array.from(root.querySelectorAll<HTMLElement>('[data-node-id][data-type]'))),
     scrollMatchIntoView: vi.fn(),
     syncSearchDecorations: vi.fn(),
   }
@@ -57,12 +59,15 @@ const searchEngineMocks = vi.hoisted(() => ({
 }))
 
 const kernelMocks = vi.hoisted(() => ({
+  getAttributeViewKeysByAvID: vi.fn(async () => []),
+  getBlockAttrs: vi.fn(async () => ({})),
   getBlockDoms: vi.fn(async () => ({})),
   getDocumentContent: vi.fn(async () => ({
     blockCount: 0,
     content: '',
     eof: true,
   })),
+  renderAttributeView: vi.fn(async () => null),
   updateDomBlock: vi.fn(async () => null),
 }))
 

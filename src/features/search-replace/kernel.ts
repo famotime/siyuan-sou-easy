@@ -40,3 +40,23 @@ export async function getBlockDoms(ids: string[]) {
     ids,
   })
 }
+
+export async function getBlockAttrs(id: string) {
+  return requestApi<Record<string, string>>('/api/attr/getBlockAttrs', {
+    id,
+  })
+}
+
+export async function renderAttributeView(id: string) {
+  return requestApi<any>('/api/av/renderAttributeView', {
+    id,
+    pageSize: 200,
+    query: '',
+  })
+}
+
+export async function getAttributeViewKeysByAvID(avID: string) {
+  return requestApi<Array<Record<string, any>>>('/api/av/getAttributeViewKeysByAvID', {
+    avID,
+  })
+}

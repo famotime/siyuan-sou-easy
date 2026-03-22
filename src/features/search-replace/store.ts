@@ -73,6 +73,7 @@ export function applyPluginSettings(settings: PluginSettings) {
   searchReplaceState.settings = { ...settings }
   searchReplaceState.minimapVisible = settings.minimapVisible
   searchReplaceState.options.includeCodeBlock = settings.includeCodeBlock
+  searchReplaceState.options.searchAttributeView = settings.searchAttributeView
   setDebugLoggingEnabled(settings.debugLog)
   debugLog('settings-updated', settings)
 

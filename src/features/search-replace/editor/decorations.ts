@@ -1,9 +1,12 @@
 import {
+  ATTRIBUTE_VIEW_CELL_CURRENT_CLASS,
+  ATTRIBUTE_VIEW_CELL_MATCH_CLASS,
   CURRENT_MATCH_CLASS,
   CURRENT_TEXT_HIGHLIGHT_NAME,
   MATCH_CLASS,
   MATCH_TEXT_HIGHLIGHT_NAME,
 } from './constants'
+import { findAttributeViewCellElements } from './attribute-view'
 import { getBlockElement } from './blocks'
 import { locateTextRange } from './ranges'
 import type {
@@ -27,9 +30,10 @@ export function syncSearchDecorations(context: EditorContext, matches: SearchMat
   clearSearchDecorations(context)
 
   const textHighlightedMatchIds = applyMatchTextHighlights(context, matches)
+  applyAttributeViewCellHighlights(context, matches, currentMatch)
   const matchedBlockIds = new Set(
     matches
-      .filter(match => !textHighlightedMatchIds.has(match.id))
+      .filter(match => match.sourceKind === 'attribute-view' || !textHighlightedMatchIds.has(match.id))
       .map(match => match.blockId),
   )
 
@@ -47,6 +51,12 @@ export function clearSearchDecorations(context?: EditorContext | null) {
   clearTextHighlights()
 
   const root = context?.protyle ?? document
+  root.querySelectorAll(`.${ATTRIBUTE_VIEW_CELL_MATCH_CLASS}`).forEach((element) => {
+    element.classList.remove(ATTRIBUTE_VIEW_CELL_MATCH_CLASS)
+  })
+  root.querySelectorAll(`.${ATTRIBUTE_VIEW_CELL_CURRENT_CLASS}`).forEach((element) => {
+    element.classList.remove(ATTRIBUTE_VIEW_CELL_CURRENT_CLASS)
+  })
   root.querySelectorAll(`.${MATCH_CLASS}`).forEach((element) => {
     element.classList.remove(MATCH_CLASS)
   })
@@ -164,4 +174,24 @@ function applyMatchTextHighlights(context: EditorContext, matches: SearchMatch[]
   }
 
   return highlightedMatchIds
+}
+
+function applyAttributeViewCellHighlights(
+  context: EditorContext,
+  matches: SearchMatch[],
+  currentMatch: SearchMatch | null,
+) {
+  matches.forEach((match) => {
+    const cells = findAttributeViewCellElements(context, match)
+    if (!cells.length) {
+      return
+    }
+
+    cells.forEach((cell) => {
+      cell.classList.add(ATTRIBUTE_VIEW_CELL_MATCH_CLASS)
+      if (currentMatch?.id === match.id) {
+        cell.classList.add(ATTRIBUTE_VIEW_CELL_CURRENT_CLASS)
+      }
+    })
+  })
 }

@@ -32,19 +32,22 @@ const editorMocks = vi.hoisted(() => {
   return {
     state,
     applyReplacementsToClone: vi.fn(),
+    buildPreview: vi.fn((text: string, start: number, end: number) => `${text.slice(0, start)}[${text.slice(start, end)}]${text.slice(end)}`),
     clearSearchDecorations: vi.fn(),
     collectSearchableBlocks: vi.fn(() => state.blocks),
     collectSearchableBlocksFromDocumentContent: vi.fn((content: string, rootId: string) => {
       const container = document.createElement('div')
       container.innerHTML = content
-      return Array.from(container.querySelectorAll<HTMLElement>('[data-node-id][data-type]')).map((element, blockIndex) => ({
-        blockId: element.dataset.nodeId ?? `block-${blockIndex}`,
-        blockIndex,
-        blockType: element.dataset.type ?? 'NodeParagraph',
-        element,
-        rootId,
-        text: element.textContent ?? '',
-      }))
+      return Array.from(container.querySelectorAll<HTMLElement>('[data-node-id][data-type]'))
+        .map((element, blockIndex) => ({
+          blockId: element.dataset.nodeId ?? `block-${blockIndex}`,
+          blockIndex,
+          blockType: element.dataset.type ?? 'NodeParagraph',
+          element,
+          rootId,
+          text: element.textContent ?? '',
+        }))
+        .filter(block => Boolean(block.text))
     }),
     createBlockElementFromDom: vi.fn(),
     findEditorContextByRootId: vi.fn(() => (state.contextAvailable ? state.context : null)),
@@ -52,6 +55,7 @@ const editorMocks = vi.hoisted(() => {
     getBlockElement: vi.fn(),
     getCurrentSelectionScope: vi.fn(() => new Map()),
     getCurrentSelectionText: vi.fn(() => ''),
+    getUniqueBlockElements: vi.fn((root: ParentNode) => Array.from(root.querySelectorAll<HTMLElement>('[data-node-id][data-type]'))),
     scrollMatchIntoView: vi.fn(),
     syncSearchDecorations: vi.fn(),
   }
@@ -90,12 +94,15 @@ const searchEngineMocks = vi.hoisted(() => ({
 }))
 
 const kernelMocks = vi.hoisted(() => ({
+  getAttributeViewKeysByAvID: vi.fn(async () => []),
+  getBlockAttrs: vi.fn(async () => ({})),
   getBlockDoms: vi.fn(async () => ({})),
   getDocumentContent: vi.fn(async () => ({
     blockCount: 0,
     content: '',
     eof: true,
   })),
+  renderAttributeView: vi.fn(async () => null),
   updateDomBlock: vi.fn(async () => null),
 }))
 
@@ -419,6 +426,249 @@ describe('search store editor context fallback', () => {
     expect(searchReplaceState.matches).toHaveLength(2)
   })
 
+  it('searches visible attribute view blocks through AV APIs and marks those matches as read-only', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+      searchAttributeView: true,
+    })
+
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-content">
+          <div class="protyle-wysiwyg">
+            <div data-node-id="av-block-1" data-type="NodeAttributeView" data-av-id="av-1"></div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    editorMocks.state.blocks = []
+    editorMocks.state.context = {
+      protyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
+      {
+        id: 'col-1',
+        name: '电影',
+      },
+    ])
+    kernelMocks.renderAttributeView.mockResolvedValue({
+      view: {
+        columns: [{
+          id: 'col-1',
+          name: '电影',
+        }],
+        rows: [{
+          cells: [{
+            keyID: 'col-1',
+            value: {
+              text: {
+                content: '热辣滚烫',
+              },
+            },
+          }],
+          id: 'item-1',
+        }],
+      },
+      viewType: 'table',
+    })
+    searchEngineMocks.findMatches.mockImplementation((blocks) => {
+      const firstBlock = blocks[0]
+      if (firstBlock?.blockType === 'NodeAttributeView') {
+        return {
+          error: '',
+          matches: [{
+            blockId: firstBlock.blockId,
+            blockIndex: firstBlock.blockIndex,
+            blockType: firstBlock.blockType,
+            end: 4,
+            id: `${firstBlock.blockId}:0:4`,
+            matchedText: '热辣滚烫',
+            previewText: '[热辣滚烫]',
+            replaceable: true,
+            rootId: firstBlock.rootId,
+            start: 0,
+          }],
+        }
+      }
+
+      return {
+        error: '',
+        matches: [],
+      }
+    })
+
+    searchReplaceState.query = '热辣滚烫'
+
+    openPanel(true)
+    await flushRefresh()
+
+    expect(kernelMocks.getBlockAttrs).not.toHaveBeenCalled()
+    expect(kernelMocks.getAttributeViewKeysByAvID).toHaveBeenCalledWith('av-1')
+    expect(kernelMocks.renderAttributeView).toHaveBeenCalledWith('av-1')
+    expect(searchReplaceState.matches).toHaveLength(1)
+    expect(searchReplaceState.matches[0]).toMatchObject({
+      blockId: 'av-block-1',
+      replaceable: false,
+      sourceKind: 'attribute-view',
+    })
+    expect(searchReplaceState.matches[0]?.attributeView).toMatchObject({
+      avBlockId: 'av-block-1',
+      avID: 'av-1',
+      columnName: '电影',
+      columnIndex: 0,
+      keyID: 'col-1',
+    })
+    expect(searchReplaceState.matches[0]?.previewText).toContain('电影')
+  })
+
+  it('does not search attribute view blocks when the plugin setting is disabled', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+      searchAttributeView: false,
+    })
+
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-content">
+          <div class="protyle-wysiwyg">
+            <div data-node-id="av-block-1" data-type="NodeAttributeView"></div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    editorMocks.state.blocks = []
+    editorMocks.state.context = {
+      protyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    searchReplaceState.query = '热辣滚烫'
+
+    openPanel(true)
+    await flushRefresh()
+
+    expect(kernelMocks.getBlockAttrs).not.toHaveBeenCalled()
+    expect(kernelMocks.renderAttributeView).not.toHaveBeenCalled()
+    expect(kernelMocks.getAttributeViewKeysByAvID).not.toHaveBeenCalled()
+    expect(searchReplaceState.matches.some(match => match.sourceKind === 'attribute-view')).toBe(false)
+  })
+
+  it('searches unloaded attribute view blocks from the document snapshot when enabled', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+      searchAttributeView: true,
+    })
+
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-content">
+          <div class="protyle-wysiwyg">
+            <div data-node-id="block-1" data-type="NodeParagraph"><div contenteditable="true">foo</div></div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    editorMocks.state.blocks = [{
+      blockId: 'block-1',
+      blockIndex: 0,
+      blockType: 'NodeParagraph',
+      element: document.querySelector<HTMLElement>('[data-node-id="block-1"]')!,
+      rootId: 'root-1',
+      text: 'foo',
+    }]
+    editorMocks.state.context = {
+      protyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    kernelMocks.getDocumentContent.mockResolvedValue({
+      blockCount: 1,
+      content: '<div class="protyle-wysiwyg"><div data-node-id="av-block-2" data-type="NodeAttributeView" data-av-id="av-2"></div></div>',
+      eof: true,
+    })
+    kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
+      {
+        id: 'col-1',
+        name: '活动',
+      },
+    ])
+    kernelMocks.renderAttributeView.mockResolvedValue({
+      view: {
+        columns: [{
+          id: 'col-1',
+          name: '活动',
+        }],
+        rows: [{
+          cells: [{
+            keyID: 'col-1',
+            value: {
+              text: {
+                content: '年会',
+              },
+            },
+          }],
+          id: 'item-2',
+        }],
+      },
+      viewType: 'table',
+    })
+    searchEngineMocks.findMatches.mockImplementation((blocks) => {
+      const firstBlock = blocks[0]
+      if (firstBlock?.blockType === 'NodeAttributeView') {
+        return {
+          error: '',
+          matches: [{
+            blockId: firstBlock.blockId,
+            blockIndex: firstBlock.blockIndex,
+            blockType: firstBlock.blockType,
+            end: 2,
+            id: `${firstBlock.blockId}:0:2`,
+            matchedText: '年会',
+            previewText: '[年会]',
+            replaceable: true,
+            rootId: firstBlock.rootId,
+            start: 0,
+          }],
+        }
+      }
+
+      return {
+        error: '',
+        matches: [],
+      }
+    })
+    searchReplaceState.query = '年会'
+
+    openPanel(true)
+    await flushRefresh()
+
+    expect(kernelMocks.getBlockAttrs).not.toHaveBeenCalled()
+    expect(kernelMocks.getAttributeViewKeysByAvID).toHaveBeenCalledWith('av-2')
+    expect(kernelMocks.renderAttributeView).toHaveBeenCalledWith('av-2')
+    expect(searchReplaceState.matches).toHaveLength(1)
+    expect(searchReplaceState.matches[0]).toMatchObject({
+      blockId: 'av-block-2',
+      previewText: expect.stringContaining('年会'),
+      sourceKind: 'attribute-view',
+    })
+    expect(searchReplaceState.matches[0]?.attributeView).toMatchObject({
+      columnName: '活动',
+      columnIndex: 0,
+      keyID: 'col-1',
+    })
+  })
+
   it('keeps navigating toward unloaded long-document matches and shows a loading hint until the target block is available', async () => {
     document.body.innerHTML = `
       <div class="protyle">
@@ -562,6 +812,44 @@ describe('search store editor context fallback', () => {
       'block-1',
       '<div data-node-id="block-1" data-type="NodeParagraph"><div contenteditable="true">bar bar foo</div></div>',
     )
+  })
+
+  it('does not replace the current match when it comes from an attribute view block', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+      searchAttributeView: true,
+    })
+    searchReplaceState.visible = true
+    searchReplaceState.query = '热辣滚烫'
+    searchReplaceState.replacement = '你好，李焕英'
+    searchReplaceState.matches = [{
+      attributeView: {
+        avBlockId: 'av-block-1',
+        avID: 'av-1',
+        columnName: '电影',
+        itemID: 'item-1',
+        keyID: 'col-1',
+      },
+      blockId: 'av-block-1',
+      blockIndex: 0,
+      blockType: 'NodeAttributeView',
+      end: 4,
+      id: 'av:av-block-1:item-1:col-1:0:4',
+      matchedText: '热辣滚烫',
+      previewText: '电影: [热辣滚烫]',
+      replaceable: false,
+      rootId: 'root-1',
+      sourceKind: 'attribute-view',
+      start: 0,
+    }]
+    searchReplaceState.currentIndex = 0
+
+    await replaceCurrent()
+
+    expect(editorMocks.getBlockElement).not.toHaveBeenCalled()
+    expect(editorMocks.applyReplacementsToClone).not.toHaveBeenCalled()
+    expect(kernelMocks.updateDomBlock).not.toHaveBeenCalled()
   })
 
   it('clears the cached selection scope after replacing inside selection-only mode', async () => {

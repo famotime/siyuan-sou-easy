@@ -176,6 +176,41 @@ describe('search panel replace toggle', () => {
     expect(preserveCaseButton?.classList.contains('sfsr-button--active')).toBe(true)
   })
 
+  it('disables replacement actions and shows a read-only notice for attribute view matches', async () => {
+    mountPanel()
+    applyPluginSettings({ ...DEFAULT_SETTINGS })
+    searchReplaceState.matches = [{
+      attributeView: {
+        avBlockId: 'av-block-1',
+        avID: 'av-1',
+        columnName: '电影',
+        itemID: 'item-1',
+        keyID: 'col-1',
+      },
+      blockId: 'av-block-1',
+      blockIndex: 0,
+      blockType: 'NodeAttributeView',
+      end: 4,
+      id: 'av:av-block-1:item-1:col-1:0:4',
+      matchedText: '热辣滚烫',
+      previewText: '电影: [热辣滚烫]',
+      replaceable: false,
+      rootId: 'root-1',
+      sourceKind: 'attribute-view',
+      start: 0,
+    }] as any
+    openPanel(true, true)
+    await nextTick()
+
+    const buttons = host?.querySelectorAll<HTMLButtonElement>('.sfsr-row--secondary .sfsr-action')
+    const status = host?.querySelector<HTMLElement>('.sfsr-status')
+
+    expect(buttons).toHaveLength(3)
+    expect(buttons?.[0]?.disabled).toBe(true)
+    expect(buttons?.[2]?.disabled).toBe(true)
+    expect(status?.textContent).toContain('数据库结果仅支持搜索与高亮，不支持替换')
+  })
+
   it('does not show minimap controls inside the search toolbar', async () => {
     mountPanel()
     applyPluginSettings({ ...DEFAULT_SETTINGS })

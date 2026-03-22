@@ -11,6 +11,7 @@ import type { SearchOptions, SearchableBlock } from '@/features/search-replace/t
 const defaultOptions = {
   includeCodeBlock: false,
   matchCase: false,
+  searchAttributeView: false,
   selectionOnly: false,
   useRegex: false,
   wholeWord: false,

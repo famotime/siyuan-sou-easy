@@ -10,6 +10,7 @@ import type {
 
 interface SnapshotCacheEntry {
   blocks: SearchableBlock[]
+  content: string
   includeCodeBlock: boolean
   rootId: string
 }
@@ -22,7 +23,7 @@ interface ResolveDocumentBlocksDependencies {
   options: SearchOptions
 }
 
-export async function resolveDocumentBlocks({
+export async function resolveDocumentSnapshot({
   context,
   fetchDocumentContent,
   options,
@@ -32,21 +33,28 @@ export async function resolveDocumentBlocks({
     && snapshotCache.rootId === context.rootId
     && snapshotCache.includeCodeBlock === options.includeCodeBlock
   ) {
-    return snapshotCache.blocks
+    return snapshotCache
   }
 
   const snapshot = await fetchDocumentContent(context.rootId)
-  const blocks = snapshot?.content
-    ? collectSearchableBlocksFromDocumentContent(snapshot.content, context.rootId, options)
+  const content = snapshot?.content ?? ''
+  const blocks = content
+    ? collectSearchableBlocksFromDocumentContent(content, context.rootId, options)
     : collectSearchableBlocks(context, options)
 
   snapshotCache = {
     blocks,
+    content,
     includeCodeBlock: options.includeCodeBlock,
     rootId: context.rootId,
   }
 
-  return blocks
+  return snapshotCache
+}
+
+export async function resolveDocumentBlocks(dependencies: ResolveDocumentBlocksDependencies) {
+  const snapshot = await resolveDocumentSnapshot(dependencies)
+  return snapshot.blocks
 }
 
 export function invalidateDocumentSnapshot(rootId?: string) {
