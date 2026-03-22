@@ -2,7 +2,7 @@
   "name": "siyuan-sou-easy",
   "author": "QuincyZou",
   "url": "https://github.com/famotime/siyuan-sou-easy",
-  "version": "1.0.5",
+  "version": "1.0.8",
   "minAppVersion": "3.5.7",
   "disabledInPublish": false,
   "backends": [
