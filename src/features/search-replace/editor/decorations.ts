@@ -5,6 +5,7 @@ import {
   CURRENT_TEXT_HIGHLIGHT_NAME,
   MATCH_CLASS,
   MATCH_TEXT_HIGHLIGHT_NAME,
+  TABLE_NODE_TYPE,
 } from './constants'
 import { findAttributeViewCellElements } from './attribute-view'
 import { getBlockElement } from './blocks'
@@ -30,10 +31,17 @@ export function syncSearchDecorations(context: EditorContext, matches: SearchMat
   clearSearchDecorations(context)
 
   const textHighlightedMatchIds = applyMatchTextHighlights(context, matches)
+  const tableCellHighlightedMatchIds = applyTableCellHighlights(context, matches, currentMatch)
   applyAttributeViewCellHighlights(context, matches, currentMatch)
   const matchedBlockIds = new Set(
     matches
-      .filter(match => match.sourceKind === 'attribute-view' || !textHighlightedMatchIds.has(match.id))
+      .filter(match => {
+        if (match.sourceKind === 'attribute-view') {
+          return true
+        }
+
+        return !textHighlightedMatchIds.has(match.id) && !tableCellHighlightedMatchIds.has(match.id)
+      })
       .map(match => match.blockId),
   )
 
@@ -43,7 +51,9 @@ export function syncSearchDecorations(context: EditorContext, matches: SearchMat
 
   if (currentMatch) {
     applyCurrentTextHighlight(context, currentMatch)
-    getBlockElement(context, currentMatch.blockId)?.classList.add(CURRENT_MATCH_CLASS)
+    if (!tableCellHighlightedMatchIds.has(currentMatch.id)) {
+      getBlockElement(context, currentMatch.blockId)?.classList.add(CURRENT_MATCH_CLASS)
+    }
   }
 }
 
@@ -74,7 +84,7 @@ export function scrollMatchIntoView(
     return 'idle'
   }
 
-  const element = getBlockElement(context, match.blockId)
+  const element = resolveMatchTargetElement(context, match)
   if (!element) {
     return 'missing'
   }
@@ -107,6 +117,33 @@ function isElementVisibleWithinContainer(element: HTMLElement, container: HTMLEl
   }
 
   return elementRect.top >= 0 && elementRect.bottom <= window.innerHeight
+}
+
+function applyTableCellHighlights(
+  context: EditorContext,
+  matches: SearchMatch[],
+  currentMatch: SearchMatch | null,
+) {
+  const highlightedMatchIds = new Set<string>()
+
+  matches.forEach((match) => {
+    if (match.sourceKind === 'attribute-view' || match.blockType !== TABLE_NODE_TYPE) {
+      return
+    }
+
+    const cell = findTableCellElement(context, match)
+    if (!cell) {
+      return
+    }
+
+    cell.classList.add(ATTRIBUTE_VIEW_CELL_MATCH_CLASS)
+    if (currentMatch?.id === match.id) {
+      cell.classList.add(ATTRIBUTE_VIEW_CELL_CURRENT_CLASS)
+    }
+    highlightedMatchIds.add(match.id)
+  })
+
+  return highlightedMatchIds
 }
 
 function applyCurrentTextHighlight(context: EditorContext, match: SearchMatch) {
@@ -194,4 +231,41 @@ function applyAttributeViewCellHighlights(
       }
     })
   })
+}
+
+function resolveMatchTargetElement(context: EditorContext, match: SearchMatch) {
+  if (match.sourceKind === 'attribute-view') {
+    return findAttributeViewCellElements(context, match)[0]
+      ?? getBlockElement(context, match.blockId)
+  }
+
+  return findTableCellElement(context, match)
+    ?? getBlockElement(context, match.blockId)
+}
+
+function findTableCellElement(context: EditorContext, match: SearchMatch) {
+  if (match.blockType !== TABLE_NODE_TYPE) {
+    return null
+  }
+
+  const range = locateTextRange(context, match)
+  if (!range) {
+    return null
+  }
+
+  const startCell = resolveNodeElement(range.startContainer)?.closest<HTMLElement>('[data-type="NodeTableCell"], .table__cell')
+  const endCell = resolveNodeElement(range.endContainer)?.closest<HTMLElement>('[data-type="NodeTableCell"], .table__cell')
+  if (startCell && (!endCell || startCell === endCell)) {
+    return startCell
+  }
+
+  return endCell
+}
+
+function resolveNodeElement(node: Node | null) {
+  if (!node) {
+    return null
+  }
+
+  return node instanceof Element ? node : node.parentElement
 }

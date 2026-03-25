@@ -169,4 +169,51 @@ describe('current block highlight', () => {
     expect(highlights.get('sfsr-match')?.ranges.map(range => range.toString())).toContain('热辣滚烫')
     expect(highlights.get('sfsr-current-match')?.ranges.map(range => range.toString())).toContain('热辣滚烫')
   })
+
+  it('highlights the matched table cell instead of the whole table when text highlights are unavailable', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-wysiwyg">
+          <div data-node-id="table-1" data-type="NodeTable" class="table">
+            <div class="table__row">
+              <div data-node-id="cell-1" data-type="NodeTableCell" class="table__cell">
+                <div contenteditable="true">Cell Alpha</div>
+              </div>
+              <div data-node-id="cell-2" data-type="NodeTableCell" class="table__cell">
+                <div contenteditable="true">Cell Beta</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector('.protyle') as HTMLElement
+    const tableBlock = protyle.querySelector<HTMLElement>('[data-node-id="table-1"]')
+    const targetCell = protyle.querySelector<HTMLElement>('[data-node-id="cell-2"]')
+    const context: EditorContext = {
+      protyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    const match: SearchMatch = {
+      blockId: 'table-1',
+      blockIndex: 0,
+      blockType: 'NodeTable',
+      end: 19,
+      id: 'table-1:15:19',
+      matchedText: 'Beta',
+      previewText: 'Cell AlphaCell [Beta]',
+      replaceable: true,
+      rootId: 'root-1',
+      start: 15,
+    }
+
+    syncSearchDecorations(context, [match], match)
+
+    expect(tableBlock?.classList.contains('sfsr-block-match')).toBe(false)
+    expect(tableBlock?.classList.contains('sfsr-block-current')).toBe(false)
+    expect(targetCell?.classList.contains('sfsr-av-cell-match')).toBe(true)
+    expect(targetCell?.classList.contains('sfsr-av-cell-current')).toBe(true)
+  })
 })
