@@ -20,6 +20,30 @@ export interface EditorContext {
   title: string
 }
 
+export interface TableCellSearchMetadata {
+  cellId: string
+  rowIndex: number
+  columnIndex: number
+  start: number
+  end: number
+}
+
+export interface TableSearchMetadata {
+  rowCount: number
+  columnCount: number
+  cells: TableCellSearchMetadata[]
+}
+
+export interface TableMatchMetadata {
+  cellId: string
+  rowIndex: number
+  columnIndex: number
+  rowCount: number
+  columnCount: number
+  cellStart: number
+  cellEnd: number
+}
+
 export interface SearchableBlock {
   blockId: string
   rootId: string
@@ -27,6 +51,7 @@ export interface SearchableBlock {
   blockIndex: number
   text: string
   element: HTMLElement
+  table?: TableSearchMetadata
 }
 
 export interface SearchableBlockSummary {
@@ -47,6 +72,7 @@ export interface SearchMatch {
   previewText: string
   replaceable: boolean
   sourceKind?: 'block' | 'attribute-view'
+  table?: TableMatchMetadata
   attributeView?: {
     avBlockId: string
     avID: string

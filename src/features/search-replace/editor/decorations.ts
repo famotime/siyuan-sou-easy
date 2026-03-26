@@ -31,7 +31,7 @@ export function syncSearchDecorations(context: EditorContext, matches: SearchMat
   clearSearchDecorations(context)
 
   const textHighlightedMatchIds = applyMatchTextHighlights(context, matches)
-  const tableCellHighlightedMatchIds = applyTableCellHighlights(context, matches, currentMatch)
+  const tableCellHighlightedMatchIds = applyTableCellHighlights(context, matches, currentMatch, textHighlightedMatchIds)
   applyAttributeViewCellHighlights(context, matches, currentMatch)
   const matchedBlockIds = new Set(
     matches
@@ -51,7 +51,8 @@ export function syncSearchDecorations(context: EditorContext, matches: SearchMat
 
   if (currentMatch) {
     applyCurrentTextHighlight(context, currentMatch)
-    if (!tableCellHighlightedMatchIds.has(currentMatch.id)) {
+    const usesTableTextHighlight = currentMatch.blockType === TABLE_NODE_TYPE && textHighlightedMatchIds.has(currentMatch.id)
+    if (!usesTableTextHighlight && !tableCellHighlightedMatchIds.has(currentMatch.id)) {
       getBlockElement(context, currentMatch.blockId)?.classList.add(CURRENT_MATCH_CLASS)
     }
   }
@@ -88,16 +89,37 @@ export function scrollMatchIntoView(
   if (!element) {
     return 'missing'
   }
+  const verticalElement = resolveMatchVerticalTargetElement(context, match, element)
 
-  const scrollContainer = resolveScrollContainer(context)
-  if (mode === 'if-needed' && isElementVisibleWithinContainer(element, scrollContainer)) {
+  const visibilityContainers = resolveVisibilityContainers(context, element)
+  if (
+    mode === 'if-needed'
+    && isElementVisibleWithinContainers(element, visibilityContainers)
+    && isElementVisibleWithinContainers(verticalElement, visibilityContainers)
+  ) {
     return 'visible'
   }
 
-  element.scrollIntoView({
-    behavior: 'smooth',
-    block: 'center',
-  })
+  if (verticalElement !== element) {
+    safeScrollIntoView(verticalElement, {
+      behavior: 'smooth',
+      block: 'center',
+      inline: 'nearest',
+    })
+    safeScrollIntoView(element, {
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'center',
+    })
+    centerElementWithinContainers(verticalElement, visibilityContainers, 'y')
+    centerElementWithinContainers(element, visibilityContainers, 'x')
+  } else {
+    safeScrollIntoView(element, {
+      behavior: 'smooth',
+      block: 'center',
+      inline: 'center',
+    })
+  }
 
   return 'scrolled'
 }
@@ -108,26 +130,151 @@ function resolveScrollContainer(context: EditorContext) {
     ?? null
 }
 
-function isElementVisibleWithinContainer(element: HTMLElement, container: HTMLElement | null) {
-  const elementRect = element.getBoundingClientRect()
-
-  if (container) {
-    const containerRect = container.getBoundingClientRect()
-    return elementRect.top >= containerRect.top && elementRect.bottom <= containerRect.bottom
+function resolveVisibilityContainers(context: EditorContext, element: HTMLElement) {
+  const containers: HTMLElement[] = []
+  const editorContainer = resolveScrollContainer(context)
+  if (editorContainer) {
+    containers.push(editorContainer)
   }
 
-  return elementRect.top >= 0 && elementRect.bottom <= window.innerHeight
+  let current: HTMLElement | null = element.parentElement
+  while (current && current !== context.protyle) {
+    if (isScrollableContainer(current) && !containers.includes(current)) {
+      containers.push(current)
+    }
+    current = current.parentElement
+  }
+
+  return containers
+}
+
+function isElementVisibleWithinContainers(element: HTMLElement, containers: HTMLElement[]) {
+  const elementRect = element.getBoundingClientRect()
+
+  if (containers.some(container => !isRectVisibleWithinBoundary(elementRect, container.getBoundingClientRect()))) {
+    return false
+  }
+
+  return isRectVisibleWithinBoundary(elementRect, {
+    bottom: window.innerHeight,
+    height: window.innerHeight,
+    left: 0,
+    right: window.innerWidth,
+    top: 0,
+    width: window.innerWidth,
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  })
+}
+
+function isScrollableContainer(element: HTMLElement) {
+  const style = globalThis.getComputedStyle?.(element)
+  const overflowX = style?.overflowX || element.style.overflowX || element.style.overflow || ''
+  const overflowY = style?.overflowY || element.style.overflowY || element.style.overflow || ''
+
+  return /auto|scroll|overlay|hidden/.test(`${overflowX} ${overflowY}`)
+}
+
+function isRectVisibleWithinBoundary(elementRect: DOMRect | DOMRectReadOnly, boundaryRect: DOMRect | DOMRectReadOnly) {
+  return (
+    elementRect.top >= boundaryRect.top
+    && elementRect.bottom <= boundaryRect.bottom
+    && elementRect.left >= boundaryRect.left
+    && elementRect.right <= boundaryRect.right
+  )
+}
+
+function safeScrollIntoView(
+  element: HTMLElement,
+  options: ScrollIntoViewOptions,
+) {
+  if (typeof element.scrollIntoView === 'function') {
+    element.scrollIntoView(options)
+  }
+}
+
+function centerElementWithinContainers(
+  element: HTMLElement,
+  containers: HTMLElement[],
+  axis: 'x' | 'y',
+) {
+  containers
+    .slice()
+    .reverse()
+    .forEach((container) => {
+      if (!isContainerScrollableOnAxis(container, axis)) {
+        return
+      }
+
+      const elementRect = element.getBoundingClientRect()
+      const containerRect = container.getBoundingClientRect()
+      const elementCenter = axis === 'y'
+        ? (elementRect.top + elementRect.bottom) / 2
+        : (elementRect.left + elementRect.right) / 2
+      const containerCenter = axis === 'y'
+        ? (containerRect.top + containerRect.bottom) / 2
+        : (containerRect.left + containerRect.right) / 2
+      const delta = elementCenter - containerCenter
+
+      if (Math.abs(delta) <= 1) {
+        return
+      }
+
+      if (axis === 'y') {
+        scrollContainerTo(container, {
+          behavior: 'auto',
+          top: Math.max(0, (container.scrollTop || 0) + delta),
+        })
+        return
+      }
+
+      scrollContainerTo(container, {
+        behavior: 'auto',
+        left: Math.max(0, (container.scrollLeft || 0) + delta),
+      })
+    })
+}
+
+function isContainerScrollableOnAxis(container: HTMLElement, axis: 'x' | 'y') {
+  if (axis === 'y') {
+    return (container.scrollHeight || 0) > (container.clientHeight || 0)
+  }
+
+  return (container.scrollWidth || 0) > (container.clientWidth || 0)
+}
+
+function scrollContainerTo(
+  container: HTMLElement,
+  options: ScrollToOptions,
+) {
+  if (typeof container.scrollTo === 'function') {
+    container.scrollTo(options)
+    return
+  }
+
+  if (typeof options.top === 'number') {
+    container.scrollTop = options.top
+  }
+  if (typeof options.left === 'number') {
+    container.scrollLeft = options.left
+  }
 }
 
 function applyTableCellHighlights(
   context: EditorContext,
   matches: SearchMatch[],
   currentMatch: SearchMatch | null,
+  textHighlightedMatchIds: Set<string>,
 ) {
   const highlightedMatchIds = new Set<string>()
 
   matches.forEach((match) => {
     if (match.sourceKind === 'attribute-view' || match.blockType !== TABLE_NODE_TYPE) {
+      return
+    }
+
+    if (textHighlightedMatchIds.has(match.id)) {
       return
     }
 
@@ -243,9 +390,22 @@ function resolveMatchTargetElement(context: EditorContext, match: SearchMatch) {
     ?? getBlockElement(context, match.blockId)
 }
 
+function resolveMatchVerticalTargetElement(context: EditorContext, match: SearchMatch, fallbackElement: HTMLElement) {
+  if (match.blockType !== TABLE_NODE_TYPE || match.sourceKind === 'attribute-view') {
+    return fallbackElement
+  }
+
+  return findTableRowElement(context, match) ?? fallbackElement
+}
+
 function findTableCellElement(context: EditorContext, match: SearchMatch) {
   if (match.blockType !== TABLE_NODE_TYPE) {
     return null
+  }
+
+  const directCell = findTableCellElementByMetadata(context, match)
+  if (directCell) {
+    return directCell
   }
 
   const range = locateTextRange(context, match)
@@ -254,12 +414,114 @@ function findTableCellElement(context: EditorContext, match: SearchMatch) {
   }
 
   const startCell = resolveNodeElement(range.startContainer)?.closest<HTMLElement>('[data-type="NodeTableCell"], .table__cell')
-  const endCell = resolveNodeElement(range.endContainer)?.closest<HTMLElement>('[data-type="NodeTableCell"], .table__cell')
-  if (startCell && (!endCell || startCell === endCell)) {
-    return startCell
+  const endCell = resolveNodeElement(range.endContainer)?.closest<HTMLElement>('[data-type="NodeTableCell"], .table__cell, td, th')
+  const normalizedStartCell = startCell?.matches('td, th')
+    ? startCell
+    : resolveNodeElement(range.startContainer)?.closest<HTMLElement>('[data-type="NodeTableCell"], .table__cell, td, th')
+  if (normalizedStartCell && (!endCell || normalizedStartCell === endCell)) {
+    return normalizedStartCell
   }
 
   return endCell
+}
+
+function findTableRowElement(context: EditorContext, match: SearchMatch) {
+  const directCell = findTableCellElementByMetadata(context, match)
+  if (directCell) {
+    const tableBlock = getBlockElement(context, match.blockId)
+    return (tableBlock && resolveTableRowElementFromCell(directCell, tableBlock))
+      ?? directCell.closest<HTMLElement>('.table__row')
+      ?? directCell
+  }
+
+  const fallbackCell = findTableCellElement(context, match)
+  if (!fallbackCell) {
+    return null
+  }
+
+  const tableBlock = getBlockElement(context, match.blockId)
+  return (tableBlock && resolveTableRowElementFromCell(fallbackCell, tableBlock))
+    ?? fallbackCell.closest<HTMLElement>('.table__row')
+    ?? fallbackCell
+}
+
+function findTableCellElementByMetadata(context: EditorContext, match: SearchMatch) {
+  const tableBlock = getBlockElement(context, match.blockId)
+  if (!tableBlock) {
+    return null
+  }
+
+  const cellId = match.table?.cellId?.trim()
+  if (cellId) {
+    const exactCell = tableBlock.querySelector<HTMLElement>(`[data-node-id="${cellId}"][data-type="NodeTableCell"]`)
+      ?? tableBlock.querySelector<HTMLElement>(`[data-node-id="${cellId}"].table__cell`)
+    if (exactCell) {
+      return exactCell
+    }
+  }
+
+  const rowIndex = match.table?.rowIndex
+  const columnIndex = match.table?.columnIndex
+  if (typeof rowIndex !== 'number' || typeof columnIndex !== 'number') {
+    return null
+  }
+
+  const rows = getTableRowElements(tableBlock)
+  const targetRow = rows[rowIndex]
+  if (!targetRow) {
+    return null
+  }
+
+  const rowCells = Array.from(targetRow.children)
+    .filter((child): child is HTMLElement => child instanceof HTMLElement)
+    .filter(child => child.matches('[data-type="NodeTableCell"], .table__cell, td, th'))
+
+  return rowCells[columnIndex] ?? null
+}
+
+function getTableRowElements(tableBlock: HTMLElement) {
+  const explicitRows = Array.from(tableBlock.querySelectorAll<HTMLElement>('.table__row'))
+  if (explicitRows.length) {
+    return explicitRows
+  }
+
+  const nativeRows = Array.from(tableBlock.querySelectorAll<HTMLElement>('tr'))
+  if (nativeRows.length) {
+    return nativeRows
+  }
+
+  const cells = Array.from(tableBlock.querySelectorAll<HTMLElement>('[data-type="NodeTableCell"], .table__cell, td, th'))
+  const rows: HTMLElement[] = []
+  const seen = new Set<HTMLElement>()
+
+  cells.forEach((cell) => {
+    const row = resolveTableRowElementFromCell(cell, tableBlock)
+    if (!row || seen.has(row)) {
+      return
+    }
+
+    seen.add(row)
+    rows.push(row)
+  })
+
+  return rows
+}
+
+function resolveTableRowElementFromCell(cell: HTMLElement, tableBlock: HTMLElement) {
+  let current = cell.parentElement
+  while (current && current !== tableBlock) {
+    const rowCells = Array.from(current.children)
+      .filter((child): child is HTMLElement => child instanceof HTMLElement)
+      .filter(child => child.matches('[data-type="NodeTableCell"], .table__cell, td, th'))
+    if (rowCells.length > 0 && rowCells.includes(cell)) {
+      return current
+    }
+    current = current.parentElement
+  }
+
+  return cell.parentElement && tableBlock.contains(cell.parentElement)
+    ? cell.parentElement
+    : null
 }
 
 function resolveNodeElement(node: Node | null) {

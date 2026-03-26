@@ -21,6 +21,13 @@ export function locateTextRange(context: EditorContext, match: SearchMatch) {
     return locateAttributeViewTextRange(context, match)
   }
 
+  if (match.blockType === 'NodeTable') {
+    const tableRange = locateTableTextRange(context, match)
+    if (tableRange) {
+      return tableRange
+    }
+  }
+
   const blockElement = getBlockElement(context, match.blockId)
   if (!blockElement) {
     return null
@@ -74,6 +81,18 @@ function locateAttributeViewTextRange(context: EditorContext, match: SearchMatch
   }
 
   return null
+}
+
+function locateTableTextRange(context: EditorContext, match: SearchMatch) {
+  const cell = findTableCellElement(context, match)
+  if (!cell) {
+    return null
+  }
+
+  const preferredStart = typeof match.table?.cellStart === 'number'
+    ? Math.max(0, match.start - match.table.cellStart)
+    : match.start
+  return locateTextRangeInContainer(cell, match.matchedText, preferredStart)
 }
 
 function locateTextPoint(textNodes: Text[], targetOffset: number): TextPoint | null {
@@ -190,4 +209,52 @@ function resolveMatchStart(text: string, matchedText: string, preferredStart: nu
       ? currentIndex
       : bestIndex
   })
+}
+
+function findTableCellElement(context: EditorContext, match: SearchMatch) {
+  const tableBlock = getBlockElement(context, match.blockId)
+  if (!tableBlock) {
+    return null
+  }
+
+  const cellId = match.table?.cellId?.trim()
+  if (cellId) {
+    const exactCell = tableBlock.querySelector<HTMLElement>(`[data-node-id="${cellId}"][data-type="NodeTableCell"]`)
+      ?? tableBlock.querySelector<HTMLElement>(`[data-node-id="${cellId}"].table__cell`)
+    if (exactCell) {
+      return exactCell
+    }
+  }
+
+  const rowIndex = match.table?.rowIndex
+  const columnIndex = match.table?.columnIndex
+  if (typeof rowIndex !== 'number' || typeof columnIndex !== 'number') {
+    return null
+  }
+
+  const rows = getTableRowElements(tableBlock)
+  const targetRow = rows[rowIndex]
+  if (!targetRow) {
+    return null
+  }
+
+  const rowCells = Array.from(targetRow.children)
+    .filter((child): child is HTMLElement => child instanceof HTMLElement)
+    .filter(child => child.matches('[data-type="NodeTableCell"], .table__cell, td, th'))
+
+  return rowCells[columnIndex] ?? null
+}
+
+function getTableRowElements(tableBlock: HTMLElement) {
+  const explicitRows = Array.from(tableBlock.querySelectorAll<HTMLElement>('.table__row'))
+  if (explicitRows.length) {
+    return explicitRows
+  }
+
+  const nativeRows = Array.from(tableBlock.querySelectorAll<HTMLElement>('tr'))
+  if (nativeRows.length) {
+    return nativeRows
+  }
+
+  return []
 }

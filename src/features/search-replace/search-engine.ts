@@ -7,6 +7,8 @@ import type {
   SearchOptions,
   SearchableBlock,
   SelectionScope,
+  TableCellSearchMetadata,
+  TableMatchMetadata,
   TextOffsetRange,
 } from './types'
 
@@ -71,6 +73,7 @@ export function findMatches(
         matchedText,
         previewText: buildPreview(block.text, start, end),
         replaceable: isRangeReplaceable(block.element, start, end),
+        table: resolveTableMatchMetadata(block, start, end),
       })
 
       match = pattern.exec(block.text)
@@ -81,6 +84,49 @@ export function findMatches(
     error: '',
     matches,
   }
+}
+
+function resolveTableMatchMetadata(block: SearchableBlock, start: number, end: number): TableMatchMetadata | undefined {
+  if (block.blockType !== 'NodeTable' || !block.table?.cells.length) {
+    return undefined
+  }
+
+  const cell = findMatchedTableCell(block.table.cells, start, end)
+  if (!cell) {
+    return undefined
+  }
+
+  return {
+    cellId: cell.cellId,
+    rowIndex: cell.rowIndex,
+    columnIndex: cell.columnIndex,
+    rowCount: block.table.rowCount,
+    columnCount: block.table.columnCount,
+    cellStart: cell.start,
+    cellEnd: cell.end,
+  }
+}
+
+function findMatchedTableCell(cells: TableCellSearchMetadata[], start: number, end: number) {
+  const containingCell = cells.find(cell => start >= cell.start && end <= cell.end)
+  if (containingCell) {
+    return containingCell
+  }
+
+  const overlappingCell = cells.find(cell => start < cell.end && end > cell.start)
+  if (overlappingCell) {
+    return overlappingCell
+  }
+
+  return cells.reduce<TableCellSearchMetadata | undefined>((bestCell, cell) => {
+    if (!bestCell) {
+      return cell
+    }
+
+    const bestDistance = Math.abs(bestCell.start - start)
+    const currentDistance = Math.abs(cell.start - start)
+    return currentDistance < bestDistance ? cell : bestCell
+  }, undefined)
 }
 
 function createPattern(query: string, options: SearchOptions) {

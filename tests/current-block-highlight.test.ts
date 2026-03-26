@@ -216,4 +216,80 @@ describe('current block highlight', () => {
     expect(targetCell?.classList.contains('sfsr-av-cell-match')).toBe(true)
     expect(targetCell?.classList.contains('sfsr-av-cell-current')).toBe(true)
   })
+
+  it('highlights only the matched text in native SiYuan table cells when CSS highlights are available', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-wysiwyg">
+          <div data-node-id="table-1" data-type="NodeTable" class="table">
+            <div contenteditable="false">
+              <table contenteditable="true" spellcheck="false">
+                <tbody>
+                  <tr>
+                    <td>OpenAI / ChatGPT2、Codex</td>
+                    <td>ghbdfxg@gmail.com</td>
+                    <td>团队帐号</td>
+                  </tr>
+                  <tr>
+                    <td>Codex</td>
+                    <td>教程链接</td>
+                    <td>API key</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector('.protyle') as HTMLElement
+    const targetCell = protyle.querySelectorAll<HTMLElement>('tbody td')[0]
+    const context: EditorContext = {
+      protyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    const match: SearchMatch = {
+      blockId: 'table-1',
+      blockIndex: 0,
+      blockType: 'NodeTable',
+      end: 23,
+      id: 'table-1:18:23',
+      matchedText: 'Codex',
+      previewText: '...ChatGPT2、[Codex]...',
+      replaceable: true,
+      rootId: 'root-1',
+      start: 18,
+      table: {
+        cellEnd: 23,
+        cellId: '',
+        cellStart: 0,
+        columnCount: 3,
+        columnIndex: 0,
+        rowCount: 2,
+        rowIndex: 0,
+      },
+    }
+
+    const highlights = new Map<string, { ranges: Range[] }>()
+    ;(globalThis as typeof globalThis & { Highlight?: new (...ranges: Range[]) => { ranges: Range[] } }).Highlight = class {
+      ranges: Range[]
+
+      constructor(...ranges: Range[]) {
+        this.ranges = ranges
+      }
+    }
+    ;(globalThis as typeof globalThis & { CSS?: { highlights?: Map<string, { ranges: Range[] }> } }).CSS = {
+      highlights,
+    }
+
+    syncSearchDecorations(context, [match], match)
+
+    expect(targetCell?.classList.contains('sfsr-av-cell-match')).toBe(false)
+    expect(targetCell?.classList.contains('sfsr-av-cell-current')).toBe(false)
+    expect(protyle.querySelector('[data-node-id="table-1"]')?.classList.contains('sfsr-block-current')).toBe(false)
+    expect(highlights.get('sfsr-match')?.ranges.map(range => range.toString())).toContain('Codex')
+    expect(highlights.get('sfsr-current-match')?.ranges.map(range => range.toString())).toContain('Codex')
+  })
 })

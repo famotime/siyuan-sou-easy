@@ -7,6 +7,8 @@ import type {
   EditorContext,
   SearchOptions,
   SearchableBlock,
+  TableCellSearchMetadata,
+  TableSearchMetadata,
 } from '../types'
 
 export function collectSearchableBlocks(context: EditorContext, options: SearchOptions): SearchableBlock[] {
@@ -79,7 +81,10 @@ function collectSearchableBlocksFromRoot(root: ParentNode, rootId: string, optio
       return
     }
 
-    const text = getBlockPlainText(element)
+    const tableMetadata = blockType === TABLE_NODE_TYPE
+      ? collectTableSearchMetadata(element)
+      : null
+    const text = tableMetadata?.text ?? getBlockPlainText(element)
     if (!text) {
       return
     }
@@ -91,10 +96,138 @@ function collectSearchableBlocksFromRoot(root: ParentNode, rootId: string, optio
       blockIndex,
       text,
       element,
+      table: tableMetadata?.table,
     })
   })
 
   return blocks
+}
+
+function collectTableSearchMetadata(blockElement: HTMLElement): { text: string, table?: TableSearchMetadata } | null {
+  const rows = getTableRowElements(blockElement)
+  if (!rows.length) {
+    return null
+  }
+
+  const cells: TableCellSearchMetadata[] = []
+  const cellTexts: string[] = []
+  let columnCount = 0
+  let cursor = 0
+
+  rows.forEach((row, rowIndex) => {
+    const rowCells = getTableRowCells(row)
+    columnCount = Math.max(columnCount, rowCells.length)
+
+    rowCells.forEach((cell, columnIndex) => {
+      const cellText = getTableCellPlainText(cell)
+      if (!cellText.length) {
+        return
+      }
+
+      cells.push({
+        cellId: cell.dataset.nodeId ?? '',
+        rowIndex,
+        columnIndex,
+        start: cursor,
+        end: cursor + cellText.length,
+      })
+      cellTexts.push(cellText)
+      cursor += cellText.length
+    })
+  })
+
+  if (!cells.length) {
+    return null
+  }
+
+  return {
+    text: cellTexts.join(''),
+    table: {
+      rowCount: rows.length,
+      columnCount,
+      cells,
+    },
+  }
+}
+
+function getTableRowCells(row: HTMLElement) {
+  return Array.from(row.children)
+    .filter((child): child is HTMLElement => child instanceof HTMLElement)
+    .filter(child => child.matches('[data-type="NodeTableCell"], .table__cell, td, th'))
+}
+
+function getTableRowElements(blockElement: HTMLElement) {
+  const explicitRows = Array.from(blockElement.querySelectorAll<HTMLElement>('.table__row'))
+  if (explicitRows.length) {
+    return explicitRows
+  }
+
+  const nativeRows = Array.from(blockElement.querySelectorAll<HTMLElement>('tr'))
+  if (nativeRows.length) {
+    return nativeRows
+  }
+
+  const cells = Array.from(blockElement.querySelectorAll<HTMLElement>('[data-type="NodeTableCell"], .table__cell, td, th'))
+  const rows: HTMLElement[] = []
+  const seen = new Set<HTMLElement>()
+
+  cells.forEach((cell) => {
+    const row = resolveTableRowElement(cell, blockElement)
+    if (!row || seen.has(row)) {
+      return
+    }
+
+    seen.add(row)
+    rows.push(row)
+  })
+
+  return rows
+}
+
+function resolveTableRowElement(cell: HTMLElement, tableBlock: HTMLElement) {
+  let current = cell.parentElement
+  while (current && current !== tableBlock) {
+    const rowCells = getTableRowCells(current)
+    if (rowCells.length > 0 && rowCells.includes(cell)) {
+      return current
+    }
+    current = current.parentElement
+  }
+
+  return cell.parentElement && tableBlock.contains(cell.parentElement)
+    ? cell.parentElement
+    : null
+}
+
+function getTableCellPlainText(cell: HTMLElement) {
+  const editableText = getBlockPlainText(cell)
+  if (editableText.length > 0) {
+    return editableText
+  }
+
+  const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      if (!(node instanceof Text) || !node.nodeValue?.trim()) {
+        return NodeFilter.FILTER_REJECT
+      }
+
+      const parentElement = node.parentElement
+      if (!parentElement || parentElement.closest('.protyle-attr, .fn__none, svg, style, script')) {
+        return NodeFilter.FILTER_REJECT
+      }
+
+      return NodeFilter.FILTER_ACCEPT
+    },
+  })
+
+  const textParts: string[] = []
+  let currentNode = walker.nextNode()
+  while (currentNode) {
+    textParts.push((currentNode as Text).nodeValue ?? '')
+    currentNode = walker.nextNode()
+  }
+
+  return textParts.join('')
 }
 
 export function getOwnedTextNodes(blockElement: HTMLElement) {

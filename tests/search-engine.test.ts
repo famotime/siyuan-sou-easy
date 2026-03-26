@@ -28,6 +28,37 @@ function createBlock(text: string, blockIndex = 0): SearchableBlock {
   }
 }
 
+function createTableBlock(text: string): SearchableBlock {
+  return {
+    blockId: 'table-1',
+    rootId: 'root-1',
+    blockType: 'NodeTable',
+    blockIndex: 0,
+    text,
+    element: {} as HTMLElement,
+    table: {
+      cells: [
+        {
+          cellId: 'cell-1',
+          rowIndex: 0,
+          columnIndex: 0,
+          start: 0,
+          end: 10,
+        },
+        {
+          cellId: 'cell-2',
+          rowIndex: 1,
+          columnIndex: 0,
+          start: 10,
+          end: text.length,
+        },
+      ],
+      columnCount: 1,
+      rowCount: 2,
+    },
+  } as SearchableBlock
+}
+
 describe('findMatches', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -124,5 +155,23 @@ describe('findMatches', () => {
         end: 3,
       },
     ])
+  })
+
+  it('attaches table cell metadata to matches so large-table navigation can target the exact row', () => {
+    const result = findMatches([
+      createTableBlock('Cell AlphaCell Beta'),
+    ], 'Beta', defaultOptions)
+
+    expect(result.error).toBe('')
+    expect(result.matches).toHaveLength(1)
+    expect((result.matches[0] as any).table).toEqual({
+      cellEnd: 19,
+      cellId: 'cell-2',
+      cellStart: 10,
+      columnCount: 1,
+      columnIndex: 0,
+      rowCount: 2,
+      rowIndex: 1,
+    })
   })
 })
