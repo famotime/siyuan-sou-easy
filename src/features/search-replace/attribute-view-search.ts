@@ -24,6 +24,7 @@ interface AttributeViewBlockSummary {
   blockIndex: number
   element: HTMLElement
   rootId: string
+  viewID?: string
 }
 
 interface AttributeViewCellCandidate {
@@ -36,6 +37,7 @@ interface AttributeViewCellCandidate {
   rowID?: string
   rowLabel?: string
   text: string
+  targetKind: 'cell' | 'column-header' | 'view-name'
 }
 
 interface SearchAttributeViewMatchesOptions {
@@ -82,13 +84,13 @@ export async function searchAttributeViewMatches({
     })
 
     try {
-      const avID = attributeViewBlock.avID || await resolveAttributeViewId(attributeViewBlock.avBlockId)
+      const { avID, viewID } = await resolveAttributeViewInfo(attributeViewBlock)
       if (!avID) {
         continue
       }
 
       const [renderedAttributeView, attributeViewKeys] = await Promise.all([
-        renderAttributeView(avID),
+        viewID ? renderAttributeView(avID, viewID) : renderAttributeView(avID),
         getAttributeViewKeysByAvID(avID),
       ])
       const columnIndexByKeyId = new Map(
@@ -99,7 +101,7 @@ export async function searchAttributeViewMatches({
       const keyNameById = new Map(
         attributeViewKeys.map(key => [String(key.id ?? key.keyID ?? ''), resolveKeyName(key)] as const),
       )
-      const cellCandidates = extractAttributeViewCellCandidates({
+      const cellCandidates = extractAttributeViewSearchCandidates({
         attributeViewBlock,
         avID,
         columnIndexByKeyId,
@@ -113,7 +115,7 @@ export async function searchAttributeViewMatches({
       const candidateBySyntheticBlockId = new Map<string, AttributeViewCellCandidate>()
       const searchResult = findMatches(
         cellCandidates.map((candidate, index) => {
-          const syntheticBlockId = `${candidate.avBlockId}::${candidate.itemID ?? candidate.rowID ?? 'row'}::${candidate.keyID}:${index}`
+          const syntheticBlockId = `${candidate.avBlockId}::${candidate.targetKind}::${candidate.itemID ?? candidate.rowID ?? candidate.keyID}:${index}`
           candidateBySyntheticBlockId.set(syntheticBlockId, candidate)
           return {
             blockId: syntheticBlockId,
@@ -146,10 +148,11 @@ export async function searchAttributeViewMatches({
             keyID: candidate.keyID,
             rowID: candidate.rowID,
             rowLabel: candidate.rowLabel,
+            targetKind: candidate.targetKind,
           },
           blockId: candidate.avBlockId,
-          id: `av:${candidate.avBlockId}:${candidate.itemID ?? candidate.rowID ?? 'row'}:${candidate.keyID}:${match.start}:${match.end}`,
-          previewText: `${candidate.columnName}: ${preview}`,
+          id: `av:${candidate.avBlockId}:${candidate.targetKind}:${candidate.itemID ?? candidate.rowID ?? candidate.keyID}:${match.start}:${match.end}`,
+          previewText: buildAttributeViewPreviewText(candidate, preview),
           replaceable: false,
           sourceKind: 'attribute-view',
         })
@@ -165,9 +168,19 @@ export async function searchAttributeViewMatches({
   }
 }
 
-async function resolveAttributeViewId(avBlockId: string) {
-  const blockAttrs = await getBlockAttrs(avBlockId)
-  return parseAttributeViewId(blockAttrs)
+async function resolveAttributeViewInfo(attributeViewBlock: AttributeViewBlockSummary) {
+  if (attributeViewBlock.avID && attributeViewBlock.viewID) {
+    return {
+      avID: attributeViewBlock.avID,
+      viewID: attributeViewBlock.viewID,
+    }
+  }
+
+  const blockAttrs = await getBlockAttrs(attributeViewBlock.avBlockId)
+  return {
+    avID: attributeViewBlock.avID || parseAttributeViewId(blockAttrs),
+    viewID: attributeViewBlock.viewID || parseAttributeViewViewId(blockAttrs),
+  }
 }
 
 function collectAttributeViewBlocks(context: EditorContext, startingBlockIndex: number, documentContent: string): AttributeViewBlockSummary[] {
@@ -184,6 +197,7 @@ function collectAttributeViewBlocks(context: EditorContext, startingBlockIndex: 
       blockIndex: startingBlockIndex + index,
       element,
       rootId: context.rootId,
+      viewID: resolveAttributeViewViewIdFromElement(element),
     }))
 }
 
@@ -218,6 +232,7 @@ function collectAttributeViewBlocksFromDocumentContent(
         blockIndex: startingBlockIndex + index,
         element: getBlockElement(context, avBlockId) ?? element,
         rootId: context.rootId,
+        viewID: resolveAttributeViewViewIdFromElement(element),
       }
     })
 }
@@ -242,7 +257,19 @@ function parseAttributeViewId(blockAttrs: Record<string, string>) {
   return ''
 }
 
-function extractAttributeViewCellCandidates({
+function parseAttributeViewViewId(blockAttrs: Record<string, string>) {
+  return blockAttrs['custom-sy-av-view']?.trim() ?? ''
+}
+
+function resolveAttributeViewViewIdFromElement(element: HTMLElement) {
+  return element.dataset.avViewId?.trim()
+    || element.dataset.syAvView?.trim()
+    || element.getAttribute('data-av-view-id')?.trim()
+    || element.getAttribute('custom-sy-av-view')?.trim()
+    || ''
+}
+
+function extractAttributeViewSearchCandidates({
   attributeViewBlock,
   avID,
   columnIndexByKeyId,
@@ -255,8 +282,20 @@ function extractAttributeViewCellCandidates({
   keyNameById: Map<string, string>
   renderedAttributeView: any
 }): AttributeViewCellCandidate[] {
+  const candidates: AttributeViewCellCandidate[] = [
+    ...extractAttributeViewTitleCandidates({
+      attributeViewBlock,
+      avID,
+      renderedAttributeView,
+    }),
+    ...extractAttributeViewColumnHeaderCandidates({
+      attributeViewBlock,
+      avID,
+      renderedAttributeView,
+    }),
+  ]
   const rows = resolveAttributeViewRows(renderedAttributeView)
-  return rows.flatMap((row) => {
+  candidates.push(...rows.flatMap((row) => {
     const rowID = resolveRowId(row)
     const rowLabel = resolveRowLabel(row)
     return resolveRowCells(row).flatMap((cell) => {
@@ -280,9 +319,80 @@ function extractAttributeViewCellCandidates({
         rowID,
         rowLabel,
         text,
+        targetKind: 'cell',
       }]
     })
+  }))
+
+  return candidates
+}
+
+function extractAttributeViewTitleCandidates({
+  attributeViewBlock,
+  avID,
+  renderedAttributeView,
+}: {
+  attributeViewBlock: AttributeViewBlockSummary
+  avID: string
+  renderedAttributeView: any
+}) {
+  const names = [
+    extractSearchableText(renderedAttributeView?.name),
+    extractSearchableText(renderedAttributeView?.view?.name),
+  ].filter(Boolean)
+  const seen = new Set<string>()
+
+  return names.flatMap((name, index) => {
+    if (seen.has(name)) {
+      return []
+    }
+
+    seen.add(name)
+    return [{
+      avBlockId: attributeViewBlock.avBlockId,
+      avID,
+      columnName: name,
+      keyID: `__view-name-${index}__`,
+      text: name,
+      targetKind: 'view-name' as const,
+    }]
   })
+}
+
+function extractAttributeViewColumnHeaderCandidates({
+  attributeViewBlock,
+  avID,
+  renderedAttributeView,
+}: {
+  attributeViewBlock: AttributeViewBlockSummary
+  avID: string
+  renderedAttributeView: any
+}) {
+  return resolveAttributeViewColumns(renderedAttributeView).flatMap((column: any, index: number) => {
+    const text = extractSearchableText(column?.name)
+    const keyID = String(column?.id ?? '')
+    if (!text || !keyID) {
+      return []
+    }
+
+    return [{
+      avBlockId: attributeViewBlock.avBlockId,
+      avID,
+      columnName: text,
+      columnIndex: index,
+      keyID,
+      text,
+      targetKind: 'column-header' as const,
+    }]
+  })
+}
+
+function buildAttributeViewPreviewText(candidate: AttributeViewCellCandidate, preview: string) {
+  if (candidate.targetKind === 'cell') {
+    return `${candidate.columnName}: ${preview}`
+  }
+
+  return preview
 }
 
 function resolveAttributeViewRows(renderedAttributeView: any) {
@@ -301,7 +411,9 @@ function resolveAttributeViewRows(renderedAttributeView: any) {
 
 function resolveAttributeViewColumns(renderedAttributeView: any) {
   const view = renderedAttributeView?.view ?? renderedAttributeView ?? {}
-  return Array.isArray(view.columns) ? view.columns : []
+  return Array.isArray(view.columns)
+    ? view.columns.filter((column: any) => column?.hidden !== true)
+    : []
 }
 
 function resolveRowCells(row: any) {
@@ -349,7 +461,13 @@ function extractSearchableText(value: any): string {
       .trim()
   }
 
+  const typedText = extractTypedSearchableText(value)
+  if (typedText) {
+    return typedText
+  }
+
   const directKeys = [
+    'formattedContent',
     'content',
     'displayContent',
     'name',
@@ -366,9 +484,11 @@ function extractSearchableText(value: any): string {
   const nestedKeys = [
     'block',
     'date',
+    'mAsset',
     'mSelect',
     'number',
     'relation',
+    'rollup',
     'select',
     'text',
   ]
@@ -380,4 +500,142 @@ function extractSearchableText(value: any): string {
   }
 
   return ''
+}
+
+function extractTypedSearchableText(value: Record<string, any>) {
+  const valueType = String(value.type ?? value.valueType ?? '').toLowerCase()
+  switch (valueType) {
+    case 'block':
+      return extractSearchableText(value.block ?? value.text ?? '')
+    case 'checkbox':
+      return value.checkbox?.checked ? 'true' : ''
+    case 'created':
+    case 'createdat':
+      return formatAttributeViewTimestamp(value.created ?? value.createdAt ?? value.date ?? value)
+    case 'date':
+      return formatAttributeViewDate(value.date ?? value)
+    case 'masset':
+      return extractAssetSearchableText(value.mAsset ?? value)
+    case 'mselect':
+      return extractSearchableText(value.mSelect ?? value.select ?? [])
+    case 'number':
+      return extractNumberSearchableText(value.number ?? value)
+    case 'relation':
+      return extractRelationSearchableText(value.relation ?? value)
+    case 'rollup':
+      return extractRollupSearchableText(value.rollup ?? value)
+    case 'select':
+      return extractSearchableText(value.select ?? value.mSelect ?? [])
+    case 'text':
+      return extractSearchableText(value.text ?? value)
+    case 'updated':
+    case 'updatedat':
+      return formatAttributeViewTimestamp(value.updated ?? value.updatedAt ?? value.date ?? value)
+    default:
+      break
+  }
+
+  if (value.mAsset) {
+    return extractAssetSearchableText(value.mAsset)
+  }
+  if (value.relation) {
+    return extractRelationSearchableText(value.relation)
+  }
+  if (value.rollup) {
+    return extractRollupSearchableText(value.rollup)
+  }
+  if (value.date) {
+    return formatAttributeViewDate(value.date)
+  }
+  if (value.number) {
+    return extractNumberSearchableText(value.number)
+  }
+
+  return ''
+}
+
+function extractAssetSearchableText(assets: any) {
+  if (!Array.isArray(assets)) {
+    return ''
+  }
+
+  return assets
+    .flatMap((asset) => [
+      extractSearchableText(asset?.name),
+      extractSearchableText(asset?.content),
+    ])
+    .filter(Boolean)
+    .join(' ')
+    .trim()
+}
+
+function extractNumberSearchableText(numberValue: any) {
+  if (!numberValue || typeof numberValue !== 'object') {
+    return extractSearchableText(numberValue)
+  }
+
+  return extractSearchableText(numberValue.formattedContent)
+    || extractSearchableText(numberValue.content)
+}
+
+function extractRelationSearchableText(relationValue: any) {
+  if (!relationValue || typeof relationValue !== 'object') {
+    return ''
+  }
+
+  return extractSearchableText(relationValue.contents ?? relationValue.blockIDs ?? [])
+}
+
+function extractRollupSearchableText(rollupValue: any) {
+  if (!rollupValue || typeof rollupValue !== 'object') {
+    return ''
+  }
+
+  return extractSearchableText(rollupValue.contents ?? [])
+}
+
+function formatAttributeViewDate(dateValue: any) {
+  if (!dateValue || typeof dateValue !== 'object') {
+    return extractSearchableText(dateValue)
+  }
+
+  const formatted = extractSearchableText(dateValue.formattedContent)
+  if (formatted) {
+    return formatted
+  }
+
+  const parts = [
+    formatAttributeViewTimestamp(dateValue.content, !dateValue.isNotTime),
+  ]
+  if (dateValue.hasEndDate && dateValue.isNotEmpty2) {
+    const end = formatAttributeViewTimestamp(dateValue.content2, !dateValue.isNotTime)
+    if (end) {
+      parts.push(end)
+    }
+  }
+
+  return parts.filter(Boolean).join(' ').trim()
+}
+
+function formatAttributeViewTimestamp(rawValue: any, includeTime = true) {
+  const timestamp = Number(rawValue)
+  if (!Number.isFinite(timestamp) || timestamp <= 0) {
+    return ''
+  }
+
+  const date = new Date(timestamp)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  if (!includeTime) {
+    return `${year}-${month}-${day}`
+  }
+
+  const hours = `${date.getHours()}`.padStart(2, '0')
+  const minutes = `${date.getMinutes()}`.padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}`
 }

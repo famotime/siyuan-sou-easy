@@ -14,6 +14,14 @@ export function findAttributeViewCellElements(context: EditorContext, match: Sea
     return []
   }
 
+  if (match.attributeView.targetKind === 'view-name') {
+    return findAttributeViewTitleElements(blockElement, match)
+  }
+
+  if (match.attributeView.targetKind === 'column-header') {
+    return findAttributeViewHeaderCellElements(blockElement, match)
+  }
+
   const rowElements = findAttributeViewRowElements(blockElement, match)
   for (const rowElement of rowElements) {
     const rowCells = getAttributeViewRowCells(rowElement)
@@ -135,6 +143,32 @@ function findLegacyAttributeViewCellElements(blockElement: HTMLElement, match: S
   }
 
   return []
+}
+
+function findAttributeViewHeaderCellElements(blockElement: HTMLElement, match: SearchMatch) {
+  const headerCells = Array.from(blockElement.querySelectorAll<HTMLElement>('.av__row--header .av__cell.av__cell--header'))
+  const normalizedHeaderCells = headerCells.length
+    ? headerCells
+    : Array.from(blockElement.querySelectorAll<HTMLElement>('.av__cell.av__cell--header'))
+
+  const exactCell = selectCellByColumnIndex(normalizedHeaderCells, match)
+  if (exactCell) {
+    return [exactCell]
+  }
+
+  return normalizedHeaderCells.filter(cell => cellContainsMatchedText(cell, match.matchedText))
+}
+
+function findAttributeViewTitleElements(blockElement: HTMLElement, match: SearchMatch) {
+  const candidates = Array.from(blockElement.querySelectorAll<HTMLElement>(
+    '.av__title, .av__title-text, .av__header-title, .av__name',
+  ))
+  const matchedCandidates = candidates.filter(candidate => cellContainsMatchedText(candidate, match.matchedText))
+  if (matchedCandidates.length) {
+    return matchedCandidates
+  }
+
+  return [blockElement]
 }
 
 function buildLegacyAttributeViewCellSelectors(match: SearchMatch) {

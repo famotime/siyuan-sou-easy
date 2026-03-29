@@ -47,12 +47,17 @@ export async function getBlockAttrs(id: string) {
   })
 }
 
-export async function renderAttributeView(id: string) {
-  return requestApi<any>('/api/av/renderAttributeView', {
+export async function renderAttributeView(id: string, viewID?: string) {
+  const payload: Record<string, unknown> = {
     id,
     pageSize: 200,
     query: '',
-  })
+  }
+  if (viewID?.trim()) {
+    payload.viewID = viewID.trim()
+  }
+
+  return requestApi<any>('/api/av/renderAttributeView', payload)
 }
 
 export async function getAttributeViewKeysByAvID(avID: string) {

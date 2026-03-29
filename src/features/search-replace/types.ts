@@ -82,6 +82,7 @@ export interface SearchMatch {
     keyID: string
     rowID?: string
     rowLabel?: string
+    targetKind?: 'cell' | 'column-header' | 'view-name'
   }
 }
 

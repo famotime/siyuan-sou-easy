@@ -170,6 +170,58 @@ describe('current block highlight', () => {
     expect(highlights.get('sfsr-current-match')?.ranges.map(range => range.toString())).toContain('热辣滚烫')
   })
 
+  it('highlights the matched attribute view header cell when the match comes from a column title', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-wysiwyg">
+          <div data-node-id="av-block-header" data-type="NodeAttributeView" class="av" data-av-id="av-1" data-render="true">
+            <div class="av__row av__row--header">
+              <div class="av__body">
+                <div class="av__cell av__cell--header"><div class="av__celltext">电影</div></div>
+                <div class="av__cell av__cell--header"><div class="av__celltext">导演</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector('.protyle') as HTMLElement
+    const context: EditorContext = {
+      protyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    const match: SearchMatch = {
+      attributeView: {
+        avBlockId: 'av-block-header',
+        avID: 'av-1',
+        columnName: '导演',
+        columnIndex: 1,
+        keyID: 'col-2',
+        targetKind: 'column-header',
+      },
+      blockId: 'av-block-header',
+      blockIndex: 0,
+      blockType: 'NodeAttributeView',
+      end: 2,
+      id: 'av:av-block-header:header:col-2:0:2',
+      matchedText: '导演',
+      previewText: '[导演]',
+      replaceable: false,
+      rootId: 'root-1',
+      sourceKind: 'attribute-view',
+      start: 0,
+    }
+
+    syncSearchDecorations(context, [match], match)
+
+    const headerCells = protyle.querySelectorAll<HTMLElement>('.av__row--header .av__cell')
+    expect(headerCells[0]?.classList.contains('sfsr-av-cell-match')).toBe(false)
+    expect(headerCells[1]?.classList.contains('sfsr-av-cell-match')).toBe(true)
+    expect(headerCells[1]?.classList.contains('sfsr-av-cell-current')).toBe(true)
+  })
+
   it('highlights the matched table cell instead of the whole table when text highlights are unavailable', () => {
     document.body.innerHTML = `
       <div class="protyle">
