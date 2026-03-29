@@ -89,25 +89,31 @@ export async function searchAttributeViewMatches({
         continue
       }
 
-      const [renderedAttributeView, attributeViewKeys] = await Promise.all([
-        viewID ? renderAttributeView(avID, viewID) : renderAttributeView(avID),
-        getAttributeViewKeysByAvID(avID),
-      ])
-      const columnIndexByKeyId = new Map(
-        resolveAttributeViewColumns(renderedAttributeView)
-          .map((column: any, index: number) => [String(column?.id ?? ''), index] as const)
-          .filter(([id]) => Boolean(id)),
-      )
-      const keyNameById = new Map(
-        attributeViewKeys.map(key => [String(key.id ?? key.keyID ?? ''), resolveKeyName(key)] as const),
-      )
-      const cellCandidates = extractAttributeViewSearchCandidates({
+      let cellCandidates = extractDomAttributeViewSearchCandidates({
         attributeViewBlock,
         avID,
-        columnIndexByKeyId,
-        keyNameById,
-        renderedAttributeView,
       })
+      if (!cellCandidates.length) {
+        const [renderedAttributeView, attributeViewKeys] = await Promise.all([
+          viewID ? renderAttributeView(avID, viewID) : renderAttributeView(avID),
+          getAttributeViewKeysByAvID(avID),
+        ])
+        const columnIndexByKeyId = new Map(
+          resolveAttributeViewColumns(renderedAttributeView)
+            .map((column: any, index: number) => [String(column?.id ?? ''), index] as const)
+            .filter(([id]) => Boolean(id)),
+        )
+        const keyNameById = new Map(
+          attributeViewKeys.map(key => [String(key.id ?? key.keyID ?? ''), resolveKeyName(key)] as const),
+        )
+        cellCandidates = extractAttributeViewSearchCandidates({
+          attributeViewBlock,
+          avID,
+          columnIndexByKeyId,
+          keyNameById,
+          renderedAttributeView,
+        })
+      }
       if (!cellCandidates.length) {
         continue
       }
@@ -269,6 +275,141 @@ function resolveAttributeViewViewIdFromElement(element: HTMLElement) {
     || ''
 }
 
+function extractDomAttributeViewSearchCandidates({
+  attributeViewBlock,
+  avID,
+}: {
+  attributeViewBlock: AttributeViewBlockSummary
+  avID: string
+}) {
+  const blockElement = attributeViewBlock.element
+  if (!blockElement.isConnected) {
+    return []
+  }
+
+  const titleCandidates = collectDomAttributeViewTitleCandidates({
+    attributeViewBlock,
+    avID,
+    blockElement,
+  })
+  const headerCandidates = collectDomAttributeViewHeaderCandidates({
+    attributeViewBlock,
+    avID,
+    blockElement,
+  })
+  const headerNames = headerCandidates.map(candidate => candidate.columnName)
+  const rowCandidates = collectDomAttributeViewRowCandidates({
+    attributeViewBlock,
+    avID,
+    blockElement,
+    headerNames,
+  })
+
+  return [
+    ...titleCandidates,
+    ...headerCandidates,
+    ...rowCandidates,
+  ]
+}
+
+function collectDomAttributeViewTitleCandidates({
+  attributeViewBlock,
+  avID,
+  blockElement,
+}: {
+  attributeViewBlock: AttributeViewBlockSummary
+  avID: string
+  blockElement: HTMLElement
+}) {
+  const seen = new Set<string>()
+  return Array.from(blockElement.querySelectorAll<HTMLElement>(
+    '.av__title, .av__title-text, .av__header-title, .av__name',
+  )).flatMap((element, index) => {
+    const text = getAttributeViewDomText(element)
+    if (!text || seen.has(text)) {
+      return []
+    }
+
+    seen.add(text)
+    return [{
+      avBlockId: attributeViewBlock.avBlockId,
+      avID,
+      columnName: text,
+      keyID: `__dom-view-name-${index}__`,
+      text,
+      targetKind: 'view-name' as const,
+    }]
+  })
+}
+
+function collectDomAttributeViewHeaderCandidates({
+  attributeViewBlock,
+  avID,
+  blockElement,
+}: {
+  attributeViewBlock: AttributeViewBlockSummary
+  avID: string
+  blockElement: HTMLElement
+}) {
+  const headerCells = resolveDomAttributeViewHeaderCells(blockElement)
+  return headerCells.flatMap((cell, columnIndex) => {
+    const text = getAttributeViewDomText(cell)
+    if (!text) {
+      return []
+    }
+
+    return [{
+      avBlockId: attributeViewBlock.avBlockId,
+      avID,
+      columnName: text,
+      columnIndex,
+      keyID: resolveDomAttributeViewKeyId(cell, columnIndex),
+      text,
+      targetKind: 'column-header' as const,
+    }]
+  })
+}
+
+function collectDomAttributeViewRowCandidates({
+  attributeViewBlock,
+  avID,
+  blockElement,
+  headerNames,
+}: {
+  attributeViewBlock: AttributeViewBlockSummary
+  avID: string
+  blockElement: HTMLElement
+  headerNames: string[]
+}) {
+  return resolveDomAttributeViewRows(blockElement).flatMap((rowElement) => {
+    const rowID = rowElement.dataset.id?.trim() || undefined
+    const rowCells = getDomAttributeViewRowCells(rowElement)
+    const rowLabel = rowCells
+      .map(cell => getAttributeViewDomText(cell))
+      .find(Boolean)
+
+    return rowCells.flatMap((cell, columnIndex) => {
+      const text = getAttributeViewDomText(cell)
+      if (!text) {
+        return []
+      }
+
+      return [{
+        avBlockId: attributeViewBlock.avBlockId,
+        avID,
+        columnName: headerNames[columnIndex] ?? '',
+        columnIndex,
+        itemID: rowID,
+        keyID: resolveDomAttributeViewKeyId(cell, columnIndex),
+        rowID,
+        rowLabel: rowLabel || undefined,
+        text,
+        targetKind: 'cell' as const,
+      }]
+    })
+  })
+}
+
 function extractAttributeViewSearchCandidates({
   attributeViewBlock,
   avID,
@@ -388,7 +529,7 @@ function extractAttributeViewColumnHeaderCandidates({
 }
 
 function buildAttributeViewPreviewText(candidate: AttributeViewCellCandidate, preview: string) {
-  if (candidate.targetKind === 'cell') {
+  if (candidate.targetKind === 'cell' && candidate.columnName.trim()) {
     return `${candidate.columnName}: ${preview}`
   }
 
@@ -411,9 +552,12 @@ function resolveAttributeViewRows(renderedAttributeView: any) {
 
 function resolveAttributeViewColumns(renderedAttributeView: any) {
   const view = renderedAttributeView?.view ?? renderedAttributeView ?? {}
-  return Array.isArray(view.columns)
-    ? view.columns.filter((column: any) => column?.hidden !== true)
-    : []
+  const columns = Array.isArray(view.columns)
+    ? view.columns
+    : Array.isArray(view.fields)
+      ? view.fields
+      : []
+  return columns.filter((column: any) => column?.hidden !== true)
 }
 
 function resolveRowCells(row: any) {
@@ -484,13 +628,16 @@ function extractSearchableText(value: any): string {
   const nestedKeys = [
     'block',
     'date',
+    'email',
     'mAsset',
     'mSelect',
     'number',
+    'phone',
     'relation',
     'rollup',
     'select',
     'text',
+    'url',
   ]
   for (const key of nestedKeys) {
     const text = extractSearchableText(value[key])
@@ -549,6 +696,15 @@ function extractTypedSearchableText(value: Record<string, any>) {
   }
   if (value.number) {
     return extractNumberSearchableText(value.number)
+  }
+  if (value.url) {
+    return extractSearchableText(value.url)
+  }
+  if (value.email) {
+    return extractSearchableText(value.email)
+  }
+  if (value.phone) {
+    return extractSearchableText(value.phone)
   }
 
   return ''
@@ -638,4 +794,63 @@ function formatAttributeViewTimestamp(rawValue: any, includeTime = true) {
   const hours = `${date.getHours()}`.padStart(2, '0')
   const minutes = `${date.getMinutes()}`.padStart(2, '0')
   return `${year}-${month}-${day} ${hours}:${minutes}`
+}
+
+function resolveDomAttributeViewRows(blockElement: HTMLElement) {
+  return Array.from(blockElement.querySelectorAll<HTMLElement>('.av__row[data-id], .av__gallery-item[data-id]'))
+    .filter(rowElement => !rowElement.classList.contains('av__row--header'))
+}
+
+function resolveDomAttributeViewHeaderCells(blockElement: HTMLElement) {
+  const headerCells = Array.from(blockElement.querySelectorAll<HTMLElement>('.av__row--header .av__cell.av__cell--header'))
+  if (headerCells.length) {
+    return headerCells
+  }
+
+  return Array.from(blockElement.querySelectorAll<HTMLElement>('.av__cell.av__cell--header'))
+}
+
+function getDomAttributeViewRowCells(rowElement: HTMLElement) {
+  const body = rowElement.querySelector<HTMLElement>(':scope > .av__body')
+    ?? rowElement.querySelector<HTMLElement>('.av__body')
+    ?? rowElement
+
+  return Array.from(body.children)
+    .filter((child): child is HTMLElement => child instanceof HTMLElement)
+    .filter(child => child.classList.contains('av__cell'))
+    .filter(child => !child.classList.contains('av__cell--header'))
+}
+
+function resolveDomAttributeViewKeyId(cellElement: HTMLElement, columnIndex: number) {
+  return cellElement.dataset.avKeyId?.trim()
+    || cellElement.dataset.keyId?.trim()
+    || cellElement.querySelector<HTMLElement>('[data-av-key-id]')?.dataset.avKeyId?.trim()
+    || cellElement.querySelector<HTMLElement>('[data-key-id]')?.dataset.keyId?.trim()
+    || `__dom-col-${columnIndex}__`
+}
+
+function getAttributeViewDomText(element: HTMLElement) {
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      if (!(node instanceof Text) || !node.nodeValue?.trim()) {
+        return NodeFilter.FILTER_REJECT
+      }
+
+      const parentElement = node.parentElement
+      if (!parentElement || parentElement.closest('.protyle-attr, .fn__none, svg, style, script')) {
+        return NodeFilter.FILTER_REJECT
+      }
+
+      return NodeFilter.FILTER_ACCEPT
+    },
+  })
+
+  const textParts: string[] = []
+  let currentNode = walker.nextNode()
+  while (currentNode) {
+    textParts.push((currentNode as Text).nodeValue ?? '')
+    currentNode = walker.nextNode()
+  }
+
+  return textParts.join('').replace(/\s+/g, ' ').trim()
 }
