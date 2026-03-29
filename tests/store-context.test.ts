@@ -436,6 +436,49 @@ describe('search store editor context fallback', () => {
     expect(searchReplaceState.matches).toHaveLength(2)
   })
 
+  it('falls back to live editor blocks when document snapshot loading fails', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+    })
+
+    editorMocks.state.blocks = [{
+      blockId: 'block-live',
+      blockIndex: 0,
+      blockType: 'NodeParagraph',
+      element: {} as HTMLElement,
+      rootId: 'root-1',
+      text: 'live foo',
+    }]
+    kernelMocks.getDocumentContent.mockRejectedValue(new Error('snapshot failed'))
+    searchEngineMocks.findMatches.mockImplementation((blocks) => ({
+      error: '',
+      matches: blocks.map((block: any) => ({
+        blockId: block.blockId,
+        blockIndex: block.blockIndex,
+        blockType: block.blockType,
+        end: 8,
+        id: `${block.blockId}:5:8`,
+        matchedText: 'foo',
+        previewText: 'live [foo]',
+        replaceable: true,
+        rootId: block.rootId,
+        start: 5,
+      })),
+    }))
+
+    searchReplaceState.query = 'foo'
+
+    openPanel(true)
+    await flushRefresh()
+
+    expect(kernelMocks.getDocumentContent).toHaveBeenCalledWith('root-1')
+    const blocks = searchEngineMocks.findMatches.mock.calls.at(-1)?.[0] as Array<{ blockId: string }>
+    expect(blocks.map(block => block.blockId)).toEqual(['block-live'])
+    expect(searchReplaceState.matches).toHaveLength(1)
+    expect(searchReplaceState.matches[0]?.blockId).toBe('block-live')
+  })
+
   it('searches visible attribute view blocks through AV APIs and marks those matches as read-only', async () => {
     applyPluginSettings({
       ...DEFAULT_SETTINGS,
@@ -1367,9 +1410,104 @@ describe('search store editor context fallback', () => {
     expect(scrollTop).toBeGreaterThan(0)
 
     targetLoaded = true
-    await vi.runOnlyPendingTimersAsync()
+    await vi.runAllTimersAsync()
 
     expect(searchReplaceState.navigationHint).toBe('')
+  })
+
+  it('abandons pending navigation after repeated misses and clears the loading hint', async () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-background" data-node-id="root-1"></div>
+        <div class="protyle-title" data-node-id="root-1"></div>
+        <input class="protyle-title__input" value="Doc 1" />
+        <div class="protyle-content">
+          <div class="protyle-wysiwyg">
+            <div data-node-id="block-1" data-type="NodeParagraph"><div contenteditable="true">foo</div></div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    const scrollContainer = document.querySelector<HTMLElement>('.protyle-content')!
+    let scrollTop = 0
+
+    Object.defineProperty(scrollContainer, 'clientHeight', {
+      configurable: true,
+      value: 300,
+    })
+    Object.defineProperty(scrollContainer, 'scrollHeight', {
+      configurable: true,
+      value: 1200,
+    })
+    Object.defineProperty(scrollContainer, 'scrollTop', {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value: number) => {
+        scrollTop = value
+      },
+    })
+    scrollContainer.scrollTo = vi.fn(({ top }: { top?: number }) => {
+      scrollTop = top ?? scrollTop
+    }) as any
+
+    editorMocks.state.context = {
+      protyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    editorMocks.scrollMatchIntoView.mockImplementation((_context, match) => {
+      if (match?.id === 'block-8:0:3') {
+        return 'missing'
+      }
+
+      return 'visible'
+    })
+
+    searchReplaceState.visible = true
+    searchReplaceState.matches = [
+      {
+        blockId: 'block-1',
+        blockIndex: 0,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-1:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+      {
+        blockId: 'block-8',
+        blockIndex: 7,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-8:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+    ]
+    searchReplaceState.currentIndex = 0
+    searchReplaceState.searchableBlockCount = 10
+    searchReplaceState.minimapBlocks = Array.from({ length: 10 }, (_, index) => ({
+      blockId: `block-${index + 1}`,
+      blockIndex: index,
+      blockType: 'NodeParagraph',
+    }))
+
+    goNext()
+    expect(searchReplaceState.navigationHint).toContain('等待内容加载')
+
+    await vi.runAllTimersAsync()
+
+    expect(searchReplaceState.navigationHint).toBe('')
+    expect(editorMocks.scrollMatchIntoView).toHaveBeenCalledTimes(41)
+    expect(scrollContainer.scrollTo).toHaveBeenCalled()
   })
 
   it('replaces the current match even when the panel has taken focus from the editor', async () => {

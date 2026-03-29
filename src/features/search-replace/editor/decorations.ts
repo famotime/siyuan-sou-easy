@@ -10,6 +10,16 @@ import {
 import { findAttributeViewCellElements } from './attribute-view'
 import { getBlockElement } from './blocks'
 import { locateTextRange } from './ranges'
+import {
+  resolveEditorScrollContainer,
+  resolveVisibilityContainers,
+  scrollContainerTo,
+} from './scroll-container'
+import {
+  getTableRowCells,
+  getTableRowElements,
+  resolveTableRowElementFromCell,
+} from './table-dom'
 import type {
   EditorContext,
   SearchMatch,
@@ -124,30 +134,6 @@ export function scrollMatchIntoView(
   return 'scrolled'
 }
 
-function resolveScrollContainer(context: EditorContext) {
-  return context.protyle.querySelector<HTMLElement>('.protyle-content')
-    ?? context.protyle.querySelector<HTMLElement>('.protyle-wysiwyg')
-    ?? null
-}
-
-function resolveVisibilityContainers(context: EditorContext, element: HTMLElement) {
-  const containers: HTMLElement[] = []
-  const editorContainer = resolveScrollContainer(context)
-  if (editorContainer) {
-    containers.push(editorContainer)
-  }
-
-  let current: HTMLElement | null = element.parentElement
-  while (current && current !== context.protyle) {
-    if (isScrollableContainer(current) && !containers.includes(current)) {
-      containers.push(current)
-    }
-    current = current.parentElement
-  }
-
-  return containers
-}
-
 function isElementVisibleWithinContainers(element: HTMLElement, containers: HTMLElement[]) {
   const elementRect = element.getBoundingClientRect()
 
@@ -166,14 +152,6 @@ function isElementVisibleWithinContainers(element: HTMLElement, containers: HTML
     y: 0,
     toJSON: () => ({}),
   })
-}
-
-function isScrollableContainer(element: HTMLElement) {
-  const style = globalThis.getComputedStyle?.(element)
-  const overflowX = style?.overflowX || element.style.overflowX || element.style.overflow || ''
-  const overflowY = style?.overflowY || element.style.overflowY || element.style.overflow || ''
-
-  return /auto|scroll|overlay|hidden/.test(`${overflowX} ${overflowY}`)
 }
 
 function isRectVisibleWithinBoundary(elementRect: DOMRect | DOMRectReadOnly, boundaryRect: DOMRect | DOMRectReadOnly) {
@@ -242,23 +220,6 @@ function isContainerScrollableOnAxis(container: HTMLElement, axis: 'x' | 'y') {
   }
 
   return (container.scrollWidth || 0) > (container.clientWidth || 0)
-}
-
-function scrollContainerTo(
-  container: HTMLElement,
-  options: ScrollToOptions,
-) {
-  if (typeof container.scrollTo === 'function') {
-    container.scrollTo(options)
-    return
-  }
-
-  if (typeof options.top === 'number') {
-    container.scrollTop = options.top
-  }
-  if (typeof options.left === 'number') {
-    container.scrollLeft = options.left
-  }
 }
 
 function applyTableCellHighlights(
@@ -477,51 +438,6 @@ function findTableCellElementByMetadata(context: EditorContext, match: SearchMat
     .filter(child => child.matches('[data-type="NodeTableCell"], .table__cell, td, th'))
 
   return rowCells[columnIndex] ?? null
-}
-
-function getTableRowElements(tableBlock: HTMLElement) {
-  const explicitRows = Array.from(tableBlock.querySelectorAll<HTMLElement>('.table__row'))
-  if (explicitRows.length) {
-    return explicitRows
-  }
-
-  const nativeRows = Array.from(tableBlock.querySelectorAll<HTMLElement>('tr'))
-  if (nativeRows.length) {
-    return nativeRows
-  }
-
-  const cells = Array.from(tableBlock.querySelectorAll<HTMLElement>('[data-type="NodeTableCell"], .table__cell, td, th'))
-  const rows: HTMLElement[] = []
-  const seen = new Set<HTMLElement>()
-
-  cells.forEach((cell) => {
-    const row = resolveTableRowElementFromCell(cell, tableBlock)
-    if (!row || seen.has(row)) {
-      return
-    }
-
-    seen.add(row)
-    rows.push(row)
-  })
-
-  return rows
-}
-
-function resolveTableRowElementFromCell(cell: HTMLElement, tableBlock: HTMLElement) {
-  let current = cell.parentElement
-  while (current && current !== tableBlock) {
-    const rowCells = Array.from(current.children)
-      .filter((child): child is HTMLElement => child instanceof HTMLElement)
-      .filter(child => child.matches('[data-type="NodeTableCell"], .table__cell, td, th'))
-    if (rowCells.length > 0 && rowCells.includes(cell)) {
-      return current
-    }
-    current = current.parentElement
-  }
-
-  return cell.parentElement && tableBlock.contains(cell.parentElement)
-    ? cell.parentElement
-    : null
 }
 
 function resolveNodeElement(node: Node | null) {

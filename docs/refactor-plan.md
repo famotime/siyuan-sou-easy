@@ -22,11 +22,11 @@
 
 | ID | 优先级 | 模块/场景 | 涉及文件 | 重构目标 | 行为不变式与风险 | 重构前测试清单 | 文档影响 | 状态 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| RF-101 | P0 | 搜索控制器生命周期拆分 | `src/features/search-replace/store/search-controller.ts`, `src/features/search-replace/store.ts`, `src/features/search-replace/store/context-cache.ts`, `src/features/search-replace/store/document-snapshot.ts` | 将监听器绑定、待导航恢复、实时刷新观察器、上下文解析和块解析回退拆成职责更单一的协作者或内部模块，缩小 `search-controller.ts` 的状态面 | 不改变当前公开 store API；不改变被动刷新时不自动滚回当前命中；不改变选区模式失效时的错误提示；风险高，因为它直接影响最常用的搜索刷新链路 | - [ ] 运行 `tests/live-refresh.test.ts`，覆盖 DOM 变更刷新和被动刷新不抢滚动<br>- [ ] 运行 `tests/store-context.test.ts`，覆盖上下文切换与文档缺失提示<br>- [ ] 运行 `tests/selection-mode-panel.test.ts`，覆盖选区模式缓存/清空<br>- [ ] 补充待导航重试、监听器解绑、快照回退异常的定向测试 | `docs/project-structure.md` 需要更新 store 子模块职责；`README.md` 通常无用户可见变更，除非重构顺带暴露新的稳定性说明 | pending |
-| RF-102 | P0 | 属性视图搜索管线分层 | `src/features/search-replace/attribute-view-search.ts`, `src/features/search-replace/kernel.ts`, `src/features/search-replace/types.ts`, 可能新增 `src/features/search-replace/attribute-view/*` | 将属性视图块发现、DOM 候选抽取、API 渲染回退、值归一化、预览组装拆开，建立清晰的输入输出边界，降低思源属性视图结构变动带来的修复成本 | 不改变属性视图命中是否可替换的判定；不改变现有预览文本格式；不改变 block index 排序和匹配 id 规则；风险高，因为当前测试主要覆盖 DOM 回退路径，接口路径回归不易被第一时间发现 | - [ ] 运行 `tests/attribute-view-search.test.ts` 作为回归基线<br>- [ ] 新增 API 渲染 rows/columns 路径测试<br>- [ ] 新增复杂值类型解析测试：`date`、`relation`、`rollup`、`mAsset`、`number`<br>- [ ] 新增 `custom-avs` / `custom-sy-av-view` 解析测试和多来源候选合并测试 | `docs/project-structure.md` 需要新增属性视图子模块说明；`README.md` 如对外能力描述涉及“搜索属性视图”，需同步说明实现边界和稳定能力 | pending |
-| RF-103 | P1 | 迷你地图投影与滚动控制解耦 | `src/features/search-replace/ui/use-panel-minimap.ts`, `src/App.vue`, 可能新增 `src/features/search-replace/ui/minimap-*.ts` | 把几何投影、点击滚动目标计算、视口投影和监听器绑定拆开，让迷你地图主要保留组合逻辑，便于单测和后续扩展 | 不改变现有迷你地图显示条件；不改变点击跳转和懒加载后视口跟踪；风险中等，主要是滚动位置和视口框易出现细微回归 | - [ ] 运行 `tests/minimap-widget.test.ts`，覆盖标记、视口、点击跳转和滚动高度变化<br>- [ ] 运行 `tests/panel-widget.test.ts`，确认面板与迷你地图共存交互不变<br>- [ ] 补充纯函数级投影/夹取逻辑测试，避免只依赖组件挂载用例 | `docs/project-structure.md` 需要更新 UI composable 切分；`README.md` 仅在用户可见行为调整时更新截图或描述 | pending |
-| RF-104 | P1 | 插件入口编排收束 | `src/index.ts`, `src/settings.ts`, `src/features/search-replace/plugin-settings-ui.ts`, `src/features/search-replace/plugin-command-config.ts`, 可能新增 `src/features/search-replace/plugin-bootstrap.ts` | 继续压缩入口类的职责，把环境识别、命令回调装配、设置变更应用和冲突检测组织成更稳定的数据驱动结构 | 不改变已有命令 ID、快捷键同步规则、顶栏入口和设置项展示顺序；风险中等，主要是注册时序和输入捕获行为 | - [ ] 运行 `tests/plugin-command-hotkeys.test.ts`<br>- [ ] 运行 `tests/plugin-settings-panel.test.ts`<br>- [ ] 运行 `tests/settings.test.ts`、`tests/default-hotkeys.test.ts`、`tests/hotkey-setting-input.test.ts`<br>- [ ] 如拆出新的装配模块，补一组设置变更同步测试 | `docs/project-structure.md` 需要更新入口层结构；`README.md` 通常仅在开发说明或快捷键说明有变化时更新 | pending |
-| RF-105 | P2 | 编辑器装饰与块规则一致性清理 | `src/features/search-replace/editor/decorations.ts`, `src/features/search-replace/editor/blocks.ts`, `src/features/search-replace/editor/ranges.ts`, `src/features/search-replace/editor/selection.ts` | 在已有块采集整理基础上，再统一高亮定位和 DOM 边界规则，减少装饰/滚动逻辑对分散 helper 的隐式依赖 | 不改变命中高亮样式、当前块高亮和滚动定位结果；风险中等偏低，但 DOM 细节多，局部回归难肉眼发现 | - [ ] 运行 `tests/editor-block-collection.test.ts`<br>- [ ] 运行 `tests/selection-scope.test.ts`<br>- [ ] 运行 `tests/current-block-highlight.test.ts`、`tests/match-scroll.test.ts`<br>- [ ] 如抽出共享定位 helper，补边界位置与跨节点范围测试 | `docs/project-structure.md` 需要更新 editor 子模块职责；`README.md` 通常无用户文案变更 | pending |
+| RF-101 | P0 | 搜索控制器生命周期拆分 | `src/features/search-replace/store/search-controller.ts`, `src/features/search-replace/store/search-document-events.ts`, `src/features/search-replace/store/search-pending-navigation.ts`, `src/features/search-replace/store/search-blocks.ts`, `src/features/search-replace/store.ts`, `src/features/search-replace/store/context-cache.ts`, `src/features/search-replace/store/document-snapshot.ts` | 将监听器绑定、待导航恢复、实时刷新观察器、上下文解析和块解析回退拆成职责更单一的协作者或内部模块，缩小 `search-controller.ts` 的状态面 | 不改变当前公开 store API；不改变被动刷新时不自动滚回当前命中；不改变选区模式失效时的错误提示；风险高，因为它直接影响最常用的搜索刷新链路 | - [x] 运行 `tests/live-refresh.test.ts`，覆盖 DOM 变更刷新和被动刷新不抢滚动<br>- [x] 运行 `tests/store-context.test.ts`，覆盖上下文切换与文档缺失提示<br>- [x] 运行 `tests/selection-mode-panel.test.ts`，覆盖选区模式缓存/清空<br>- [x] 补充待导航重试、监听器解绑、快照回退异常的定向测试 | `docs/project-structure.md` 需要更新 store 子模块职责；`README.md` 通常无用户可见变更，除非重构顺带暴露新的稳定性说明 | done |
+| RF-102 | P0 | 属性视图搜索管线分层 | `src/features/search-replace/attribute-view-search.ts`, `src/features/search-replace/attribute-view/search-blocks.ts`, `src/features/search-replace/attribute-view/search-candidates.ts`, `src/features/search-replace/attribute-view/search-values.ts`, `src/features/search-replace/attribute-view/search-types.ts`, `src/features/search-replace/kernel.ts`, `src/features/search-replace/types.ts` | 将属性视图块发现、DOM 候选抽取、API 渲染回退、值归一化、预览组装拆开，建立清晰的输入输出边界，降低思源属性视图结构变动带来的修复成本 | 不改变属性视图命中是否可替换的判定；不改变现有预览文本格式；不改变 block index 排序和匹配 id 规则；风险高，因为当前测试主要覆盖 DOM 回退路径，接口路径回归不易被第一时间发现 | - [x] 运行 `tests/attribute-view-search.test.ts` 作为回归基线<br>- [x] 新增 API 渲染 rows/columns 路径测试<br>- [x] 新增复杂值类型解析测试：`date`、`relation`、`rollup`、`mAsset`、`number`<br>- [x] 新增 `custom-avs` / `custom-sy-av-view` 解析测试和多来源候选合并测试 | `docs/project-structure.md` 需要新增属性视图子模块说明；`README.md` 如对外能力描述涉及“搜索属性视图”，需同步说明实现边界和稳定能力 | done |
+| RF-103 | P1 | 迷你地图投影与滚动控制解耦 | `src/features/search-replace/ui/use-panel-minimap.ts`, `src/features/search-replace/ui/minimap-layout.ts`, `src/App.vue` | 把几何投影、点击滚动目标计算、视口投影和监听器绑定拆开，让迷你地图主要保留组合逻辑，便于单测和后续扩展 | 不改变现有迷你地图显示条件；不改变点击跳转和懒加载后视口跟踪；风险中等，主要是滚动位置和视口框易出现细微回归 | - [x] 运行 `tests/minimap-widget.test.ts`，覆盖标记、视口、点击跳转和滚动高度变化<br>- [x] 运行 `tests/panel-widget.test.ts`，确认面板与迷你地图共存交互不变<br>- [x] 补充纯函数级投影/夹取逻辑测试，避免只依赖组件挂载用例 | `docs/project-structure.md` 需要更新 UI composable 切分；`README.md` 仅在用户可见行为调整时更新截图或描述 | done |
+| RF-104 | P1 | 插件入口编排收束 | `src/index.ts`, `src/features/search-replace/plugin-panel-launch.ts`, `src/features/search-replace/plugin-environment.ts`, `src/features/search-replace/plugin-setting-elements.ts`, `src/settings.ts`, `src/features/search-replace/plugin-settings-ui.ts`, `src/features/search-replace/plugin-command-config.ts` | 继续压缩入口类的职责，把环境识别、命令回调装配、设置变更应用和冲突检测组织成更稳定的数据驱动结构 | 不改变已有命令 ID、快捷键同步规则、顶栏入口和设置项展示顺序；风险中等，主要是注册时序和输入捕获行为 | - [x] 运行 `tests/plugin-command-hotkeys.test.ts`<br>- [x] 运行 `tests/plugin-settings-panel.test.ts`<br>- [x] 运行 `tests/settings.test.ts`、`tests/default-hotkeys.test.ts`、`tests/hotkey-setting-input.test.ts`<br>- [x] 如拆出新的装配模块，补一组设置变更同步测试 | `docs/project-structure.md` 需要更新入口层结构；`README.md` 通常仅在开发说明或快捷键说明有变化时更新 | done |
+| RF-105 | P2 | 编辑器装饰与块规则一致性清理 | `src/features/search-replace/editor/decorations.ts`, `src/features/search-replace/editor/blocks.ts`, `src/features/search-replace/editor/ranges.ts`, `src/features/search-replace/editor/selection.ts`, `src/features/search-replace/editor/table-dom.ts`, `src/features/search-replace/editor/scroll-container.ts` | 在已有块采集整理基础上，再统一高亮定位和 DOM 边界规则，减少装饰/滚动逻辑对分散 helper 的隐式依赖 | 不改变命中高亮样式、当前块高亮和滚动定位结果；风险中等偏低，但 DOM 细节多，局部回归难肉眼发现 | - [x] 运行 `tests/editor-block-collection.test.ts`<br>- [x] 运行 `tests/selection-scope.test.ts`<br>- [x] 运行 `tests/current-block-highlight.test.ts`、`tests/match-scroll.test.ts`<br>- [x] 抽出共享表格 DOM 与滚动容器 helper，并新增 `tests/editor-table-dom.test.ts` 覆盖表格行/单元格边界 | `docs/project-structure.md` 需要更新 editor 子模块职责；`README.md` 需同步当前项目结构与开发命令 | done |
 
 优先级说明：
 - `P0`：价值高且风险高，先补测试再动实现
@@ -43,26 +43,26 @@
 
 | ID | 开始日期 | 结束日期 | 验证命令 | 结果 | 已刷新文档 | 备注 |
 | --- | --- | --- | --- | --- | --- | --- |
-| RF-101 |  |  |  |  |  |  |
-| RF-102 |  |  |  |  |  |  |
-| RF-103 |  |  |  |  |  |  |
-| RF-104 |  |  |  |  |  |  |
-| RF-105 |  |  |  |  |  |  |
+| RF-101 | 2026-03-29 | 2026-03-29 | `corepack pnpm test tests/store-context.test.ts tests/live-refresh.test.ts tests/selection-mode-panel.test.ts`; `corepack pnpm test tests/store-context.test.ts tests/live-refresh.test.ts tests/selection-mode-panel.test.ts tests/store-ui-state.test.ts`; `corepack pnpm test` | pass | 尚未刷新 `docs/project-structure.md`、`README.md` | 将 `search-controller.ts` 的监听器、待导航恢复、块解析回退拆到 `search-document-events.ts`、`search-pending-navigation.ts`、`search-blocks.ts`；新增快照失败回退与待导航放弃测试 |
+| RF-102 | 2026-03-29 | 2026-03-29 | `corepack pnpm test tests/attribute-view-search.test.ts tests/store-context.test.ts`; `corepack pnpm test` | pass | 尚未刷新 `docs/project-structure.md`、`README.md` | 将属性视图搜索拆为块发现、候选解析、值归一化和主入口编排四层；新增 number、rollup、attrs 解析路径测试 |
+| RF-103 | 2026-03-29 | 2026-03-29 | `corepack pnpm test tests/minimap-layout.test.ts tests/minimap-widget.test.ts tests/panel-widget.test.ts`; `corepack pnpm test` | pass | 尚未刷新 `docs/project-structure.md`、`README.md` | 将迷你地图的滚动目标、视口计算、索引投影和文档线条生成拆到 `minimap-layout.ts`；新增纯函数级布局测试 |
+| RF-104 | 2026-03-29 | 2026-03-29 | `corepack pnpm test tests/plugin-panel-launch.test.ts tests/plugin-command-hotkeys.test.ts tests/plugin-settings-panel.test.ts tests/settings.test.ts tests/default-hotkeys.test.ts tests/hotkey-setting-input.test.ts tests/plugin-editor-events.test.ts`; `corepack pnpm test` | pass | 尚未刷新 `docs/project-structure.md`、`README.md` | 将面板打开/切换、环境识别、设置控件元素构造从 `index.ts` 下沉为 helper；新增面板切换 helper 测试 |
+| RF-105 | 2026-03-29 | 2026-03-29 | `corepack pnpm test tests/editor-block-collection.test.ts tests/selection-scope.test.ts tests/current-block-highlight.test.ts tests/match-scroll.test.ts`; `corepack pnpm test tests/editor-table-dom.test.ts tests/editor-block-collection.test.ts tests/selection-scope.test.ts tests/current-block-highlight.test.ts tests/match-scroll.test.ts`; `corepack pnpm test` | pass | 已刷新 `docs/project-structure.md`、`README.md` | 将表格行/单元格识别与滚动容器定位拆到 `table-dom.ts`、`scroll-container.ts`；`decorations.ts` 与 `blocks.ts` 共享同一组 DOM 规则，新增表格边界测试 |
 
 ## 5. 决策与确认
 
-- 用户批准的条目：
+- 用户批准的条目：`RF-101`、`RF-102`、`RF-103`、`RF-104`、`RF-105`
 - 延后的条目：
 - 阻塞条目及原因：
 
 ## 6. 文档刷新
 
-- `docs/project-structure.md`：当前仓库中尚不存在；获批重构范围完成后需要新建或补齐为真实结构映射文档
-- `README.md`：当前内容偏用户功能简介；若获批重构涉及模块结构、开发说明或稳定性表述，需要同步更新
-- 最终同步检查：待执行后填写
+- `docs/project-structure.md`：已新建，补齐入口层、store、attribute-view、editor、ui、tests 与脚本目录的职责映射
+- `README.md`：已刷新为与当前插件能力一致的说明，并补充开发命令、测试命令与项目文档入口
+- 最终同步检查：`RF-101` ~ `RF-105` 均已完成，计划状态与仓库真实状态一致
 
 ## 7. 下一步
 
-1. 用户按条目 ID 明确批准本轮要执行的重构项。
-2. 对每个获批条目先补测试或调整现有测试，再开始代码重构。
-3. 每完成一项立即回写本文件状态和验证命令，最后刷新 `docs/project-structure.md` 与 `README.md`。
+1. 已完成全部获批条目 `RF-101` ~ `RF-105`。
+2. 已补齐 `docs/project-structure.md` 与 `README.md` 文档刷新。
+3. 后续如继续重构，可在此计划基础上新增新一轮候选项并重新审批。

@@ -3,6 +3,10 @@ import {
   SUPPORTED_NODE_TYPES,
   TABLE_NODE_TYPE,
 } from './constants'
+import {
+  getTableRowCells,
+  getTableRowElements,
+} from './table-dom'
 import type {
   EditorContext,
   SearchOptions,
@@ -148,55 +152,6 @@ function collectTableSearchMetadata(blockElement: HTMLElement): { text: string, 
       cells,
     },
   }
-}
-
-function getTableRowCells(row: HTMLElement) {
-  return Array.from(row.children)
-    .filter((child): child is HTMLElement => child instanceof HTMLElement)
-    .filter(child => child.matches('[data-type="NodeTableCell"], .table__cell, td, th'))
-}
-
-function getTableRowElements(blockElement: HTMLElement) {
-  const explicitRows = Array.from(blockElement.querySelectorAll<HTMLElement>('.table__row'))
-  if (explicitRows.length) {
-    return explicitRows
-  }
-
-  const nativeRows = Array.from(blockElement.querySelectorAll<HTMLElement>('tr'))
-  if (nativeRows.length) {
-    return nativeRows
-  }
-
-  const cells = Array.from(blockElement.querySelectorAll<HTMLElement>('[data-type="NodeTableCell"], .table__cell, td, th'))
-  const rows: HTMLElement[] = []
-  const seen = new Set<HTMLElement>()
-
-  cells.forEach((cell) => {
-    const row = resolveTableRowElement(cell, blockElement)
-    if (!row || seen.has(row)) {
-      return
-    }
-
-    seen.add(row)
-    rows.push(row)
-  })
-
-  return rows
-}
-
-function resolveTableRowElement(cell: HTMLElement, tableBlock: HTMLElement) {
-  let current = cell.parentElement
-  while (current && current !== tableBlock) {
-    const rowCells = getTableRowCells(current)
-    if (rowCells.length > 0 && rowCells.includes(cell)) {
-      return current
-    }
-    current = current.parentElement
-  }
-
-  return cell.parentElement && tableBlock.contains(cell.parentElement)
-    ? cell.parentElement
-    : null
 }
 
 function getTableCellPlainText(cell: HTMLElement) {

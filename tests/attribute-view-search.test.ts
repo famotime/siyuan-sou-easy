@@ -142,6 +142,138 @@ describe('attribute view search', () => {
     })
     expect(result.matches[0]?.previewText).toBe('分组里的[传感器]')
   })
+
+  it('searches rendered number field content when DOM candidates are unavailable', async () => {
+    kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
+      { id: 'col-score', name: '评分' },
+    ])
+    kernelMocks.renderAttributeView.mockResolvedValue({
+      view: {
+        columns: [
+          { id: 'col-score', name: '评分', type: 'number' },
+        ],
+        rows: [{
+          cells: [{
+            keyID: 'col-score',
+            value: {
+              number: {
+                formattedContent: '42.5',
+              },
+              type: 'number',
+            },
+          }],
+          id: 'item-4',
+        }],
+      },
+      viewType: 'table',
+    })
+
+    const context = renderEditor(`
+      <div data-node-id="av-block-4" data-type="NodeAttributeView" class="av" data-av-id="av-4"></div>
+    `)
+
+    const result = await searchAttributeViewMatches({
+      context,
+      options: DEFAULT_OPTIONS,
+      query: '42.5',
+      startingBlockIndex: 0,
+    })
+
+    expect(result.matches).toHaveLength(1)
+    expect(result.matches[0]?.attributeView).toMatchObject({
+      avBlockId: 'av-block-4',
+      avID: 'av-4',
+      columnName: '评分',
+      itemID: 'item-4',
+      keyID: 'col-score',
+    })
+    expect(result.matches[0]?.previewText).toBe('评分: [42.5]')
+  })
+
+  it('searches rendered rollup field content when DOM candidates are unavailable', async () => {
+    kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
+      { id: 'col-rollup', name: '成员' },
+    ])
+    kernelMocks.renderAttributeView.mockResolvedValue({
+      view: {
+        columns: [
+          { id: 'col-rollup', name: '成员', type: 'rollup' },
+        ],
+        rows: [{
+          cells: [{
+            keyID: 'col-rollup',
+            value: {
+              rollup: {
+                contents: ['Alice', 'Bob'],
+              },
+              type: 'rollup',
+            },
+          }],
+          id: 'item-5',
+        }],
+      },
+      viewType: 'table',
+    })
+
+    const context = renderEditor(`
+      <div data-node-id="av-block-5" data-type="NodeAttributeView" class="av" data-av-id="av-5"></div>
+    `)
+
+    const result = await searchAttributeViewMatches({
+      context,
+      options: DEFAULT_OPTIONS,
+      query: 'Alice Bob',
+      startingBlockIndex: 0,
+    })
+
+    expect(result.matches).toHaveLength(1)
+    expect(result.matches[0]?.previewText).toBe('成员: [Alice Bob]')
+  })
+
+  it('resolves attribute view and view ids from block attrs when dataset ids are missing', async () => {
+    kernelMocks.getBlockAttrs.mockResolvedValue({
+      'custom-avs': '["av-6"]',
+      'custom-sy-av-view': 'view-6',
+    })
+    kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
+      { id: 'col-title', name: '标题' },
+    ])
+    kernelMocks.renderAttributeView.mockResolvedValue({
+      view: {
+        columns: [
+          { id: 'col-title', name: '标题', type: 'text' },
+        ],
+        rows: [{
+          cells: [{
+            keyID: 'col-title',
+            value: {
+              text: {
+                content: '属性视图标题',
+              },
+              type: 'text',
+            },
+          }],
+          id: 'item-6',
+        }],
+      },
+      viewType: 'table',
+    })
+
+    const context = renderEditor(`
+      <div data-node-id="av-block-6" data-type="NodeAttributeView" class="av"></div>
+    `)
+
+    const result = await searchAttributeViewMatches({
+      context,
+      options: DEFAULT_OPTIONS,
+      query: '属性视图标题',
+      startingBlockIndex: 0,
+    })
+
+    expect(kernelMocks.renderAttributeView).toHaveBeenCalledWith('av-6', 'view-6')
+    expect(result.matches).toHaveLength(1)
+    expect(result.matches[0]?.attributeView?.avID).toBe('av-6')
+  })
 })
 
 function renderEditor(attributeViewDom: string): EditorContext {

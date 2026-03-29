@@ -2,7 +2,6 @@ import {
   Plugin,
   Setting,
   adaptHotkey,
-  getFrontend,
   showMessage,
 } from 'siyuan'
 import '@/index.scss'
@@ -22,6 +21,17 @@ import {
   bindEditorContextEvents,
   unbindEditorContextEvents,
 } from '@/features/search-replace/plugin-events'
+import { detectPluginEnvironment } from '@/features/search-replace/plugin-environment'
+import {
+  HOTKEY_CAPTURE_INPUT_ATTRIBUTE,
+  createCheckboxElement,
+  createHotkeyInputElement,
+} from '@/features/search-replace/plugin-setting-elements'
+import {
+  isHotkeyCaptureTarget,
+  openSearchReplacePanelFromCommand,
+  openSearchReplacePanelFromKeyboardEvent,
+} from '@/features/search-replace/plugin-panel-launch'
 import {
   type HotkeySettingKey,
 } from '@/features/search-replace/settings-panel'
@@ -34,13 +44,9 @@ import {
   applyPluginSettings,
   onEditorContextChanged,
   openPanel,
-  searchReplaceState,
 } from '@/features/search-replace/store'
 import { UI_STATE_STORAGE } from '@/features/search-replace/store/ui-state'
-import {
-  createEditorContextFromElement,
-  createEditorContextFromProtyleLike,
-} from '@/features/search-replace/editor'
+import { createEditorContextFromProtyleLike } from '@/features/search-replace/editor'
 import {
   destroy,
   init,
@@ -57,8 +63,6 @@ import {
 let pluginInfo = {
   version: '',
 }
-
-const HOTKEY_CAPTURE_INPUT_ATTRIBUTE = 'data-friendly-search-hotkey-input'
 
 try {
   pluginInfo = PluginInfoString
@@ -120,7 +124,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     }
 
     const target = event.target instanceof Element ? event.target : null
-    if (target?.closest(`[${HOTKEY_CAPTURE_INPUT_ATTRIBUTE}="true"]`)) {
+    if (isHotkeyCaptureTarget(target, HOTKEY_CAPTURE_INPUT_ATTRIBUTE)) {
       return
     }
 
@@ -137,31 +141,25 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     if (normalizedHotkey === this.settingsData.panelHotkey) {
       event.preventDefault()
       event.stopPropagation()
-      this.openPanelFromKeyboardEvent(event, false)
+      openSearchReplacePanelFromKeyboardEvent(event, false)
       return
     }
 
     if (normalizedHotkey === this.settingsData.replacePanelHotkey) {
       event.preventDefault()
       event.stopPropagation()
-      this.openPanelFromKeyboardEvent(event, true)
+      openSearchReplacePanelFromKeyboardEvent(event, true)
     }
   }
 
   async onload() {
-    const frontEnd = getFrontend()
-    this.platform = frontEnd as SyFrontendTypes
-    this.isMobile = frontEnd === 'mobile' || frontEnd === 'browser-mobile'
-    this.isBrowser = frontEnd.includes('browser')
-    this.isLocal = location.href.includes('127.0.0.1') || location.href.includes('localhost')
-    this.isInWindow = location.href.includes('window.html')
-
-    try {
-      require('@electron/remote').require('@electron/remote/main')
-      this.isElectron = true
-    } catch {
-      this.isElectron = false
-    }
+    const environment = detectPluginEnvironment()
+    this.platform = environment.platform
+    this.isMobile = environment.isMobile
+    this.isBrowser = environment.isBrowser
+    this.isLocal = environment.isLocal
+    this.isInWindow = environment.isInWindow
+    this.isElectron = environment.isElectron
 
     this.settingsData = await loadSettings(this)
     applyPluginSettings(this.settingsData)
@@ -263,32 +261,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
       element?: HTMLElement
     },
   ) {
-    if (protyle) {
-      onEditorContextChanged(createEditorContextFromProtyleLike(protyle))
-    }
-
-    this.togglePanel(replaceVisible)
-  }
-
-  private openPanelFromKeyboardEvent(event: KeyboardEvent, replaceVisible?: boolean) {
-    const target = event.target instanceof Element ? event.target : null
-    const protyle = target?.closest('.protyle')
-    const context = createEditorContextFromElement(protyle instanceof HTMLElement ? protyle : null)
-    if (context) {
-      onEditorContextChanged(context)
-    }
-
-    this.togglePanel(replaceVisible)
-  }
-
-  private togglePanel(replaceVisible?: boolean) {
-    if (!searchReplaceState.visible) {
-      openPanel(true, replaceVisible)
-      return
-    }
-
-    const shouldClose = replaceVisible === searchReplaceState.replaceVisible
-    openPanel(!shouldClose, replaceVisible)
+    openSearchReplacePanelFromCommand(replaceVisible, protyle)
   }
 
   private async updateHotkeySetting(settingKey: HotkeySettingKey, value: string) {
@@ -311,51 +284,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
   }
 
   private createHotkeyInput(value: string, onChange: (value: string) => Promise<boolean>) {
-    const input = document.createElement('input')
-    input.className = 'b3-text-field fn__size200'
-    input.autocomplete = 'off'
-    input.setAttribute(HOTKEY_CAPTURE_INPUT_ATTRIBUTE, 'true')
-    input.placeholder = '\u70b9\u51fb\u540e\u6309\u4e0b\u5feb\u6377\u952e'
-    input.readOnly = true
-    input.spellcheck = false
-
-    let currentValue = normalizeHotkey(value) || value
-    input.value = currentValue
-
-    input.addEventListener('click', () => {
-      input.focus()
-      input.select()
-    })
-    input.addEventListener('focus', () => {
-      input.select()
-    })
-    input.addEventListener('keydown', async (event) => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        input.value = currentValue
-        input.blur()
-        return
-      }
-
-      const hotkey = formatHotkeyFromEvent(event)
-      if (!hotkey) {
-        return
-      }
-
-      event.preventDefault()
-      event.stopPropagation()
-
-      input.value = hotkey
-      const accepted = await onChange(hotkey)
-      if (accepted) {
-        currentValue = hotkey
-      } else {
-        input.value = currentValue
-      }
-
-      input.blur()
-    })
-    return input
+    return createHotkeyInputElement(value, onChange)
   }
 
   private findHotkeySettingConflict(settingKey: HotkeySettingKey, hotkey: string) {
@@ -385,13 +314,6 @@ export default class FriendlySearchReplacePlugin extends Plugin {
   }
 
   private createCheckbox(checked: boolean, onChange: (checked: boolean) => Promise<void>) {
-    const input = document.createElement('input')
-    input.className = 'b3-switch fn__flex-center'
-    input.type = 'checkbox'
-    input.checked = checked
-    input.addEventListener('change', async () => {
-      await onChange(input.checked)
-    })
-    return input
+    return createCheckboxElement(checked, onChange)
   }
 }
