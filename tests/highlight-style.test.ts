@@ -43,4 +43,19 @@ describe('search highlight styling', () => {
     expect(stylesheet).toContain('.sfsr-main {')
     expect(stylesheet).toContain('gap: var(--sfsr-toolbar-gap);')
   })
+
+  it('strengthens panel chrome in dark theme so the popup separates from document content', () => {
+    const stylesheet = readFileSync(resolve(__dirname, '../src/index.scss'), 'utf-8')
+
+    expect(stylesheet).toContain('--sfsr-panel-border-color: var(--b3-border-color);')
+    expect(stylesheet).toContain('--sfsr-panel-background: var(--b3-theme-background);')
+    expect(stylesheet).toContain('--sfsr-panel-outline: transparent;')
+    expect(stylesheet).toContain("body[data-theme-mode='dark']")
+    expect(stylesheet).toContain("body[data-theme-style='dark']")
+    expect(stylesheet).toContain('--sfsr-panel-border-color: rgba(148, 190, 255, 0.42);')
+    expect(stylesheet).toContain('--sfsr-panel-background: #181c24;')
+    expect(stylesheet).toContain('inset 0 0 0 1px var(--sfsr-panel-outline);')
+    expect(stylesheet).toContain('0 0 0 3px rgba(9, 12, 18, 0.82)')
+    expect(stylesheet).toContain('0 24px 54px rgba(0, 0, 0, 0.48)')
+  })
 })
