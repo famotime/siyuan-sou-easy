@@ -222,6 +222,59 @@ describe('current block highlight', () => {
     expect(headerCells[1]?.classList.contains('sfsr-av-cell-current')).toBe(true)
   })
 
+  it('highlights the matched kanban card field when the row uses a card layout instead of table cells', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-wysiwyg">
+          <div data-node-id="av-block-card" data-type="NodeAttributeView" class="av" data-av-id="av-card" data-render="true">
+            <div class="av__gallery-item" data-id="item-card-1">
+              <div class="av__card-body">
+                <div class="av__card-field" data-key-id="col-title">
+                  <div class="av__celltext">看板里的传感器卡片</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector('.protyle') as HTMLElement
+    const context: EditorContext = {
+      protyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    const match: SearchMatch = {
+      attributeView: {
+        avBlockId: 'av-block-card',
+        avID: 'av-card',
+        columnName: '标题',
+        columnIndex: 0,
+        itemID: 'item-card-1',
+        keyID: 'col-title',
+        rowID: 'item-card-1',
+      },
+      blockId: 'av-block-card',
+      blockIndex: 0,
+      blockType: 'NodeAttributeView',
+      end: 4,
+      id: 'av:av-block-card:item-card-1:col-title:4:8',
+      matchedText: '传感器卡片',
+      previewText: '标题: 看板里的[传感器卡片]',
+      replaceable: false,
+      rootId: 'root-1',
+      sourceKind: 'attribute-view',
+      start: 4,
+    }
+
+    syncSearchDecorations(context, [match], match)
+
+    expect(protyle.querySelector('[data-node-id="av-block-card"]')?.classList.contains('sfsr-block-match')).toBe(true)
+    expect(protyle.querySelector('[data-key-id="col-title"]')?.classList.contains('sfsr-av-cell-match')).toBe(true)
+    expect(protyle.querySelector('[data-key-id="col-title"]')?.classList.contains('sfsr-av-cell-current')).toBe(true)
+  })
+
   it('highlights the matched table cell instead of the whole table when text highlights are unavailable', () => {
     document.body.innerHTML = `
       <div class="protyle">

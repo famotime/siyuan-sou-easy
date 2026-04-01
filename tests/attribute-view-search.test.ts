@@ -274,6 +274,121 @@ describe('attribute view search', () => {
     expect(result.matches).toHaveLength(1)
     expect(result.matches[0]?.attributeView?.avID).toBe('av-6')
   })
+
+  it('merges rendered kanban card content when DOM only exposes titles and headers', async () => {
+    kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
+      { id: 'col-title', name: '标题' },
+    ])
+    kernelMocks.renderAttributeView.mockResolvedValue({
+      view: {
+        columns: [
+          { id: 'col-title', name: '标题', type: 'text' },
+        ],
+        groups: [{
+          id: 'group-1',
+          cards: [{
+            id: 'card-1',
+            itemID: 'card-1',
+            fields: [{
+              keyID: 'col-title',
+              value: {
+                text: {
+                  content: '看板里的传感器卡片',
+                },
+                type: 'text',
+              },
+            }],
+          }],
+        }],
+      },
+      viewID: 'view-kanban',
+      viewType: 'kanban',
+    })
+
+    const context = renderEditor(`
+      <div
+        data-node-id="av-block-7"
+        data-type="NodeAttributeView"
+        class="av"
+        data-av-id="av-7"
+        data-av-view-id="view-kanban"
+        data-av-type="kanban"
+      >
+        <div class="av__title">设备看板</div>
+        <div class="av__row av__row--header">
+          <div class="av__body">
+            <div class="av__cell av__cell--header"><div class="av__celltext">标题</div></div>
+          </div>
+        </div>
+      </div>
+    `)
+
+    const result = await searchAttributeViewMatches({
+      context,
+      options: DEFAULT_OPTIONS,
+      query: '传感器卡片',
+      startingBlockIndex: 0,
+    })
+
+    expect(result.matches).toHaveLength(1)
+    expect(result.matches[0]?.attributeView).toMatchObject({
+      avBlockId: 'av-block-7',
+      avID: 'av-7',
+      itemID: 'card-1',
+      keyID: 'col-title',
+      targetKind: 'cell',
+    })
+    expect(result.matches[0]?.previewText).toBe('标题: 看板里的[传感器卡片]')
+  })
+
+  it('ignores rendered fallback rows when the API returns a different view than the active kanban view', async () => {
+    kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
+      { id: 'col-title', name: '标题' },
+    ])
+    kernelMocks.renderAttributeView.mockResolvedValue({
+      view: {
+        columns: [
+          { id: 'col-title', name: '标题', type: 'text' },
+        ],
+        rows: [{
+          id: 'row-table-1',
+          cells: [{
+            keyID: 'col-title',
+            value: {
+              text: {
+                content: '默认表格里的传感器',
+              },
+              type: 'text',
+            },
+          }],
+        }],
+      },
+      viewID: 'view-table',
+      viewType: 'table',
+    })
+
+    const context = renderEditor(`
+      <div
+        data-node-id="av-block-8"
+        data-type="NodeAttributeView"
+        class="av"
+        data-av-id="av-8"
+        data-av-view-id="view-kanban"
+        data-av-type="kanban"
+      >
+        <div class="av__title">设备看板</div>
+      </div>
+    `)
+
+    const result = await searchAttributeViewMatches({
+      context,
+      options: DEFAULT_OPTIONS,
+      query: '默认表格里的传感器',
+      startingBlockIndex: 0,
+    })
+
+    expect(result.matches).toHaveLength(0)
+  })
 })
 
 function renderEditor(attributeViewDom: string): EditorContext {

@@ -23,7 +23,7 @@ export async function resolveAttributeViewSearchCandidates({
     attributeViewBlock,
     avID,
   })
-  if (domCandidates.length > 0) {
+  if (domCandidates.some(candidate => candidate.targetKind === 'cell')) {
     return domCandidates
   }
 
@@ -40,13 +40,23 @@ export async function resolveAttributeViewSearchCandidates({
     attributeViewKeys.map(key => [String(key.id ?? key.keyID ?? ''), resolveKeyName(key)] as const),
   )
 
-  return extractRenderedAttributeViewSearchCandidates({
+  if (!shouldUseRenderedAttributeViewCandidates({
+    attributeViewBlock,
+    renderedAttributeView,
+    requestedViewID: viewID,
+  })) {
+    return domCandidates
+  }
+
+  const renderedCandidates = extractRenderedAttributeViewSearchCandidates({
     attributeViewBlock,
     avID,
     columnIndexByKeyId,
     keyNameById,
     renderedAttributeView,
   })
+
+  return mergeAttributeViewSearchCandidates(domCandidates, renderedCandidates)
 }
 
 function extractDomAttributeViewSearchCandidates({
@@ -156,7 +166,7 @@ function collectDomAttributeViewRowCandidates({
   headerNames: string[]
 }) {
   return resolveDomAttributeViewRows(blockElement).flatMap((rowElement) => {
-    const rowID = rowElement.dataset.id?.trim() || undefined
+    const rowID = resolveDomAttributeViewRowId(rowElement)
     const rowCells = getDomAttributeViewRowCells(rowElement)
     const rowLabel = rowCells
       .map(cell => getAttributeViewDomText(cell))
@@ -349,8 +359,25 @@ function resolveRowLabel(row: any) {
 }
 
 function resolveDomAttributeViewRows(blockElement: HTMLElement) {
-  return Array.from(blockElement.querySelectorAll<HTMLElement>('.av__row[data-id], .av__gallery-item[data-id]'))
+  const explicitRows = Array.from(blockElement.querySelectorAll<HTMLElement>([
+    '.av__row[data-id]',
+    '.av__gallery-item[data-id]',
+    '.av__card[data-id]',
+    '.av__kanban-item[data-id]',
+    '[data-item-id]',
+    '[data-row-id]',
+  ].join(', ')))
     .filter(rowElement => !rowElement.classList.contains('av__row--header'))
+  if (explicitRows.length > 0) {
+    return getTopLevelElements(explicitRows)
+  }
+
+  const fallbackRows = Array.from(blockElement.querySelectorAll<HTMLElement>('[data-id]'))
+    .filter(rowElement => rowElement !== blockElement)
+    .filter(rowElement => !rowElement.classList.contains('av__row--header'))
+    .filter(rowElement => rowElement.querySelector('.av__cell, [data-av-key-id], [data-key-id], .av__celltext'))
+
+  return getTopLevelElements(fallbackRows)
 }
 
 function resolveDomAttributeViewHeaderCells(blockElement: HTMLElement) {
@@ -367,17 +394,36 @@ function getDomAttributeViewRowCells(rowElement: HTMLElement) {
     ?? rowElement.querySelector<HTMLElement>('.av__body')
     ?? rowElement
 
-  return Array.from(body.children)
+  const directCells = Array.from(body.children)
     .filter((child): child is HTMLElement => child instanceof HTMLElement)
     .filter(child => child.classList.contains('av__cell'))
     .filter(child => !child.classList.contains('av__cell--header'))
+  if (directCells.length > 0) {
+    return directCells
+  }
+
+  const descendantCells = Array.from(body.querySelectorAll<HTMLElement>('.av__cell'))
+    .filter(child => !child.classList.contains('av__cell--header'))
+  if (descendantCells.length > 0) {
+    return getTopLevelElements(descendantCells)
+  }
+
+  const keyedCells = Array.from(body.querySelectorAll<HTMLElement>('[data-av-key-id], [data-key-id]'))
+    .filter(child => !child.classList.contains('av__cell--header'))
+  if (keyedCells.length > 0) {
+    return getTopLevelElements(keyedCells)
+  }
+
+  return []
 }
 
 function resolveDomAttributeViewKeyId(cellElement: HTMLElement, columnIndex: number) {
   return cellElement.dataset.avKeyId?.trim()
     || cellElement.dataset.keyId?.trim()
+    || cellElement.dataset.columnId?.trim()
     || cellElement.querySelector<HTMLElement>('[data-av-key-id]')?.dataset.avKeyId?.trim()
     || cellElement.querySelector<HTMLElement>('[data-key-id]')?.dataset.keyId?.trim()
+    || cellElement.querySelector<HTMLElement>('[data-column-id]')?.dataset.columnId?.trim()
     || `__dom-col-${columnIndex}__`
 }
 
@@ -405,4 +451,90 @@ function getAttributeViewDomText(element: HTMLElement) {
   }
 
   return textParts.join('').replace(/\s+/g, ' ').trim()
+}
+
+function resolveDomAttributeViewRowId(rowElement: HTMLElement) {
+  return rowElement.dataset.id?.trim()
+    || rowElement.dataset.itemId?.trim()
+    || rowElement.dataset.rowId?.trim()
+    || undefined
+}
+
+function shouldUseRenderedAttributeViewCandidates({
+  attributeViewBlock,
+  renderedAttributeView,
+  requestedViewID,
+}: {
+  attributeViewBlock: AttributeViewBlockSummary
+  renderedAttributeView: any
+  requestedViewID?: string
+}) {
+  const normalizedRequestedViewID = requestedViewID?.trim()
+  const normalizedRenderedViewID = String(
+    renderedAttributeView?.viewID
+    ?? renderedAttributeView?.view?.id
+    ?? '',
+  ).trim()
+  if (
+    normalizedRequestedViewID
+    && normalizedRenderedViewID
+    && normalizedRequestedViewID !== normalizedRenderedViewID
+  ) {
+    return false
+  }
+
+  const expectedViewType = resolveAttributeViewTypeHint(attributeViewBlock)
+  const renderedViewType = String(
+    renderedAttributeView?.viewType
+    ?? renderedAttributeView?.view?.type
+    ?? '',
+  ).trim().toLowerCase()
+  if (expectedViewType && renderedViewType && expectedViewType !== renderedViewType) {
+    return false
+  }
+
+  return true
+}
+
+function resolveAttributeViewTypeHint(attributeViewBlock: AttributeViewBlockSummary) {
+  return attributeViewBlock.element.dataset.avType?.trim().toLowerCase()
+    || attributeViewBlock.element.getAttribute('data-av-type')?.trim().toLowerCase()
+    || ''
+}
+
+function mergeAttributeViewSearchCandidates(
+  domCandidates: AttributeViewCellCandidate[],
+  renderedCandidates: AttributeViewCellCandidate[],
+) {
+  const merged = [...domCandidates]
+  const seen = new Set(domCandidates.map(buildAttributeViewCandidateSignature))
+
+  renderedCandidates.forEach((candidate) => {
+    const signature = buildAttributeViewCandidateSignature(candidate)
+    if (seen.has(signature)) {
+      return
+    }
+
+    seen.add(signature)
+    merged.push(candidate)
+  })
+
+  return merged
+}
+
+function buildAttributeViewCandidateSignature(candidate: AttributeViewCellCandidate) {
+  return [
+    candidate.targetKind,
+    candidate.itemID ?? '',
+    candidate.rowID ?? '',
+    candidate.keyID,
+    candidate.text,
+  ].join('::')
+}
+
+function getTopLevelElements(elements: HTMLElement[]) {
+  return elements.filter((element, index) => (
+    elements.findIndex(candidate => candidate === element) === index
+      && !elements.some(candidate => candidate !== element && candidate.contains(element))
+  ))
 }
