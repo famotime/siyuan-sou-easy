@@ -117,6 +117,7 @@ import {
   onEditorContextChanged,
   openPanel,
   replaceCurrent,
+  setQuery,
   searchReplaceState,
 } from '@/features/search-replace/store'
 
@@ -250,6 +251,128 @@ describe('search store editor context fallback', () => {
     expect(searchReplaceState.currentTitle).toBe('Doc 1')
     expect(searchReplaceState.error).toBe('')
     expect(searchReplaceState.matches).toHaveLength(2)
+  })
+
+  it('clears stale matches and highlights immediately when the query changes from the panel input', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+    })
+    searchReplaceState.query = 'foo'
+
+    openPanel(true)
+    await flushRefresh()
+
+    expect(searchReplaceState.matches).toHaveLength(2)
+
+    searchReplaceState.currentIndex = 1
+    searchReplaceState.navigationHint = 'pending'
+    searchReplaceState.error = 'previous error'
+    searchReplaceState.minimapBlocks = [{
+      blockId: 'block-1',
+      blockIndex: 0,
+      blockType: 'NodeParagraph',
+    }]
+    searchReplaceState.searchableBlockCount = 1
+    editorMocks.clearSearchDecorations.mockClear()
+
+    setQuery('fo')
+
+    expect(searchReplaceState.query).toBe('fo')
+    expect(searchReplaceState.matches).toEqual([])
+    expect(searchReplaceState.minimapBlocks).toEqual([])
+    expect(searchReplaceState.searchableBlockCount).toBe(0)
+    expect(searchReplaceState.navigationHint).toBe('')
+    expect(searchReplaceState.error).toBe('')
+    expect(editorMocks.clearSearchDecorations).toHaveBeenCalledTimes(1)
+    expect(editorMocks.clearSearchDecorations).toHaveBeenCalledWith(editorMocks.state.context)
+  })
+
+  it('ignores stale async search results that finish after a newer query refresh', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+    })
+    openPanel(true)
+    await flushRefresh()
+
+    const firstSnapshot = createDeferred<{
+      blockCount: number
+      content: string
+      eof: boolean
+    }>()
+    let snapshotCallCount = 0
+
+    kernelMocks.getDocumentContent.mockImplementation(() => {
+      snapshotCallCount += 1
+      if (snapshotCallCount === 1) {
+        return firstSnapshot.promise
+      }
+
+      if (snapshotCallCount === 2) {
+        return Promise.resolve({
+          blockCount: 1,
+          content: '<div class="protyle-wysiwyg"><div data-node-id="block-1" data-type="NodeParagraph">fo</div></div>',
+          eof: true,
+        })
+      }
+
+      return Promise.resolve({
+        blockCount: 0,
+        content: '',
+        eof: true,
+      })
+    })
+    searchEngineMocks.findMatches.mockImplementation((_blocks, query) => ({
+      error: '',
+      matches: query === 'foo'
+        ? [{
+          blockId: 'block-1',
+          blockIndex: 0,
+          blockType: 'NodeParagraph',
+          end: 3,
+          id: 'foo-match',
+          matchedText: 'foo',
+          previewText: '[foo]',
+          replaceable: true,
+          rootId: 'root-1',
+          start: 0,
+        }]
+        : [{
+          blockId: 'block-1',
+          blockIndex: 0,
+          blockType: 'NodeParagraph',
+          end: 2,
+          id: 'fo-match',
+          matchedText: 'fo',
+          previewText: '[fo]o',
+          replaceable: true,
+          rootId: 'root-1',
+          start: 0,
+        }],
+    }))
+
+    setQuery('foo')
+    await vi.advanceTimersByTimeAsync(120)
+
+    setQuery('fo')
+    await vi.advanceTimersByTimeAsync(120)
+
+    expect(searchReplaceState.query).toBe('fo')
+    expect(searchReplaceState.matches).toHaveLength(1)
+    expect(searchReplaceState.matches[0]?.id).toBe('fo-match')
+
+    firstSnapshot.resolve({
+      blockCount: 1,
+      content: '<div class="protyle-wysiwyg"><div data-node-id="block-1" data-type="NodeParagraph">foo</div></div>',
+      eof: true,
+    })
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(searchReplaceState.query).toBe('fo')
+    expect(searchReplaceState.matches).toHaveLength(1)
+    expect(searchReplaceState.matches[0]?.id).toBe('fo-match')
   })
 
   it('does not overwrite a cached editor event context with a stale detected context when opening the panel', async () => {
@@ -434,6 +557,71 @@ describe('search store editor context fallback', () => {
     const blocks = searchEngineMocks.findMatches.mock.calls.at(-1)?.[0] as Array<{ blockId: string }>
     expect(blocks.map(block => block.blockId)).toEqual(['block-1', 'block-2'])
     expect(searchReplaceState.matches).toHaveLength(2)
+  })
+
+  it('prefers live editor blocks over stale snapshot content for already loaded blocks', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+    })
+
+    editorMocks.state.blocks = [{
+      blockId: 'block-1',
+      blockIndex: 0,
+      blockType: 'NodeParagraph',
+      element: {} as HTMLElement,
+      rootId: 'root-1',
+      text: 'bar',
+    }]
+    kernelMocks.getDocumentContent.mockResolvedValue({
+      blockCount: 2,
+      content: `
+        <div class="protyle-wysiwyg">
+          <div data-node-id="block-1" data-type="NodeParagraph">
+            <div contenteditable="true">foo</div>
+          </div>
+          <div data-node-id="block-2" data-type="NodeParagraph">
+            <div contenteditable="true">foo</div>
+          </div>
+        </div>
+      `,
+      eof: true,
+    })
+    searchEngineMocks.findMatches.mockImplementation((blocks, query) => ({
+      error: '',
+      matches: blocks.flatMap((block: any) => {
+        const start = block.text.indexOf(query)
+        if (start < 0) {
+          return []
+        }
+
+        return [{
+          blockId: block.blockId,
+          blockIndex: block.blockIndex,
+          blockType: block.blockType,
+          end: start + query.length,
+          id: `${block.blockId}:${start}:${start + query.length}`,
+          matchedText: query,
+          previewText: `[${query}]`,
+          replaceable: true,
+          rootId: block.rootId,
+          start,
+        }]
+      }),
+    }))
+
+    searchReplaceState.query = 'foo'
+
+    openPanel(true)
+    await flushRefresh()
+
+    const blocks = searchEngineMocks.findMatches.mock.calls.at(-1)?.[0] as Array<{ blockId: string, text: string }>
+    expect(blocks.map(block => ({ blockId: block.blockId, text: block.text.trim() }))).toEqual([
+      { blockId: 'block-1', text: 'bar' },
+      { blockId: 'block-2', text: 'foo' },
+    ])
+    expect(searchReplaceState.matches).toHaveLength(1)
+    expect(searchReplaceState.matches[0]?.blockId).toBe('block-2')
   })
 
   it('falls back to live editor blocks when document snapshot loading fails', async () => {
@@ -1772,6 +1960,18 @@ describe('search store editor context fallback', () => {
 
 async function flushRefresh() {
   await vi.runOnlyPendingTimersAsync()
+}
+
+function createDeferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((nextResolve) => {
+    resolve = nextResolve
+  })
+
+  return {
+    promise,
+    resolve,
+  }
 }
 
 function resetState() {

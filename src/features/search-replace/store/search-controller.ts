@@ -41,6 +41,8 @@ export function createSearchController({
   state,
 }: SearchControllerOptions) {
   let refreshTimer = 0
+  let latestRefreshRevision = 0
+  let pendingQueryIndex: number | null = null
 
   const pendingNavigation = createPendingNavigationController({
     getCurrentMatch,
@@ -107,7 +109,11 @@ export function createSearchController({
     scheduleRefresh(80)
   }
 
-  async function refreshMatches() {
+  async function refreshMatches(revision = ++latestRefreshRevision) {
+    if (revision > latestRefreshRevision) {
+      latestRefreshRevision = revision
+    }
+
     if (!state.visible) {
       return
     }
@@ -129,6 +135,10 @@ export function createSearchController({
     }
 
     const { blocks, documentContent } = await resolveBlocksForSearch(context, state.options)
+    if (revision !== latestRefreshRevision) {
+      return
+    }
+
     const selectionScope = state.options.selectionOnly
       ? resolveSelectionScope(context)
       : new Map()
@@ -154,6 +164,10 @@ export function createSearchController({
         query: state.query,
         startingBlockIndex: minimapBlocks.length,
       })
+      if (revision !== latestRefreshRevision) {
+        return
+      }
+
       minimapBlocks.push(...attributeViewSearch.blocks)
       matches = [...matches, ...attributeViewSearch.matches].sort((left, right) => {
         if (left.blockIndex !== right.blockIndex) {
@@ -177,11 +191,15 @@ export function createSearchController({
     if (!state.matches.length) {
       pendingNavigation.clearPendingNavigation()
       state.currentIndex = 0
+      pendingQueryIndex = null
       clearSearchDecorations(context)
       return
     }
 
-    if (state.currentIndex >= state.matches.length) {
+    if (typeof pendingQueryIndex === 'number') {
+      state.currentIndex = Math.min(Math.max(0, pendingQueryIndex), state.matches.length - 1)
+      pendingQueryIndex = null
+    } else if (state.currentIndex >= state.matches.length) {
       state.currentIndex = state.matches.length - 1
     }
 
@@ -201,8 +219,37 @@ export function createSearchController({
 
   function scheduleRefresh(delay = 120) {
     window.clearTimeout(refreshTimer)
+    const revision = ++latestRefreshRevision
     refreshTimer = window.setTimeout(() => {
-      void refreshMatches()
+      void refreshMatches(revision)
+    }, delay)
+  }
+
+  function handleQueryEdited(delay = 50) {
+    window.clearTimeout(refreshTimer)
+    latestRefreshRevision += 1
+    pendingQueryIndex = state.matches.length ? state.currentIndex : 0
+    pendingNavigation.clearPendingNavigation()
+    state.navigationHint = ''
+    state.error = ''
+    state.matches = []
+    state.minimapBlocks = []
+    state.searchableBlockCount = 0
+
+    const context = resolveEditorContext()
+    clearSearchDecorations(context)
+
+    if (!state.visible || !state.query.trim()) {
+      if (!state.query.trim()) {
+        state.currentIndex = 0
+        pendingQueryIndex = null
+      }
+      return
+    }
+
+    const revision = latestRefreshRevision
+    refreshTimer = window.setTimeout(() => {
+      void refreshMatches(revision)
     }, delay)
   }
 
@@ -245,6 +292,7 @@ export function createSearchController({
     resetSearchSession,
     revealCurrentMatch,
     resolveEditorContext,
+    handleQueryEdited,
     scheduleRefresh,
     unbindDocumentListeners,
   }
@@ -256,6 +304,7 @@ export function createSearchController({
 
   function resetMatches(error = '') {
     pendingNavigation.clearPendingNavigation()
+    pendingQueryIndex = null
     state.minimapBlocks = []
     state.searchableBlockCount = 0
     state.matches = []

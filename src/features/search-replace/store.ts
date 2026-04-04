@@ -148,7 +148,7 @@ export function closePanel() {
 
 export function setQuery(value: string) {
   searchReplaceState.query = value
-  searchController.scheduleRefresh()
+  searchController.handleQueryEdited()
 }
 
 export function setReplacement(value: string) {
