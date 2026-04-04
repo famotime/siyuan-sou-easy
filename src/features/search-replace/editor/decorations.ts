@@ -26,6 +26,11 @@ import type {
   ScrollMatchResult,
 } from '../types'
 
+interface ScrollTarget {
+  getRect: () => DOMRect | DOMRectReadOnly | null
+  precise: boolean
+}
+
 export function buildPreview(text: string, start: number, end: number, windowSize = 18) {
   const rawBefore = text.slice(Math.max(0, start - windowSize), start)
   const rawAfter = text.slice(end, Math.min(text.length, end + windowSize))
@@ -100,12 +105,18 @@ export function scrollMatchIntoView(
     return 'missing'
   }
   const verticalElement = resolveMatchVerticalTargetElement(context, match, element)
+  const inlineTarget = verticalElement !== element
+    ? createElementScrollTarget(element)
+    : resolvePreciseMatchScrollTarget(context, match, element)
+  const verticalTarget = verticalElement !== element
+    ? createElementScrollTarget(verticalElement)
+    : inlineTarget
 
   const visibilityContainers = resolveVisibilityContainers(context, element)
   if (
     mode === 'if-needed'
-    && isElementVisibleWithinContainers(element, visibilityContainers)
-    && isElementVisibleWithinContainers(verticalElement, visibilityContainers)
+    && isScrollTargetVisibleWithinContainers(inlineTarget, visibilityContainers)
+    && isScrollTargetVisibleWithinContainers(verticalTarget, visibilityContainers)
   ) {
     return 'visible'
   }
@@ -123,6 +134,14 @@ export function scrollMatchIntoView(
     })
     centerElementWithinContainers(verticalElement, visibilityContainers, 'y')
     centerElementWithinContainers(element, visibilityContainers, 'x')
+  } else if (inlineTarget.precise) {
+    safeScrollIntoView(element, {
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'nearest',
+    })
+    centerScrollTargetWithinContainers(inlineTarget, visibilityContainers, 'y')
+    centerScrollTargetWithinContainers(inlineTarget, visibilityContainers, 'x')
   } else {
     safeScrollIntoView(element, {
       behavior: 'smooth',
@@ -134,8 +153,11 @@ export function scrollMatchIntoView(
   return 'scrolled'
 }
 
-function isElementVisibleWithinContainers(element: HTMLElement, containers: HTMLElement[]) {
-  const elementRect = element.getBoundingClientRect()
+function isScrollTargetVisibleWithinContainers(target: ScrollTarget, containers: HTMLElement[]) {
+  const elementRect = target.getRect()
+  if (!elementRect) {
+    return false
+  }
 
   if (containers.some(container => !isRectVisibleWithinBoundary(elementRect, container.getBoundingClientRect()))) {
     return false
@@ -172,6 +194,61 @@ function safeScrollIntoView(
   }
 }
 
+function createElementScrollTarget(element: HTMLElement): ScrollTarget {
+  return {
+    getRect: () => element.getBoundingClientRect(),
+    precise: false,
+  }
+}
+
+function resolvePreciseMatchScrollTarget(
+  context: EditorContext,
+  match: SearchMatch,
+  fallbackElement: HTMLElement,
+): ScrollTarget {
+  const range = locateTextRange(context, match)
+  if (!range) {
+    return createElementScrollTarget(fallbackElement)
+  }
+
+  const initialRect = getRangeRect(range)
+  if (!initialRect) {
+    return createElementScrollTarget(fallbackElement)
+  }
+
+  return {
+    getRect: () => getRangeRect(range) ?? initialRect,
+    precise: true,
+  }
+}
+
+function getRangeRect(range: Range) {
+  const clientRects = typeof range.getClientRects === 'function'
+    ? Array.from(range.getClientRects())
+    : []
+  const firstVisibleRect = clientRects.find(rect => hasUsableRect(rect))
+  if (firstVisibleRect) {
+    return firstVisibleRect
+  }
+
+  const boundingRect = typeof range.getBoundingClientRect === 'function'
+    ? range.getBoundingClientRect()
+    : null
+  return hasUsableRect(boundingRect) ? boundingRect : null
+}
+
+function hasUsableRect(rect: DOMRect | DOMRectReadOnly | null | undefined) {
+  if (!rect) {
+    return false
+  }
+
+  return Number.isFinite(rect.top)
+    && Number.isFinite(rect.bottom)
+    && Number.isFinite(rect.left)
+    && Number.isFinite(rect.right)
+    && (rect.width > 0 || rect.height > 0)
+}
+
 function centerElementWithinContainers(
   element: HTMLElement,
   containers: HTMLElement[],
@@ -202,14 +279,60 @@ function centerElementWithinContainers(
       if (axis === 'y') {
         scrollContainerTo(container, {
           behavior: 'auto',
-          top: Math.max(0, (container.scrollTop || 0) + delta),
+          top: clampScrollOffset((container.scrollTop || 0) + delta, container, axis),
         })
         return
       }
 
       scrollContainerTo(container, {
         behavior: 'auto',
-        left: Math.max(0, (container.scrollLeft || 0) + delta),
+        left: clampScrollOffset((container.scrollLeft || 0) + delta, container, axis),
+      })
+    })
+}
+
+function centerScrollTargetWithinContainers(
+  target: ScrollTarget,
+  containers: HTMLElement[],
+  axis: 'x' | 'y',
+) {
+  containers
+    .slice()
+    .reverse()
+    .forEach((container) => {
+      if (!isContainerScrollableOnAxis(container, axis)) {
+        return
+      }
+
+      const targetRect = target.getRect()
+      if (!targetRect) {
+        return
+      }
+
+      const containerRect = container.getBoundingClientRect()
+      const targetCenter = axis === 'y'
+        ? (targetRect.top + targetRect.bottom) / 2
+        : (targetRect.left + targetRect.right) / 2
+      const containerCenter = axis === 'y'
+        ? (containerRect.top + containerRect.bottom) / 2
+        : (containerRect.left + containerRect.right) / 2
+      const delta = targetCenter - containerCenter
+
+      if (Math.abs(delta) <= 1) {
+        return
+      }
+
+      if (axis === 'y') {
+        scrollContainerTo(container, {
+          behavior: 'auto',
+          top: clampScrollOffset((container.scrollTop || 0) + delta, container, axis),
+        })
+        return
+      }
+
+      scrollContainerTo(container, {
+        behavior: 'auto',
+        left: clampScrollOffset((container.scrollLeft || 0) + delta, container, axis),
       })
     })
 }
@@ -220,6 +343,14 @@ function isContainerScrollableOnAxis(container: HTMLElement, axis: 'x' | 'y') {
   }
 
   return (container.scrollWidth || 0) > (container.clientWidth || 0)
+}
+
+function clampScrollOffset(offset: number, container: HTMLElement, axis: 'x' | 'y') {
+  const maxScrollOffset = axis === 'y'
+    ? Math.max(0, (container.scrollHeight || 0) - (container.clientHeight || 0))
+    : Math.max(0, (container.scrollWidth || 0) - (container.clientWidth || 0))
+
+  return Math.max(0, Math.min(maxScrollOffset, offset))
 }
 
 function applyTableCellHighlights(

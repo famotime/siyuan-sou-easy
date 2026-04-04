@@ -14,10 +14,14 @@ import type {
   SearchMatch,
 } from '@/features/search-replace/types'
 
+const originalRangeGetBoundingClientRect = Object.getOwnPropertyDescriptor(Range.prototype, 'getBoundingClientRect')
+const originalRangeGetClientRects = Object.getOwnPropertyDescriptor(Range.prototype, 'getClientRects')
+
 describe('match scrolling', () => {
   afterEach(() => {
     document.body.innerHTML = ''
     vi.restoreAllMocks()
+    restoreRangeMethods()
   })
 
   it('does not scroll when the current match is already visible and scrolling is if-needed', () => {
@@ -71,6 +75,186 @@ describe('match scrolling', () => {
     const result = scrollMatchIntoView(context, createMatch(), 'if-needed')
 
     expect(result).toBe('missing')
+  })
+
+  it('scrolls when a long paragraph block is visible but the matched text range is below the viewport', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-background" data-node-id="root-1"></div>
+        <div class="protyle-title" data-node-id="root-1"></div>
+        <input class="protyle-title__input" value="Doc 1" />
+        <div class="protyle-content">
+          <div class="protyle-wysiwyg">
+            <div data-node-id="block-1" data-type="NodeParagraph">
+              <div contenteditable="true">Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    const container = document.querySelector<HTMLElement>('.protyle-content')!
+    const block = document.querySelector<HTMLElement>('[data-node-id="block-1"]')!
+    const blockScrollSpy = vi.fn()
+    const containerScrollSpy = vi.fn()
+    block.scrollIntoView = blockScrollSpy
+    container.scrollTo = containerScrollSpy as any
+
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 300,
+    })
+    Object.defineProperty(container, 'scrollHeight', {
+      configurable: true,
+      value: 1200,
+    })
+    Object.defineProperty(container, 'scrollTop', {
+      configurable: true,
+      get: () => 0,
+      set: () => {},
+    })
+
+    vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
+      bottom: 400,
+      height: 300,
+      left: 0,
+      right: 320,
+      toJSON: () => ({}),
+      top: 100,
+      width: 320,
+      x: 0,
+      y: 100,
+    })
+    vi.spyOn(block, 'getBoundingClientRect').mockReturnValue({
+      bottom: 380,
+      height: 240,
+      left: 0,
+      right: 320,
+      toJSON: () => ({}),
+      top: 140,
+      width: 320,
+      x: 0,
+      y: 140,
+    })
+    mockRangeRects({
+      bottom: 500,
+      height: 24,
+      left: 0,
+      right: 120,
+      top: 476,
+      width: 120,
+      x: 0,
+      y: 476,
+    })
+
+    const result = scrollMatchIntoView(protyleContext(protyle), {
+      blockId: 'block-1',
+      blockIndex: 0,
+      blockType: 'NodeParagraph',
+      end: 16,
+      id: 'block-1:11:16',
+      matchedText: 'Gamma',
+      previewText: 'Alpha Beta [Gamma] Delta',
+      replaceable: true,
+      rootId: 'root-1',
+      start: 11,
+    }, 'if-needed')
+
+    expect(result).toBe('scrolled')
+    expect(containerScrollSpy).toHaveBeenCalled()
+    expect(blockScrollSpy).not.toHaveBeenCalledWith({
+      behavior: 'smooth',
+      block: 'center',
+      inline: 'center',
+    })
+  })
+
+  it('scrolls when a long code block is visible but the matched text range is below the viewport', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-background" data-node-id="root-1"></div>
+        <div class="protyle-title" data-node-id="root-1"></div>
+        <input class="protyle-title__input" value="Doc 1" />
+        <div class="protyle-content">
+          <div class="protyle-wysiwyg">
+            <div data-node-id="code-1" data-type="NodeCodeBlock">
+              <div contenteditable="true">const alpha = 1;\nconst beta = 2;\nconst gamma = 3;\nconst delta = 4;</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    const container = document.querySelector<HTMLElement>('.protyle-content')!
+    const block = document.querySelector<HTMLElement>('[data-node-id="code-1"]')!
+    const containerScrollSpy = vi.fn()
+    block.scrollIntoView = vi.fn()
+    container.scrollTo = containerScrollSpy as any
+
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 300,
+    })
+    Object.defineProperty(container, 'scrollHeight', {
+      configurable: true,
+      value: 1600,
+    })
+    Object.defineProperty(container, 'scrollTop', {
+      configurable: true,
+      get: () => 120,
+      set: () => {},
+    })
+
+    vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
+      bottom: 460,
+      height: 300,
+      left: 0,
+      right: 480,
+      toJSON: () => ({}),
+      top: 160,
+      width: 480,
+      x: 0,
+      y: 160,
+    })
+    vi.spyOn(block, 'getBoundingClientRect').mockReturnValue({
+      bottom: 430,
+      height: 220,
+      left: 0,
+      right: 480,
+      toJSON: () => ({}),
+      top: 210,
+      width: 480,
+      x: 0,
+      y: 210,
+    })
+    mockRangeRects({
+      bottom: 540,
+      height: 20,
+      left: 0,
+      right: 180,
+      top: 520,
+      width: 180,
+      x: 0,
+      y: 520,
+    })
+
+    const result = scrollMatchIntoView(protyleContext(protyle), {
+      blockId: 'code-1',
+      blockIndex: 0,
+      blockType: 'NodeCodeBlock',
+      end: 50,
+      id: 'code-1:45:50',
+      matchedText: 'gamma',
+      previewText: 'const beta = 2; const [gamma] = 3;',
+      replaceable: true,
+      rootId: 'root-1',
+      start: 45,
+    }, 'if-needed')
+
+    expect(result).toBe('scrolled')
+    expect(containerScrollSpy).toHaveBeenCalled()
   })
 
   it('scrolls the matched table cell instead of the whole table when the cell is outside the visible range', () => {
@@ -758,5 +942,57 @@ function createMatch(): SearchMatch {
     replaceable: true,
     rootId: 'root-1',
     start: 0,
+  }
+}
+
+function mockRangeRects(rect: DOMRectInit) {
+  const normalizedRect = {
+    bottom: rect.bottom ?? ((rect.y ?? rect.top ?? 0) + (rect.height ?? 0)),
+    height: rect.height ?? 0,
+    left: rect.left ?? rect.x ?? 0,
+    right: rect.right ?? ((rect.x ?? rect.left ?? 0) + (rect.width ?? 0)),
+    toJSON: () => ({}),
+    top: rect.top ?? rect.y ?? 0,
+    width: rect.width ?? 0,
+    x: rect.x ?? rect.left ?? 0,
+    y: rect.y ?? rect.top ?? 0,
+  }
+
+  if (!Object.getOwnPropertyDescriptor(Range.prototype, 'getBoundingClientRect')) {
+    Object.defineProperty(Range.prototype, 'getBoundingClientRect', {
+      configurable: true,
+      value() {
+        return normalizedRect
+      },
+      writable: true,
+    })
+  }
+  if (!Object.getOwnPropertyDescriptor(Range.prototype, 'getClientRects')) {
+    Object.defineProperty(Range.prototype, 'getClientRects', {
+      configurable: true,
+      value() {
+        return [normalizedRect]
+      },
+      writable: true,
+    })
+  }
+
+  vi.spyOn(Range.prototype, 'getBoundingClientRect').mockReturnValue(normalizedRect as DOMRect)
+  vi.spyOn(Range.prototype, 'getClientRects').mockReturnValue([
+    normalizedRect as DOMRect,
+  ] as unknown as DOMRectList)
+}
+
+function restoreRangeMethods() {
+  if (originalRangeGetBoundingClientRect) {
+    Object.defineProperty(Range.prototype, 'getBoundingClientRect', originalRangeGetBoundingClientRect)
+  } else {
+    delete (Range.prototype as Partial<Range>).getBoundingClientRect
+  }
+
+  if (originalRangeGetClientRects) {
+    Object.defineProperty(Range.prototype, 'getClientRects', originalRangeGetClientRects)
+  } else {
+    delete (Range.prototype as Partial<Range>).getClientRects
   }
 }
