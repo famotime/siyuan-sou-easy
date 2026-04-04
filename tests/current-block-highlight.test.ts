@@ -275,6 +275,58 @@ describe('current block highlight', () => {
     expect(protyle.querySelector('[data-key-id="col-title"]')?.classList.contains('sfsr-av-cell-current')).toBe(true)
   })
 
+  it('highlights only the matched kanban field when repeated text appears in multiple fields', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-wysiwyg">
+          <div data-node-id="av-block-kanban" data-type="NodeAttributeView" class="av" data-av-id="av-kanban" data-render="true">
+            <div class="av__kanban-item" data-id="item-kanban-1">
+              <div class="av__body">
+                <div class="av__cell"><div class="av__celltext">重复文本</div></div>
+                <div class="av__cell"><div class="av__celltext">重复文本</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector('.protyle') as HTMLElement
+    const context: EditorContext = {
+      protyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    const match: SearchMatch = {
+      attributeView: {
+        avBlockId: 'av-block-kanban',
+        avID: 'av-kanban',
+        columnName: '状态',
+        columnIndex: 1,
+        itemID: 'item-kanban-1',
+        keyID: '__dom-col-1__',
+        rowID: 'item-kanban-1',
+      },
+      blockId: 'av-block-kanban',
+      blockIndex: 0,
+      blockType: 'NodeAttributeView',
+      end: 4,
+      id: 'av:av-block-kanban:item-kanban-1:__dom-col-1__:0:4',
+      matchedText: '重复文本',
+      previewText: '状态: [重复文本]',
+      replaceable: false,
+      rootId: 'root-1',
+      sourceKind: 'attribute-view',
+      start: 0,
+    }
+
+    syncSearchDecorations(context, [match], match)
+
+    const cells = protyle.querySelectorAll<HTMLElement>('.av__kanban-item .av__cell')
+    expect(cells[0]?.classList.contains('sfsr-av-cell-current')).toBe(false)
+    expect(cells[1]?.classList.contains('sfsr-av-cell-current')).toBe(true)
+  })
+
   it('highlights the matched table cell instead of the whole table when text highlights are unavailable', () => {
     document.body.innerHTML = `
       <div class="protyle">

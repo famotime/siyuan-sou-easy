@@ -18,6 +18,10 @@ export function findAttributeViewCellElements(context: EditorContext, match: Sea
     return findAttributeViewTitleElements(blockElement, match)
   }
 
+  if (match.attributeView.targetKind === 'group-title') {
+    return findAttributeViewGroupTitleElements(blockElement, match)
+  }
+
   if (match.attributeView.targetKind === 'column-header') {
     return findAttributeViewHeaderCellElements(blockElement, match)
   }
@@ -63,7 +67,14 @@ function findAttributeViewRowElements(blockElement: HTMLElement, match: SearchMa
 
   rowIdentifiers.forEach((rowIdentifier) => {
     const escapedIdentifier = escapeAttributeValue(rowIdentifier)
-    blockElement.querySelectorAll<HTMLElement>(`.av__row[data-id="${escapedIdentifier}"], .av__gallery-item[data-id="${escapedIdentifier}"]`)
+    blockElement.querySelectorAll<HTMLElement>([
+      `.av__row[data-id="${escapedIdentifier}"]`,
+      `.av__gallery-item[data-id="${escapedIdentifier}"]`,
+      `.av__card[data-id="${escapedIdentifier}"]`,
+      `.av__kanban-item[data-id="${escapedIdentifier}"]`,
+      `[data-item-id="${escapedIdentifier}"]`,
+      `[data-row-id="${escapedIdentifier}"]`,
+    ].join(', '))
       .forEach((rowElement) => {
         if (!seen.has(rowElement)) {
           seen.add(rowElement)
@@ -80,10 +91,27 @@ function getAttributeViewRowCells(rowElement: HTMLElement) {
     ?? rowElement.querySelector<HTMLElement>('.av__body')
     ?? rowElement
 
-  return Array.from(body.children)
+  const directCells = Array.from(body.children)
     .filter((child): child is HTMLElement => child instanceof HTMLElement)
     .filter(child => child.classList.contains('av__cell'))
     .filter(child => !child.classList.contains('av__cell--header'))
+  if (directCells.length > 0) {
+    return directCells
+  }
+
+  const descendantCells = Array.from(body.querySelectorAll<HTMLElement>('.av__cell'))
+    .filter(child => !child.classList.contains('av__cell--header'))
+  if (descendantCells.length > 0) {
+    return getTopLevelElements(descendantCells)
+  }
+
+  const keyedCells = Array.from(body.querySelectorAll<HTMLElement>('[data-av-key-id], [data-key-id]'))
+    .filter(child => !child.classList.contains('av__cell--header'))
+  if (keyedCells.length > 0) {
+    return getTopLevelElements(keyedCells)
+  }
+
+  return []
 }
 
 function selectCellByColumnIndex(rowCells: HTMLElement[], match: SearchMatch) {
@@ -171,6 +199,14 @@ function findAttributeViewTitleElements(blockElement: HTMLElement, match: Search
   return [blockElement]
 }
 
+function findAttributeViewGroupTitleElements(blockElement: HTMLElement, match: SearchMatch) {
+  const candidates = Array.from(blockElement.querySelectorAll<HTMLElement>(
+    '.av__group-title, .av__group-name, .av__group-label',
+  ))
+
+  return candidates.filter(candidate => cellContainsMatchedText(candidate, match.matchedText))
+}
+
 function buildLegacyAttributeViewCellSelectors(match: SearchMatch) {
   const attributeView = match.attributeView
   if (!attributeView) {
@@ -205,4 +241,11 @@ function buildLegacyAttributeViewCellSelectors(match: SearchMatch) {
 
 function escapeAttributeValue(value: string) {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+}
+
+function getTopLevelElements(elements: HTMLElement[]) {
+  return elements.filter((element, index) => (
+    elements.findIndex(candidate => candidate === element) === index
+      && !elements.some(candidate => candidate !== element && candidate.contains(element))
+  ))
 }

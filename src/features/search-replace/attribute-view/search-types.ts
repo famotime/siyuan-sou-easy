@@ -19,5 +19,5 @@ export interface AttributeViewCellCandidate {
   rowID?: string
   rowLabel?: string
   text: string
-  targetKind: 'cell' | 'column-header' | 'view-name'
+  targetKind: 'cell' | 'column-header' | 'group-title' | 'view-name'
 }

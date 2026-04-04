@@ -132,15 +132,45 @@ describe('attribute view search', () => {
       startingBlockIndex: 0,
     })
 
-    expect(result.matches).toHaveLength(1)
-    expect(result.matches[0]?.attributeView).toMatchObject({
+    const rowMatch = result.matches.find(match => match.attributeView?.targetKind === 'cell')
+    expect(rowMatch).toBeDefined()
+    expect(rowMatch?.attributeView).toMatchObject({
       avBlockId: 'av-block-3',
       columnIndex: 0,
       itemID: 'item-3',
       rowID: 'item-3',
       targetKind: 'cell',
     })
-    expect(result.matches[0]?.previewText).toBe('分组里的[传感器]')
+    expect(rowMatch?.previewText).toBe('分组里的[传感器]')
+  })
+
+  it('searches grouped attribute view titles when API data is unavailable', async () => {
+    const context = renderEditor(`
+      <div data-node-id="av-block-group-title" data-type="NodeAttributeView" class="av" data-av-id="av-group-title" data-render="true">
+        <div class="av__group">
+          <div class="av__group-title">传感器分组</div>
+          <div class="av__row" data-id="item-group-title">
+            <div class="av__body">
+              <div class="av__cell"><div class="av__celltext">普通内容</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `)
+
+    const result = await searchAttributeViewMatches({
+      context,
+      options: DEFAULT_OPTIONS,
+      query: '传感器',
+      startingBlockIndex: 0,
+    })
+
+    expect(result.matches).toHaveLength(1)
+    expect(result.matches[0]?.attributeView).toMatchObject({
+      avBlockId: 'av-block-group-title',
+      targetKind: 'group-title',
+    })
+    expect(result.matches[0]?.previewText).toBe('[传感器]分组')
   })
 
   it('searches rendered number field content when DOM candidates are unavailable', async () => {
@@ -273,6 +303,52 @@ describe('attribute view search', () => {
     expect(kernelMocks.renderAttributeView).toHaveBeenCalledWith('av-6', 'view-6')
     expect(result.matches).toHaveLength(1)
     expect(result.matches[0]?.attributeView?.avID).toBe('av-6')
+  })
+
+  it('resolves view ids from sy-av-view block attrs when custom-sy-av-view is unavailable', async () => {
+    kernelMocks.getBlockAttrs.mockResolvedValue({
+      'custom-avs': '["av-6b"]',
+      'sy-av-view': 'view-6b',
+    })
+    kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
+      { id: 'col-title', name: '标题' },
+    ])
+    kernelMocks.renderAttributeView.mockResolvedValue({
+      view: {
+        columns: [
+          { id: 'col-title', name: '标题', type: 'text' },
+        ],
+        rows: [{
+          cells: [{
+            keyID: 'col-title',
+            value: {
+              text: {
+                content: '属性视图标题',
+              },
+              type: 'text',
+            },
+          }],
+          id: 'item-6b',
+        }],
+      },
+      viewType: 'kanban',
+      viewID: 'view-6b',
+    })
+
+    const context = renderEditor(`
+      <div data-node-id="av-block-6b" data-type="NodeAttributeView" class="av"></div>
+    `)
+
+    const result = await searchAttributeViewMatches({
+      context,
+      options: DEFAULT_OPTIONS,
+      query: '属性视图标题',
+      startingBlockIndex: 0,
+    })
+
+    expect(kernelMocks.renderAttributeView).toHaveBeenCalledWith('av-6b', 'view-6b')
+    expect(result.matches).toHaveLength(1)
+    expect(result.matches[0]?.attributeView?.avID).toBe('av-6b')
   })
 
   it('merges rendered kanban card content when DOM only exposes titles and headers', async () => {

@@ -81,6 +81,11 @@ function extractDomAttributeViewSearchCandidates({
     avID,
     blockElement,
   })
+  const groupTitleCandidates = collectDomAttributeViewGroupTitleCandidates({
+    attributeViewBlock,
+    avID,
+    blockElement,
+  })
   const headerNames = headerCandidates.map(candidate => candidate.columnName)
   const rowCandidates = collectDomAttributeViewRowCandidates({
     attributeViewBlock,
@@ -92,6 +97,7 @@ function extractDomAttributeViewSearchCandidates({
   return [
     ...titleCandidates,
     ...headerCandidates,
+    ...groupTitleCandidates,
     ...rowCandidates,
   ]
 }
@@ -150,6 +156,36 @@ function collectDomAttributeViewHeaderCandidates({
       keyID: resolveDomAttributeViewKeyId(cell, columnIndex),
       text,
       targetKind: 'column-header' as const,
+    }]
+  })
+}
+
+function collectDomAttributeViewGroupTitleCandidates({
+  attributeViewBlock,
+  avID,
+  blockElement,
+}: {
+  attributeViewBlock: AttributeViewBlockSummary
+  avID: string
+  blockElement: HTMLElement
+}) {
+  const seen = new Set<string>()
+  return Array.from(blockElement.querySelectorAll<HTMLElement>(
+    '.av__group-title, .av__group-name, .av__group-label',
+  )).flatMap((element, index) => {
+    const text = getAttributeViewDomText(element)
+    if (!text || seen.has(text)) {
+      return []
+    }
+
+    seen.add(text)
+    return [{
+      avBlockId: attributeViewBlock.avBlockId,
+      avID,
+      columnName: text,
+      keyID: `__dom-group-title-${index}__`,
+      text,
+      targetKind: 'group-title' as const,
     }]
   })
 }
@@ -218,6 +254,11 @@ function extractRenderedAttributeViewSearchCandidates({
       avID,
       renderedAttributeView,
     }),
+    ...extractRenderedAttributeViewGroupTitleCandidates({
+      attributeViewBlock,
+      avID,
+      renderedAttributeView,
+    }),
   ]
   const rows = resolveAttributeViewRows(renderedAttributeView)
   candidates.push(...rows.flatMap((row) => {
@@ -250,6 +291,46 @@ function extractRenderedAttributeViewSearchCandidates({
   }))
 
   return candidates
+}
+
+function extractRenderedAttributeViewGroupTitleCandidates({
+  attributeViewBlock,
+  avID,
+  renderedAttributeView,
+}: {
+  attributeViewBlock: AttributeViewBlockSummary
+  avID: string
+  renderedAttributeView: any
+}) {
+  const view = renderedAttributeView?.view ?? renderedAttributeView ?? {}
+  if (!Array.isArray(view.groups)) {
+    return []
+  }
+
+  const seen = new Set<string>()
+  return view.groups.flatMap((group: any, index: number) => {
+    const text = extractSearchableText(
+      group?.title
+      ?? group?.name
+      ?? group?.label
+      ?? group?.value
+      ?? group?.groupValue
+      ?? '',
+    )
+    if (!text || seen.has(text)) {
+      return []
+    }
+
+    seen.add(text)
+    return [{
+      avBlockId: attributeViewBlock.avBlockId,
+      avID,
+      columnName: text,
+      keyID: `__group-title-${String(group?.id ?? index)}__`,
+      text,
+      targetKind: 'group-title' as const,
+    }]
+  })
 }
 
 function extractRenderedAttributeViewTitleCandidates({

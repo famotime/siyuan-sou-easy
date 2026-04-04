@@ -103,13 +103,16 @@ function parseAttributeViewId(blockAttrs: Record<string, string>) {
 }
 
 function parseAttributeViewViewId(blockAttrs: Record<string, string>) {
-  return blockAttrs['custom-sy-av-view']?.trim() ?? ''
+  return blockAttrs['custom-sy-av-view']?.trim()
+    ?? blockAttrs['sy-av-view']?.trim()
+    ?? ''
 }
 
 function resolveAttributeViewViewIdFromElement(element: HTMLElement) {
   return element.dataset.avViewId?.trim()
     || element.dataset.syAvView?.trim()
     || element.getAttribute('data-av-view-id')?.trim()
+    || element.getAttribute('sy-av-view')?.trim()
     || element.getAttribute('custom-sy-av-view')?.trim()
     || ''
 }
