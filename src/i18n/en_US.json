@@ -44,6 +44,7 @@
   "replaceAllConfirm": "Replace {count} matches in the current document?",
   "replaceAllResult": "Replacement complete: {replacedCount} replaced, {skippedCount} skipped",
   "currentDocumentMissing": "Current document not found",
+  "searchPending": "Searching and counting matches. Please wait.",
   "navigationPending": "Locating the current match. Content is still loading and the panel will scroll to it automatically.",
   "selectionOnlyNoScope": "Selection-only mode is enabled, but there is no active selection",
   "attributeViewSearchPartial": "Database results may be incomplete. Only the currently returned rows were searched.",

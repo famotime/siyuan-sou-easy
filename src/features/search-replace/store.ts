@@ -138,6 +138,7 @@ export function openPanel(forceVisible?: boolean, replaceVisible?: boolean) {
 export function closePanel() {
   searchReplaceState.visible = false
   searchReplaceState.busy = false
+  searchReplaceState.searching = false
   searchReplaceState.error = ''
   searchReplaceState.navigationHint = ''
   searchReplaceState.minimapBlocks = []

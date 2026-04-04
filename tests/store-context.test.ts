@@ -375,6 +375,35 @@ describe('search store editor context fallback', () => {
     expect(searchReplaceState.matches[0]?.id).toBe('fo-match')
   })
 
+  it('marks the panel as searching while long-document matches are still loading and clears it after completion', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+    })
+    searchReplaceState.query = 'foo'
+
+    const snapshot = createDeferred<{
+      blockCount: number
+      content: string
+      eof: boolean
+    }>()
+    kernelMocks.getDocumentContent.mockImplementation(() => snapshot.promise)
+
+    openPanel(true)
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect((searchReplaceState as any).searching).toBe(true)
+
+    snapshot.resolve({
+      blockCount: 1,
+      content: '<div class="protyle-wysiwyg"><div data-node-id="block-1" data-type="NodeParagraph">foo</div></div>',
+      eof: true,
+    })
+    await flushRefresh()
+
+    expect((searchReplaceState as any).searching).toBe(false)
+  })
+
   it('does not overwrite a cached editor event context with a stale detected context when opening the panel', async () => {
     applyPluginSettings({
       ...DEFAULT_SETTINGS,
@@ -1601,6 +1630,98 @@ describe('search store editor context fallback', () => {
     await vi.runAllTimersAsync()
 
     expect(searchReplaceState.navigationHint).toBe('')
+  })
+
+  it('pushes the viewport to the current lazy-load boundary when the target match is beyond the loaded block range', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-background" data-node-id="root-1"></div>
+        <div class="protyle-title" data-node-id="root-1"></div>
+        <input class="protyle-title__input" value="Doc 1" />
+        <div class="protyle-content">
+          <div class="protyle-wysiwyg">
+            <div data-node-id="block-1" data-type="NodeParagraph"><div contenteditable="true">foo</div></div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    const scrollContainer = document.querySelector<HTMLElement>('.protyle-content')!
+    let scrollTop = 0
+
+    Object.defineProperty(scrollContainer, 'clientHeight', {
+      configurable: true,
+      value: 300,
+    })
+    Object.defineProperty(scrollContainer, 'scrollHeight', {
+      configurable: true,
+      value: 1200,
+    })
+    Object.defineProperty(scrollContainer, 'scrollTop', {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value: number) => {
+        scrollTop = value
+      },
+    })
+    scrollContainer.scrollTo = vi.fn(({ top }: { top?: number }) => {
+      scrollTop = top ?? scrollTop
+    }) as any
+
+    editorMocks.state.context = {
+      protyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    editorMocks.scrollMatchIntoView.mockImplementation((_context, match) => {
+      if (match?.id === 'block-8:0:3') {
+        return 'missing'
+      }
+
+      return 'visible'
+    })
+
+    searchReplaceState.visible = true
+    searchReplaceState.matches = [
+      {
+        blockId: 'block-1',
+        blockIndex: 0,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-1:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+      {
+        blockId: 'block-8',
+        blockIndex: 7,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-8:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+    ]
+    searchReplaceState.currentIndex = 0
+    searchReplaceState.searchableBlockCount = 10
+    searchReplaceState.minimapBlocks = Array.from({ length: 10 }, (_, index) => ({
+      blockId: `block-${index + 1}`,
+      blockIndex: index,
+      blockType: 'NodeParagraph',
+    }))
+
+    goNext()
+
+    expect(searchReplaceState.currentIndex).toBe(1)
+    expect(scrollContainer.scrollTo).toHaveBeenCalled()
+    expect(scrollTop).toBe(900)
   })
 
   it('abandons pending navigation after repeated misses and clears the loading hint', async () => {

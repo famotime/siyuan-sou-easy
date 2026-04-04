@@ -39,6 +39,7 @@ describe('search panel i18n', () => {
         findPlaceholder: 'Find',
         matchCase: 'Match case',
         matchCounter: '{current} / {total}',
+        searchPending: 'Searching and counting matches. Please wait.',
         navigationPending: 'Locating the current match. Content is still loading and the panel will scroll to it automatically.',
         nextMatch: 'Next match',
         previousMatch: 'Previous match',

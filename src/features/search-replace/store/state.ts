@@ -38,6 +38,7 @@ export interface SearchReplaceState {
   currentIndex: number
   error: string
   busy: boolean
+  searching: boolean
 }
 
 function createInitialSearchReplaceState(): SearchReplaceState {
@@ -60,6 +61,7 @@ function createInitialSearchReplaceState(): SearchReplaceState {
     currentIndex: 0,
     error: '',
     busy: false,
+    searching: false,
   }
 }
 

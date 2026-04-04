@@ -115,12 +115,14 @@ export function createSearchController({
     }
 
     if (!state.visible) {
+      state.searching = false
       return
     }
 
     const context = resolveEditorContext()
     documentEvents.syncLiveRefreshObserver(context)
     if (!context) {
+      state.searching = false
       resetMatches(t('currentDocumentMissing'))
       clearSearchDecorations()
       return
@@ -129,81 +131,89 @@ export function createSearchController({
     applyResolvedContext(context)
 
     if (!state.query.trim()) {
+      state.searching = false
       resetMatches()
       clearSearchDecorations(context)
       return
     }
 
-    const { blocks, documentContent } = await resolveBlocksForSearch(context, state.options)
-    if (revision !== latestRefreshRevision) {
-      return
-    }
-
-    const selectionScope = state.options.selectionOnly
-      ? resolveSelectionScope(context)
-      : new Map()
-    if (state.options.selectionOnly && selectionScope.size === 0) {
-      const validation = findMatches([], state.query, state.options)
-      resetMatches(validation.error || t('selectionOnlyNoScope'))
-      clearSearchDecorations(context)
-      return
-    }
-
-    const result = findMatches(blocks, state.query, state.options, selectionScope)
-    const minimapBlocks = blocks.map(block => ({
-      blockId: block.blockId,
-      blockIndex: block.blockIndex,
-      blockType: block.blockType,
-    }))
-    let matches = result.matches
-    if (!result.error) {
-      const attributeViewSearch = await searchAttributeViewMatches({
-        context,
-        documentContent,
-        options: state.options,
-        query: state.query,
-        startingBlockIndex: minimapBlocks.length,
-      })
+    state.searching = true
+    try {
+      const { blocks, documentContent } = await resolveBlocksForSearch(context, state.options)
       if (revision !== latestRefreshRevision) {
         return
       }
 
-      minimapBlocks.push(...attributeViewSearch.blocks)
-      matches = [...matches, ...attributeViewSearch.matches].sort((left, right) => {
-        if (left.blockIndex !== right.blockIndex) {
-          return left.blockIndex - right.blockIndex
+      const selectionScope = state.options.selectionOnly
+        ? resolveSelectionScope(context)
+        : new Map()
+      if (state.options.selectionOnly && selectionScope.size === 0) {
+        const validation = findMatches([], state.query, state.options)
+        resetMatches(validation.error || t('selectionOnlyNoScope'))
+        clearSearchDecorations(context)
+        return
+      }
+
+      const result = findMatches(blocks, state.query, state.options, selectionScope)
+      const minimapBlocks = blocks.map(block => ({
+        blockId: block.blockId,
+        blockIndex: block.blockIndex,
+        blockType: block.blockType,
+      }))
+      let matches = result.matches
+      if (!result.error) {
+        const attributeViewSearch = await searchAttributeViewMatches({
+          context,
+          documentContent,
+          options: state.options,
+          query: state.query,
+          startingBlockIndex: minimapBlocks.length,
+        })
+        if (revision !== latestRefreshRevision) {
+          return
         }
-        return left.id.localeCompare(right.id)
+
+        minimapBlocks.push(...attributeViewSearch.blocks)
+        matches = [...matches, ...attributeViewSearch.matches].sort((left, right) => {
+          if (left.blockIndex !== right.blockIndex) {
+            return left.blockIndex - right.blockIndex
+          }
+          return left.id.localeCompare(right.id)
+        })
+      }
+
+      state.minimapBlocks = minimapBlocks
+      state.searchableBlockCount = minimapBlocks.length
+      state.error = result.error
+      state.matches = matches
+      debugLog('refresh-matches', {
+        error: result.error,
+        matchCount: matches.length,
+        query: state.query,
+        rootId: context.rootId,
       })
+
+      if (!state.matches.length) {
+        pendingNavigation.clearPendingNavigation()
+        state.currentIndex = 0
+        pendingQueryIndex = null
+        clearSearchDecorations(context)
+        return
+      }
+
+      if (typeof pendingQueryIndex === 'number') {
+        state.currentIndex = Math.min(Math.max(0, pendingQueryIndex), state.matches.length - 1)
+        pendingQueryIndex = null
+      } else if (state.currentIndex >= state.matches.length) {
+        state.currentIndex = state.matches.length - 1
+      }
+
+      revealCurrentMatch(context, 'none')
+    } finally {
+      if (revision === latestRefreshRevision) {
+        state.searching = false
+      }
     }
-
-    state.minimapBlocks = minimapBlocks
-    state.searchableBlockCount = minimapBlocks.length
-    state.error = result.error
-    state.matches = matches
-    debugLog('refresh-matches', {
-      error: result.error,
-      matchCount: matches.length,
-      query: state.query,
-      rootId: context.rootId,
-    })
-
-    if (!state.matches.length) {
-      pendingNavigation.clearPendingNavigation()
-      state.currentIndex = 0
-      pendingQueryIndex = null
-      clearSearchDecorations(context)
-      return
-    }
-
-    if (typeof pendingQueryIndex === 'number') {
-      state.currentIndex = Math.min(Math.max(0, pendingQueryIndex), state.matches.length - 1)
-      pendingQueryIndex = null
-    } else if (state.currentIndex >= state.matches.length) {
-      state.currentIndex = state.matches.length - 1
-    }
-
-    revealCurrentMatch(context, 'none')
   }
 
   function resolveEditorContext() {
@@ -230,6 +240,7 @@ export function createSearchController({
     latestRefreshRevision += 1
     pendingQueryIndex = state.matches.length ? state.currentIndex : 0
     pendingNavigation.clearPendingNavigation()
+    state.searching = false
     state.navigationHint = ''
     state.error = ''
     state.matches = []
@@ -305,6 +316,7 @@ export function createSearchController({
   function resetMatches(error = '') {
     pendingNavigation.clearPendingNavigation()
     pendingQueryIndex = null
+    state.searching = false
     state.minimapBlocks = []
     state.searchableBlockCount = 0
     state.matches = []

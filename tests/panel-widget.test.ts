@@ -222,6 +222,72 @@ describe('search panel replace toggle', () => {
     expect(host?.querySelector('.sfsr-options-panel')).toBeNull()
   })
 
+  it('shows a prominent loading indicator while pending navigation is waiting for lazy-loaded content', async () => {
+    mountPanel()
+    applyPluginSettings({ ...DEFAULT_SETTINGS })
+    searchReplaceState.navigationHint = '正在定位命中内容，等待编辑器继续加载...'
+    openPanel(true)
+    await nextTick()
+
+    const status = host?.querySelector<HTMLElement>('.sfsr-status')
+    const spinner = host?.querySelector<HTMLElement>('.sfsr-status__spinner')
+
+    expect(status).not.toBeNull()
+    expect(status?.classList.contains('sfsr-status--pending')).toBe(true)
+    expect(status?.getAttribute('role')).toBe('status')
+    expect(status?.getAttribute('aria-live')).toBe('polite')
+    expect(spinner).not.toBeNull()
+    expect(spinner?.getAttribute('aria-hidden')).toBe('true')
+    expect(status?.textContent).toContain('正在定位命中内容，等待编辑器继续加载...')
+  })
+
+  it('renders the pending navigation hint on a separate line instead of joining it with the match preview', async () => {
+    mountPanel()
+    applyPluginSettings({ ...DEFAULT_SETTINGS })
+    searchReplaceState.query = 'foo'
+    searchReplaceState.matches = [{
+      blockId: 'block-1',
+      blockIndex: 0,
+      blockType: 'NodeParagraph',
+      end: 3,
+      id: 'block-1:0:3',
+      matchedText: 'foo',
+      previewText: '前文 [foo] 后文',
+      replaceable: true,
+      rootId: 'root-1',
+      start: 0,
+    }] as any
+    searchReplaceState.navigationHint = '正在定位命中内容，等待编辑器继续加载...'
+    openPanel(true)
+    await nextTick()
+
+    const lines = Array.from(host?.querySelectorAll<HTMLElement>('.sfsr-status__line') ?? [])
+
+    expect(lines).toHaveLength(2)
+    expect(lines[0]?.textContent).toContain('前文 [foo] 后文')
+    expect(lines[1]?.textContent).toContain('正在定位命中内容，等待编辑器继续加载...')
+    expect(lines[1]?.classList.contains('sfsr-status__line--pending')).toBe(true)
+  })
+
+  it('shows a loading indicator while search results are still being computed', async () => {
+    mountPanel()
+    applyPluginSettings({ ...DEFAULT_SETTINGS })
+    searchReplaceState.query = 'foo'
+    ;(searchReplaceState as any).searching = true
+    openPanel(true)
+    await nextTick()
+
+    const status = host?.querySelector<HTMLElement>('.sfsr-status')
+    const spinner = host?.querySelector<HTMLElement>('.sfsr-status__spinner')
+    const lines = Array.from(host?.querySelectorAll<HTMLElement>('.sfsr-status__line') ?? [])
+
+    expect(status).not.toBeNull()
+    expect(status?.classList.contains('sfsr-status--pending')).toBe(true)
+    expect(spinner).not.toBeNull()
+    expect(lines).toHaveLength(1)
+    expect(lines[0]?.textContent).toContain('正在搜索并统计命中结果')
+  })
+
   it('opens with a narrower default width to keep the toolbar compact', async () => {
     mountPanel()
     applyPluginSettings({ ...DEFAULT_SETTINGS })

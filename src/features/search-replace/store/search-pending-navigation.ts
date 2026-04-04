@@ -97,16 +97,16 @@ export function createPendingNavigationController({
       return false
     }
 
-    const ratio = (match.blockIndex + 0.5) / state.searchableBlockCount
     const scrollHeight = Math.max(scrollContainer.scrollHeight || 0, scrollContainer.clientHeight || 0, 1)
     const clientHeight = Math.max(scrollContainer.clientHeight || 0, 1)
-    const nextScrollTop = Math.max(
-      0,
-      Math.min(
-        Math.max(0, scrollHeight - clientHeight),
-        (ratio * scrollHeight) - (clientHeight / 2),
-      ),
-    )
+    const maxScrollTop = Math.max(0, scrollHeight - clientHeight)
+    const loadedBlockRange = resolveLoadedBlockRange(context)
+    const nextScrollTop = resolveApproximateScrollTop(match, {
+      clientHeight,
+      loadedBlockRange,
+      maxScrollTop,
+      scrollHeight,
+    })
 
     if (typeof scrollContainer.scrollTo === 'function') {
       scrollContainer.scrollTo({
@@ -118,5 +118,64 @@ export function createPendingNavigationController({
     }
 
     return true
+  }
+
+  function resolveApproximateScrollTop(
+    match: SearchMatch,
+    {
+      clientHeight,
+      loadedBlockRange,
+      maxScrollTop,
+      scrollHeight,
+    }: {
+      clientHeight: number
+      loadedBlockRange: { max: number, min: number } | null
+      maxScrollTop: number
+      scrollHeight: number
+    },
+  ) {
+    if (loadedBlockRange) {
+      if (match.blockIndex > loadedBlockRange.max) {
+        return maxScrollTop
+      }
+
+      if (match.blockIndex < loadedBlockRange.min) {
+        return 0
+      }
+    }
+
+    const ratio = (match.blockIndex + 0.5) / state.searchableBlockCount
+    return Math.max(
+      0,
+      Math.min(
+        maxScrollTop,
+        (ratio * scrollHeight) - (clientHeight / 2),
+      ),
+    )
+  }
+
+  function resolveLoadedBlockRange(context: EditorContext) {
+    const blockIndexById = new Map(state.minimapBlocks.map(block => [block.blockId, block.blockIndex]))
+    if (!blockIndexById.size) {
+      return null
+    }
+
+    const loadedIndexes = Array.from(
+      context.protyle.querySelectorAll<HTMLElement>('.protyle-wysiwyg [data-node-id]'),
+    )
+      .map((element) => {
+        const blockId = element.dataset.nodeId
+        return blockId ? blockIndexById.get(blockId) : undefined
+      })
+      .filter((blockIndex): blockIndex is number => typeof blockIndex === 'number')
+
+    if (!loadedIndexes.length) {
+      return null
+    }
+
+    return {
+      max: Math.max(...loadedIndexes),
+      min: Math.min(...loadedIndexes),
+    }
   }
 }

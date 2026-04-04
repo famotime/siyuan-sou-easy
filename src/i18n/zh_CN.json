@@ -44,6 +44,7 @@
   "replaceAllConfirm": "确定替换当前文档内的 {count} 处命中吗？",
   "replaceAllResult": "替换完成：{replacedCount} 处，跳过 {skippedCount} 处",
   "currentDocumentMissing": "未找到当前文档",
+  "searchPending": "正在搜索并统计命中结果，请稍候",
   "navigationPending": "正在定位当前命中，等待内容加载后将自动滚动到对应位置",
   "selectionOnlyNoScope": "选区模式已开启，但当前没有可用选区",
   "attributeViewSearchPartial": "数据库结果可能未完整加载，当前仅搜索已返回的数据",

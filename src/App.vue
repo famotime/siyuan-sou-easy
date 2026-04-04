@@ -82,11 +82,40 @@
     </div>
 
     <div
-      v-if="statusText"
+      v-if="hasStatus"
       class="sfsr-status"
-      :class="{ 'sfsr-status--error': Boolean(state.error) }"
+      :class="{
+        'sfsr-status--error': Boolean(state.error),
+        'sfsr-status--pending': hasPendingStatus,
+      }"
+      :aria-live="hasPendingStatus ? 'polite' : undefined"
+      :role="hasPendingStatus ? 'status' : undefined"
     >
-      {{ statusText }}
+      <span
+        v-if="hasPendingStatus"
+        aria-hidden="true"
+        class="sfsr-status__spinner"
+      />
+      <span class="sfsr-status__content">
+        <span
+          v-if="primaryStatusText"
+          class="sfsr-status__line"
+        >
+          {{ primaryStatusText }}
+        </span>
+        <span
+          v-if="navigationStatusText"
+          class="sfsr-status__line sfsr-status__line--pending"
+        >
+          {{ navigationStatusText }}
+        </span>
+        <span
+          v-if="secondaryStatusText"
+          class="sfsr-status__line"
+        >
+          {{ secondaryStatusText }}
+        </span>
+      </span>
     </div>
   </div>
 
@@ -206,31 +235,56 @@ const regexHelpExamples = computed(() => [
   },
 ])
 const showRegexHelp = computed(() => state.options.useRegex)
+const isPendingNavigation = computed(() => Boolean(state.navigationHint) && !state.error)
+const isSearching = computed(() => Boolean(state.searching) && !state.error)
+const hasPendingStatus = computed(() => isPendingNavigation.value || isSearching.value)
+const primaryStatusText = computed(() => {
+  if (state.error) {
+    return state.error
+  }
+
+  return currentMatch.value?.previewText ?? ''
+})
+const navigationStatusText = computed(() => {
+  if (state.error) {
+    return ''
+  }
+
+  if (state.navigationHint) {
+    return state.navigationHint
+  }
+
+  if (state.searching) {
+    return t('searchPending')
+  }
+
+  return ''
+})
+const secondaryStatusText = computed(() => {
+  if (state.error) {
+    return ''
+  }
+
+  if (currentMatch.value && isAttributeViewMatch(currentMatch.value)) {
+    return t('replaceAttributeViewUnsupported')
+  }
+
+  if (currentMatch.value && !currentMatch.value.replaceable) {
+    return t('replaceCurrentUnsupported')
+  }
+
+  return ''
+})
+const hasStatus = computed(() => Boolean(
+  primaryStatusText.value
+  || navigationStatusText.value
+  || secondaryStatusText.value,
+))
 const counterText = computed(() => {
   const current = state.query && state.matches.length ? state.currentIndex + 1 : 0
   const total = state.query ? state.matches.length : 0
 
   return t('matchCounter', { current, total })
-})
-
-const statusText = computed(() => {
-  if (state.error) {
-    return state.error
-  }
-
-  const parts: string[] = []
-  if (currentMatch.value?.previewText) {
-    parts.push(currentMatch.value.previewText)
-  }
-  if (state.navigationHint) {
-    parts.push(state.navigationHint)
-  }
-  if (currentMatch.value && isAttributeViewMatch(currentMatch.value)) {
-    parts.push(t('replaceAttributeViewUnsupported'))
-  } else if (currentMatch.value && !currentMatch.value.replaceable) {
-    parts.push(t('replaceCurrentUnsupported'))
-  }
-  return parts.join(' · ')
 })
 
 const canReplaceCurrent = computed(() => Boolean(currentMatch.value?.replaceable) && !state.busy)
