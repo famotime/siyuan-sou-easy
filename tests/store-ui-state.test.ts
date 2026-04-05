@@ -45,6 +45,7 @@ const editorMocks = vi.hoisted(() => {
       ['block-1', [{ end: 3, start: 0 }]],
     ])),
     getCurrentSelectionText: vi.fn(() => ''),
+    isMatchVisible: vi.fn(() => true),
     getUniqueBlockElements: vi.fn((root: ParentNode) => Array.from(root.querySelectorAll<HTMLElement>('[data-node-id][data-type]'))),
     scrollMatchIntoView: vi.fn(),
     syncSearchDecorations: vi.fn(),

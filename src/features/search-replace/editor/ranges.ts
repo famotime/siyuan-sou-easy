@@ -38,16 +38,12 @@ export function locateTextRange(context: EditorContext, match: SearchMatch) {
     return null
   }
 
-  const startPoint = locateTextPoint(textNodes, match.start)
-  const endPoint = locateTextPoint(textNodes, match.end)
-  if (!startPoint || !endPoint) {
-    return null
+  const directRange = createRangeFromOffsets(textNodes, match.start, match.end)
+  if (directRange?.toString() === match.matchedText) {
+    return directRange
   }
 
-  const range = document.createRange()
-  range.setStart(startPoint.node, startPoint.offset)
-  range.setEnd(endPoint.node, endPoint.offset)
-  return range
+  return locateTextRangeInTextNodes(textNodes, match.matchedText, match.start)
 }
 
 export function locateRangeInSingleTextNode(blockElement: HTMLElement, start: number, end: number): TextRangeLocation | null {
@@ -125,6 +121,10 @@ function locateTextPoint(textNodes: Text[], targetOffset: number): TextPoint | n
 
 function locateTextRangeInContainer(container: HTMLElement, matchedText: string, preferredStart: number) {
   const textNodes = collectDescendantTextNodes(container)
+  return locateTextRangeInTextNodes(textNodes, matchedText, preferredStart)
+}
+
+function locateTextRangeInTextNodes(textNodes: Text[], matchedText: string, preferredStart: number) {
   if (!textNodes.length || !matchedText) {
     return null
   }
@@ -137,8 +137,12 @@ function locateTextRangeInContainer(container: HTMLElement, matchedText: string,
     return null
   }
 
-  const startPoint = locateTextPoint(textNodes, start)
-  const endPoint = locateTextPoint(textNodes, start + matchedText.length)
+  return createRangeFromOffsets(textNodes, start, start + matchedText.length)
+}
+
+function createRangeFromOffsets(textNodes: Text[], startOffset: number, endOffset: number) {
+  const startPoint = locateTextPoint(textNodes, startOffset)
+  const endPoint = locateTextPoint(textNodes, endOffset)
   if (!startPoint || !endPoint) {
     return null
   }

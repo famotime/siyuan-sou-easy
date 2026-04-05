@@ -77,6 +77,82 @@ describe('match scrolling', () => {
     expect(result).toBe('missing')
   })
 
+  it('reports missing when only a metadata element with the same node id exists', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-background" data-node-id="root-1"></div>
+        <div class="protyle-title" data-node-id="root-1"></div>
+        <input class="protyle-title__input" value="Doc 1" />
+        <div class="protyle-content">
+          <div class="protyle-wysiwyg">
+            <div class="protyle-attr" data-node-id="block-1"></div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+
+    const result = scrollMatchIntoView(protyleContext(protyle), createMatch(), 'if-needed')
+
+    expect(result).toBe('missing')
+  })
+
+  it('prefers the renderable editor block when duplicate node ids exist in the DOM', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-background" data-node-id="root-1"></div>
+        <div class="protyle-title" data-node-id="root-1"></div>
+        <input class="protyle-title__input" value="Doc 1" />
+        <div class="protyle-content">
+          <div class="protyle-wysiwyg">
+            <div data-node-id="block-1" data-type="NodeParagraph" class="fn__none">
+              <div contenteditable="true">foo bar</div>
+            </div>
+            <div data-node-id="block-1" data-type="NodeParagraph">
+              <div contenteditable="true">foo bar</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    const duplicatedBlocks = document.querySelectorAll<HTMLElement>('.protyle-wysiwyg [data-node-id="block-1"][data-type="NodeParagraph"]')
+    const hiddenBlock = duplicatedBlocks[0]!
+    const realBlock = duplicatedBlocks[1]!
+    const scrollSpy = vi.fn()
+    realBlock.scrollIntoView = scrollSpy
+
+    vi.spyOn(hiddenBlock, 'getBoundingClientRect').mockReturnValue({
+      bottom: 0,
+      height: 0,
+      left: 0,
+      right: 0,
+      toJSON: () => ({}),
+      top: 0,
+      width: 0,
+      x: 0,
+      y: 0,
+    })
+    vi.spyOn(realBlock, 'getBoundingClientRect').mockReturnValue({
+      bottom: 520,
+      height: 40,
+      left: 0,
+      right: 300,
+      toJSON: () => ({}),
+      top: 480,
+      width: 300,
+      x: 0,
+      y: 480,
+    })
+
+    const result = scrollMatchIntoView(protyleContext(protyle), createMatch(), 'if-needed')
+
+    expect(result).toBe('scrolled')
+    expect(scrollSpy).toHaveBeenCalledTimes(1)
+  })
+
   it('scrolls when a long paragraph block is visible but the matched text range is below the viewport', () => {
     document.body.innerHTML = `
       <div class="protyle">

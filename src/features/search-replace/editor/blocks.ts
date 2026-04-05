@@ -3,10 +3,12 @@ import {
   SUPPORTED_NODE_TYPES,
   TABLE_NODE_TYPE,
 } from './constants'
+import { debugElement, debugLog } from '../debug'
 import {
   getTableRowCells,
   getTableRowElements,
 } from './table-dom'
+import { resolveEditorScrollContainer } from './scroll-container'
 import type {
   EditorContext,
   SearchOptions,
@@ -21,9 +23,31 @@ export function collectSearchableBlocks(context: EditorContext, options: SearchO
 }
 
 export function getBlockElement(context: EditorContext, blockId: string) {
-  return context.protyle.querySelector<HTMLElement>(`.protyle-wysiwyg [data-node-id="${blockId}"][data-type]`)
-    ?? context.protyle.querySelector<HTMLElement>(`[data-node-id="${blockId}"][data-type]`)
-    ?? context.protyle.querySelector<HTMLElement>(`[data-node-id="${blockId}"]`)
+  const primaryCandidates = Array.from(
+    context.protyle.querySelectorAll<HTMLElement>(`.protyle-wysiwyg [data-node-id="${blockId}"][data-type]`),
+  )
+  const fallbackCandidates = primaryCandidates.length > 0
+    ? []
+    : Array.from(context.protyle.querySelectorAll<HTMLElement>(`[data-node-id="${blockId}"][data-type]`))
+
+  const chosen = pickPreferredBlockElement(
+    primaryCandidates.length > 0 ? primaryCandidates : fallbackCandidates,
+    context,
+  )
+  if (!chosen || primaryCandidates.length + fallbackCandidates.length > 1) {
+    debugLog('get-block-element:resolved', {
+      blockId,
+      candidates: (primaryCandidates.length > 0 ? primaryCandidates : fallbackCandidates)
+        .map(candidate => debugElement(candidate)),
+      chosen: debugElement(chosen),
+      fallbackCandidateCount: fallbackCandidates.length,
+      primaryCandidateCount: primaryCandidates.length,
+      rootId: context.rootId,
+      usingFallbackCandidates: primaryCandidates.length === 0,
+    })
+  }
+
+  return chosen
 }
 
 export function getBlockPlainText(blockElement: HTMLElement) {
@@ -255,4 +279,69 @@ function isOwnedByBlock(element: Element, ownerBlock: HTMLElement) {
 
   return ownerBlock.dataset.type === TABLE_NODE_TYPE
     && Boolean(nearestBlock && ownerBlock.contains(nearestBlock))
+}
+
+function pickPreferredBlockElement(candidates: HTMLElement[], context: EditorContext) {
+  const usableCandidates = candidates.filter(candidate => !candidate.closest('.fn__none, .protyle-attr'))
+  if (!usableCandidates.length) {
+    return null
+  }
+
+  const renderableCandidates = usableCandidates
+    .map((element) => {
+      const rect = element.getBoundingClientRect()
+      if (!hasUsableRect(rect)) {
+        return null
+      }
+
+      return { element, rect }
+    })
+    .filter((entry): entry is { element: HTMLElement, rect: DOMRect | DOMRectReadOnly } => Boolean(entry))
+
+  if (!renderableCandidates.length) {
+    return usableCandidates[0] ?? null
+  }
+
+  const scrollContainer = resolveEditorScrollContainer(context)
+  const containerRect = scrollContainer?.getBoundingClientRect()
+  if (!containerRect || !hasUsableRect(containerRect)) {
+    return renderableCandidates[0]?.element ?? usableCandidates[0] ?? null
+  }
+
+  const intersectingCandidates = renderableCandidates.filter(({ rect }) => (
+    rect.bottom > containerRect.top
+    && rect.top < containerRect.bottom
+  ))
+  if (intersectingCandidates.length) {
+    return pickClosestBlockElement(intersectingCandidates, containerRect)
+  }
+
+  return pickClosestBlockElement(renderableCandidates, containerRect)
+}
+
+function pickClosestBlockElement(
+  candidates: Array<{ element: HTMLElement, rect: DOMRect | DOMRectReadOnly }>,
+  containerRect: DOMRect | DOMRectReadOnly,
+) {
+  const containerCenter = (containerRect.top + containerRect.bottom) / 2
+
+  return candidates
+    .slice()
+    .sort((left, right) => {
+      const leftCenter = (left.rect.top + left.rect.bottom) / 2
+      const rightCenter = (right.rect.top + right.rect.bottom) / 2
+      return Math.abs(leftCenter - containerCenter) - Math.abs(rightCenter - containerCenter)
+    })[0]?.element ?? null
+}
+
+function hasUsableRect(rect: DOMRect | DOMRectReadOnly | null | undefined) {
+  if (!rect) {
+    return false
+  }
+
+  return Number.isFinite(rect.top)
+    && Number.isFinite(rect.bottom)
+    && Number.isFinite(rect.left)
+    && Number.isFinite(rect.right)
+    && (rect.width > 0 || rect.height > 0)
 }

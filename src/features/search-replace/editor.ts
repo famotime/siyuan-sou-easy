@@ -21,6 +21,7 @@ export {
 export {
   buildPreview,
   clearSearchDecorations,
+  isMatchVisible,
   scrollMatchIntoView,
   syncSearchDecorations,
 } from './editor/decorations'

@@ -3,11 +3,12 @@ import {
   findEditorContextByRootId,
   getActiveEditorContext,
   getCurrentSelectionScope,
+  isMatchVisible,
   scrollMatchIntoView,
   syncSearchDecorations,
 } from '../editor'
 import { searchAttributeViewMatches } from '../attribute-view-search'
-import { debugLog } from '../debug'
+import { debugElement, debugLog } from '../debug'
 import { findMatches } from '../search-engine'
 import type {
   EditorContext,
@@ -46,6 +47,7 @@ export function createSearchController({
 
   const pendingNavigation = createPendingNavigationController({
     getCurrentMatch,
+    isMatchVisible,
     resolveEditorContext,
     scrollMatchIntoView,
     state,
@@ -275,6 +277,17 @@ export function createSearchController({
     }
 
     const currentMatch = getCurrentMatch()
+    const scrollContainer = context.protyle instanceof Element
+      ? context.protyle.querySelector('.protyle-content')
+      : null
+    debugLog('reveal-current-match:start', {
+      currentIndex: state.currentIndex,
+      matchId: currentMatch?.id ?? null,
+      rootId: context.rootId,
+      scrollContainer: debugElement(scrollContainer),
+      scrollMode,
+      totalMatches: state.matches.length,
+    })
     syncSearchDecorations(context, state.matches, currentMatch)
     if (!currentMatch) {
       pendingNavigation.clearPendingNavigation()
@@ -282,12 +295,23 @@ export function createSearchController({
     }
 
     if (scrollMode === 'none') {
+      debugLog('reveal-current-match:retry-pending', {
+        currentIndex: state.currentIndex,
+        matchId: currentMatch.id,
+      })
       pendingNavigation.retryPendingNavigationForMatch(currentMatch.id)
       return
     }
 
     const scrollResult = scrollMatchIntoView(context, currentMatch, scrollMode)
-    if (scrollResult === 'missing') {
+    const visible = scrollResult !== 'missing' && isMatchVisible(context, currentMatch)
+    debugLog('reveal-current-match:scroll-result', {
+      currentIndex: state.currentIndex,
+      matchId: currentMatch.id,
+      scrollResult,
+      visible,
+    })
+    if (scrollResult === 'missing' || !visible) {
       pendingNavigation.beginPendingNavigation(currentMatch)
       pendingNavigation.retryPendingNavigation()
       return

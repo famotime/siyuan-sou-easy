@@ -5,9 +5,13 @@ import {
   describe,
   expect,
   it,
+  vi,
 } from 'vitest'
 
-import { getActiveEditorContext } from '@/features/search-replace/editor'
+import {
+  findEditorContextByRootId,
+  getActiveEditorContext,
+} from '@/features/search-replace/editor'
 
 describe('editor context detection', () => {
   afterEach(() => {
@@ -105,5 +109,50 @@ describe('editor context detection', () => {
 
     expect(context?.rootId).toBe('20260207090010-i8288q8')
     expect(context?.title).toBe('鎼滅储鏇挎崲娴嬭瘯')
+  })
+
+  it('prefers the visible protyle instance when duplicate root ids exist during transition', () => {
+    document.body.innerHTML = `
+      <div class="protyle protyle--stale">
+        <div class="protyle-background" data-node-id="20251208094107-ztk4cwm"></div>
+        <div class="protyle-title" data-node-id="20251208094107-ztk4cwm"></div>
+        <input class="protyle-title__input" value="Definition 文档" />
+      </div>
+      <div class="protyle protyle--visible">
+        <div class="protyle-background" data-node-id="20251208094107-ztk4cwm"></div>
+        <div class="protyle-title" data-node-id="20251208094107-ztk4cwm"></div>
+        <input class="protyle-title__input" value="Definition 文档" />
+      </div>
+    `
+
+    const [staleProtyle, visibleProtyle] = Array.from(document.querySelectorAll<HTMLElement>('.protyle'))
+
+    vi.spyOn(staleProtyle!, 'getBoundingClientRect').mockReturnValue({
+      bottom: -100,
+      height: 300,
+      left: 0,
+      right: 320,
+      toJSON: () => ({}),
+      top: -400,
+      width: 320,
+      x: 0,
+      y: -400,
+    })
+    vi.spyOn(visibleProtyle!, 'getBoundingClientRect').mockReturnValue({
+      bottom: 500,
+      height: 300,
+      left: 0,
+      right: 320,
+      toJSON: () => ({}),
+      top: 200,
+      width: 320,
+      x: 0,
+      y: 200,
+    })
+
+    const context = findEditorContextByRootId('20251208094107-ztk4cwm')
+
+    expect(context?.protyle).toBe(visibleProtyle)
+    expect(context?.rootId).toBe('20251208094107-ztk4cwm')
   })
 })
