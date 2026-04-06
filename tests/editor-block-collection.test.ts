@@ -376,4 +376,67 @@ describe('editor block collection', () => {
     expect(blocks[0]?.text).toBe('Visible block')
     expect(blockElement).toBe(visibleBlock)
   })
+
+  it('prefers the later transition wysiwyg root when stale and visible roots overlap', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-background" data-node-id="root-1"></div>
+        <div class="protyle-title" data-node-id="root-1"></div>
+        <input class="protyle-title__input" value="Doc 1" />
+        <div class="protyle-content protyle-content--transition">
+          <div class="protyle-wysiwyg" data-root="stale">
+            <div data-node-id="block-1" data-type="NodeParagraph"><div contenteditable="true">Stale block</div></div>
+          </div>
+          <div class="protyle-wysiwyg" data-root="visible">
+            <div data-node-id="block-2" data-type="NodeParagraph"><div contenteditable="true">Visible block</div></div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    const context = createEditorContextFromElement(protyle)!
+    const scrollContainer = document.querySelector<HTMLElement>('.protyle-content')!
+    const [staleRoot, visibleRoot] = Array.from(document.querySelectorAll<HTMLElement>('.protyle-wysiwyg'))
+
+    vi.spyOn(scrollContainer, 'getBoundingClientRect').mockReturnValue({
+      bottom: 420,
+      height: 300,
+      left: 0,
+      right: 320,
+      toJSON: () => ({}),
+      top: 120,
+      width: 320,
+      x: 0,
+      y: 120,
+    })
+    vi.spyOn(staleRoot!, 'getBoundingClientRect').mockReturnValue({
+      bottom: 360,
+      height: 200,
+      left: 0,
+      right: 320,
+      toJSON: () => ({}),
+      top: 160,
+      width: 320,
+      x: 0,
+      y: 160,
+    })
+    vi.spyOn(visibleRoot!, 'getBoundingClientRect').mockReturnValue({
+      bottom: 360,
+      height: 200,
+      left: 0,
+      right: 320,
+      toJSON: () => ({}),
+      top: 160,
+      width: 320,
+      x: 0,
+      y: 160,
+    })
+
+    const blocks = collectSearchableBlocks(context, defaultOptions)
+
+    expect(blocks).toHaveLength(1)
+    expect(blocks[0]?.blockId).toBe('block-2')
+    expect(blocks[0]?.text).toBe('Visible block')
+  })
 })

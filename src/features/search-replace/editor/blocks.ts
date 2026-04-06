@@ -362,9 +362,10 @@ function pickPreferredSearchRoot(
   const containerRect = scrollContainer?.getBoundingClientRect()
   const viewportRect = createViewportRect()
   const referenceRect = hasUsableRect(containerRect) ? containerRect : viewportRect
+  const preferLatestTransitionRoot = scrollContainer?.classList.contains('protyle-content--transition') ?? false
 
   return usableCandidates
-    .map((element) => {
+    .map((element, domOrder) => {
       const rect = element.getBoundingClientRect()
       const intersectsReference = hasUsableRect(rect)
         && rect.bottom > referenceRect.top
@@ -375,6 +376,7 @@ function pickPreferredSearchRoot(
       return {
         blockCount: element.querySelectorAll('[data-node-id][data-type]').length,
         distanceToReferenceCenter: resolveRectCenterDistance(rect, referenceRect),
+        domOrder,
         element,
         intersectsReference,
       }
@@ -382,6 +384,10 @@ function pickPreferredSearchRoot(
     .sort((left, right) => {
       if (left.intersectsReference !== right.intersectsReference) {
         return left.intersectsReference ? -1 : 1
+      }
+
+      if (preferLatestTransitionRoot && left.domOrder !== right.domOrder) {
+        return right.domOrder - left.domOrder
       }
 
       if (left.distanceToReferenceCenter !== right.distanceToReferenceCenter) {

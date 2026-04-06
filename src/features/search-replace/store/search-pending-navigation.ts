@@ -310,7 +310,7 @@ export function createPendingNavigationController({
     }
 
     if (state.nextScrollTop <= 1 && state.previousScrollTop <= 1) {
-      triggerBoundaryNudge(state.scrollContainer, 1, 0)
+      triggerBoundaryNudge(state.scrollContainer, 1, 0, 'up')
       return 'upper'
     }
 
@@ -322,6 +322,7 @@ export function createPendingNavigationController({
         state.scrollContainer,
         Math.max(0, state.maxScrollTop - 1),
         state.maxScrollTop,
+        'down',
       )
       return 'lower'
     }
@@ -333,19 +334,32 @@ export function createPendingNavigationController({
     scrollContainer: HTMLElement,
     awayFromBoundary: number,
     boundaryScrollTop: number,
+    direction: 'up' | 'down',
   ) {
     if (Math.abs(awayFromBoundary - boundaryScrollTop) <= 0.5) {
       return
     }
 
     scrollContainer.scrollTop = awayFromBoundary
-    dispatchBoundaryScrollEvent(scrollContainer)
+    dispatchBoundaryScrollEvent(scrollContainer, direction)
     scrollContainer.scrollTop = boundaryScrollTop
-    dispatchBoundaryScrollEvent(scrollContainer)
+    dispatchBoundaryScrollEvent(scrollContainer, direction)
   }
 
-  function dispatchBoundaryScrollEvent(scrollContainer: HTMLElement) {
-    scrollContainer.dispatchEvent(new Event('scroll'))
+  function dispatchBoundaryScrollEvent(scrollContainer: HTMLElement, direction: 'up' | 'down') {
+    scrollContainer.dispatchEvent(new Event('scroll', { bubbles: true }))
+
+    const WheelEventConstructor = scrollContainer.ownerDocument.defaultView?.WheelEvent
+      ?? globalThis.WheelEvent
+    if (typeof WheelEventConstructor !== 'function') {
+      return
+    }
+
+    scrollContainer.dispatchEvent(new WheelEventConstructor('wheel', {
+      bubbles: true,
+      cancelable: true,
+      deltaY: direction === 'down' ? 120 : -120,
+    }))
   }
 
   function resolveApproximateScrollTop(

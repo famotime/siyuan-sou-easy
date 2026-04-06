@@ -2829,6 +2829,144 @@ describe('search store editor context fallback', () => {
     expect(scrollTop).toBe(0)
   })
 
+  it('prefers the later overlapping transition wysiwyg root during pending navigation', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-background" data-node-id="root-1"></div>
+        <div class="protyle-title" data-node-id="root-1"></div>
+        <input class="protyle-title__input" value="Doc 1" />
+        <div class="protyle-content protyle-content--transition">
+          <div class="protyle-wysiwyg" data-root="stale">
+            <div data-node-id="block-20" data-type="NodeParagraph"><div contenteditable="true">foo</div></div>
+            <div data-node-id="block-21" data-type="NodeParagraph"><div contenteditable="true">foo</div></div>
+            <div data-node-id="block-22" data-type="NodeParagraph"><div contenteditable="true">foo</div></div>
+            <div data-node-id="block-23" data-type="NodeParagraph"><div contenteditable="true">foo</div></div>
+            <div data-node-id="block-24" data-type="NodeParagraph"><div contenteditable="true">foo</div></div>
+          </div>
+          <div class="protyle-wysiwyg" data-root="visible">
+            <div data-node-id="block-70" data-type="NodeParagraph"><div contenteditable="true">foo</div></div>
+            <div data-node-id="block-71" data-type="NodeParagraph"><div contenteditable="true">foo</div></div>
+            <div data-node-id="block-72" data-type="NodeParagraph"><div contenteditable="true">foo</div></div>
+            <div data-node-id="block-73" data-type="NodeParagraph"><div contenteditable="true">foo</div></div>
+            <div data-node-id="block-74" data-type="NodeParagraph"><div contenteditable="true">foo</div></div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    const scrollContainer = document.querySelector<HTMLElement>('.protyle-content')!
+    const [staleRoot, visibleRoot] = Array.from(document.querySelectorAll<HTMLElement>('.protyle-wysiwyg'))
+    let scrollTop = 450
+
+    Object.defineProperty(scrollContainer, 'clientHeight', {
+      configurable: true,
+      value: 300,
+    })
+    Object.defineProperty(scrollContainer, 'scrollHeight', {
+      configurable: true,
+      value: 1200,
+    })
+    Object.defineProperty(scrollContainer, 'scrollTop', {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value: number) => {
+        scrollTop = value
+      },
+    })
+    scrollContainer.scrollTo = vi.fn(({ top }: { top?: number }) => {
+      scrollTop = top ?? scrollTop
+    }) as any
+
+    vi.spyOn(scrollContainer, 'getBoundingClientRect').mockReturnValue({
+      bottom: 400,
+      height: 300,
+      left: 0,
+      right: 320,
+      toJSON: () => ({}),
+      top: 100,
+      width: 320,
+      x: 0,
+      y: 100,
+    })
+    vi.spyOn(staleRoot!, 'getBoundingClientRect').mockReturnValue({
+      bottom: 380,
+      height: 220,
+      left: 0,
+      right: 320,
+      toJSON: () => ({}),
+      top: 160,
+      width: 320,
+      x: 0,
+      y: 160,
+    })
+    vi.spyOn(visibleRoot!, 'getBoundingClientRect').mockReturnValue({
+      bottom: 380,
+      height: 220,
+      left: 0,
+      right: 320,
+      toJSON: () => ({}),
+      top: 160,
+      width: 320,
+      x: 0,
+      y: 160,
+    })
+
+    editorMocks.state.context = {
+      protyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    editorMocks.scrollMatchIntoView.mockImplementation((_context, match) => {
+      if (match?.id === 'block-40:0:3') {
+        return 'missing'
+      }
+
+      return 'visible'
+    })
+
+    searchReplaceState.visible = true
+    searchReplaceState.matches = [
+      {
+        blockId: 'block-72',
+        blockIndex: 71,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-72:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+      {
+        blockId: 'block-40',
+        blockIndex: 39,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-40:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+    ]
+    searchReplaceState.currentIndex = 0
+    searchReplaceState.searchableBlockCount = 100
+    searchReplaceState.minimapBlocks = Array.from({ length: 100 }, (_, index) => ({
+      blockId: `block-${index + 1}`,
+      blockIndex: index,
+      blockType: 'NodeParagraph',
+    }))
+
+    goNext()
+
+    expect(searchReplaceState.currentIndex).toBe(1)
+    expect(scrollContainer.scrollTo).toHaveBeenCalled()
+    expect(scrollTop).toBe(0)
+  })
+
   it('keeps retrying long-document navigation when the lazy-load boundary is still advancing', async () => {
     document.body.innerHTML = `
       <div class="protyle">
