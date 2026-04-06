@@ -3,6 +3,7 @@ import type {
   ScrollMatchResult,
   SearchMatch,
 } from '../types'
+import { resolveEditorSearchRoot } from '../editor/blocks'
 import { resolveEditorScrollContainer } from '../editor/scroll-container'
 import { debugElement, debugLog } from '../debug'
 import { t } from '@/i18n/runtime'
@@ -29,6 +30,7 @@ interface ApproximateScrollState {
 interface ApproximateScrollApplication {
   appliedScrollTop: number
   appliedWith: 'scroll-to' | 'scroll-top'
+  nudgedBoundary: 'lower' | 'upper' | null
 }
 
 interface PendingNavigationControllerOptions {
@@ -217,6 +219,7 @@ export function createPendingNavigationController({
       maxScrollTop: activeState.maxScrollTop,
       nextScrollTop: activeState.nextScrollTop,
       appliedWith: activeScrollApplication.appliedWith,
+      nudgedBoundary: activeScrollApplication.nudgedBoundary,
       scrollHeight: activeState.scrollHeight,
       appliedScrollTop,
     })
@@ -279,18 +282,70 @@ export function createPendingNavigationController({
       })
       const scrolledWithScrollTo = state.scrollContainer.scrollTop || 0
       if (Math.abs(scrolledWithScrollTo - state.nextScrollTop) <= 1) {
+        const nudgedBoundary = nudgeApproximateBoundaryIfNeeded(state, scrolledWithScrollTo)
         return {
           appliedScrollTop: scrolledWithScrollTo,
           appliedWith: 'scroll-to',
+          nudgedBoundary,
         }
       }
     }
 
     state.scrollContainer.scrollTop = state.nextScrollTop
+    const scrolledWithScrollTop = state.scrollContainer.scrollTop || 0
+    const nudgedBoundary = nudgeApproximateBoundaryIfNeeded(state, scrolledWithScrollTop)
     return {
-      appliedScrollTop: state.scrollContainer.scrollTop || 0,
+      appliedScrollTop: scrolledWithScrollTop,
       appliedWith: 'scroll-top',
+      nudgedBoundary,
     }
+  }
+
+  function nudgeApproximateBoundaryIfNeeded(
+    state: ApproximateScrollState,
+    appliedScrollTop: number,
+  ): 'lower' | 'upper' | null {
+    if (Math.abs(appliedScrollTop - state.previousScrollTop) > 1 || state.maxScrollTop <= 1) {
+      return null
+    }
+
+    if (state.nextScrollTop <= 1 && state.previousScrollTop <= 1) {
+      triggerBoundaryNudge(state.scrollContainer, 1, 0)
+      return 'upper'
+    }
+
+    if (
+      state.nextScrollTop >= (state.maxScrollTop - 1)
+      && state.previousScrollTop >= (state.maxScrollTop - 1)
+    ) {
+      triggerBoundaryNudge(
+        state.scrollContainer,
+        Math.max(0, state.maxScrollTop - 1),
+        state.maxScrollTop,
+      )
+      return 'lower'
+    }
+
+    return null
+  }
+
+  function triggerBoundaryNudge(
+    scrollContainer: HTMLElement,
+    awayFromBoundary: number,
+    boundaryScrollTop: number,
+  ) {
+    if (Math.abs(awayFromBoundary - boundaryScrollTop) <= 0.5) {
+      return
+    }
+
+    scrollContainer.scrollTop = awayFromBoundary
+    dispatchBoundaryScrollEvent(scrollContainer)
+    scrollContainer.scrollTop = boundaryScrollTop
+    dispatchBoundaryScrollEvent(scrollContainer)
+  }
+
+  function dispatchBoundaryScrollEvent(scrollContainer: HTMLElement) {
+    scrollContainer.dispatchEvent(new Event('scroll'))
   }
 
   function resolveApproximateScrollTop(
@@ -333,8 +388,9 @@ export function createPendingNavigationController({
       return null
     }
 
+    const searchRoot = resolveEditorSearchRoot(context, scrollContainer ?? null)
     const loadedElements = Array.from(
-      context.protyle.querySelectorAll<HTMLElement>('.protyle-wysiwyg [data-node-id][data-type]'),
+      searchRoot.querySelectorAll<HTMLElement>('[data-node-id][data-type]'),
     )
     const loadedEntries = loadedElements
       .map((element) => {
@@ -390,7 +446,8 @@ export function createPendingNavigationController({
   function resolveApproximateScrollContainers(context: EditorContext) {
     const containers: HTMLElement[] = []
     const primaryContainer = resolveEditorScrollContainer(context)
-    if (primaryContainer) {
+    const deferPrimaryContainer = isTransitionScrollContainer(primaryContainer)
+    if (primaryContainer && !deferPrimaryContainer) {
       containers.push(primaryContainer)
     }
 
@@ -410,6 +467,10 @@ export function createPendingNavigationController({
       && !containers.includes(scrollingElement)
     ) {
       containers.push(scrollingElement)
+    }
+
+    if (primaryContainer && deferPrimaryContainer && !containers.includes(primaryContainer)) {
+      containers.push(primaryContainer)
     }
 
     return containers
@@ -482,5 +543,9 @@ export function createPendingNavigationController({
     const style = globalThis.getComputedStyle?.(element)
     const overflowY = style?.overflowY || element.style.overflowY || element.style.overflow || ''
     return /auto|scroll|overlay|hidden/.test(overflowY)
+  }
+
+  function isTransitionScrollContainer(element: HTMLElement | null | undefined) {
+    return element?.classList.contains('protyle-content--transition') ?? false
   }
 }

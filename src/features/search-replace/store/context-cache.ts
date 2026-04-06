@@ -26,16 +26,16 @@ export function resolveEditorContext(resolver: EditorContextResolver) {
     return activeContext
   }
 
-  if (isUsableEditorContext(lastEditorContext)) {
-    return lastEditorContext
-  }
-
-  if (lastEditorContext?.rootId) {
+  if (shouldReconnectBeforeUsingCachedContext(lastEditorContext) && lastEditorContext?.rootId) {
     const reconnectedContext = resolver.findEditorContextByRootId(lastEditorContext.rootId, lastEditorContext.title)
     if (isUsableEditorContext(reconnectedContext)) {
       lastEditorContext = reconnectedContext
       return reconnectedContext
     }
+  }
+
+  if (isUsableEditorContext(lastEditorContext)) {
+    return lastEditorContext
   }
 
   lastEditorContext = null
@@ -112,16 +112,16 @@ export function isUsableEditorContext(context: EditorContext | null | undefined)
 }
 
 function resolveHintedEditorContext(resolver: EditorContextResolver) {
-  if (isUsableEditorContext(lastHintedEditorContext)) {
-    return lastHintedEditorContext
-  }
-
-  if (lastHintedEditorContext?.rootId) {
+  if (shouldReconnectBeforeUsingCachedContext(lastHintedEditorContext) && lastHintedEditorContext?.rootId) {
     const reconnectedContext = resolver.findEditorContextByRootId(lastHintedEditorContext.rootId, lastHintedEditorContext.title)
     if (isUsableEditorContext(reconnectedContext)) {
       lastHintedEditorContext = reconnectedContext
       return reconnectedContext
     }
+  }
+
+  if (isUsableEditorContext(lastHintedEditorContext)) {
+    return lastHintedEditorContext
   }
 
   lastHintedEditorContext = null
@@ -132,4 +132,16 @@ function cloneSelectionScope(scope: SelectionScope): SelectionScope {
   return new Map(Array.from(scope.entries()).map(([blockId, ranges]) => {
     return [blockId, ranges.map(range => ({ ...range }))]
   }))
+}
+
+function shouldReconnectBeforeUsingCachedContext(context: EditorContext | null | undefined) {
+  if (!(context?.protyle instanceof HTMLElement)) {
+    return false
+  }
+
+  if (context.protyle.classList.contains('protyle--transition')) {
+    return true
+  }
+
+  return Boolean(context.protyle.querySelector('.protyle-content--transition'))
 }

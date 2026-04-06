@@ -18,13 +18,14 @@ import type {
 } from '../types'
 
 export function collectSearchableBlocks(context: EditorContext, options: SearchOptions): SearchableBlock[] {
-  const searchRoot = resolveSearchRoot(context.protyle)
+  const searchRoot = resolveEditorSearchRoot(context)
   return collectSearchableBlocksFromRoot(searchRoot, context.rootId, options)
 }
 
 export function getBlockElement(context: EditorContext, blockId: string) {
+  const preferredSearchRoot = resolveEditorSearchRoot(context)
   const primaryCandidates = Array.from(
-    context.protyle.querySelectorAll<HTMLElement>(`.protyle-wysiwyg [data-node-id="${blockId}"][data-type]`),
+    preferredSearchRoot.querySelectorAll<HTMLElement>(`[data-node-id="${blockId}"][data-type]`),
   )
   const fallbackCandidates = primaryCandidates.length > 0
     ? []
@@ -79,6 +80,29 @@ export function createBlockElementFromDom(dom: string) {
 
 export function resolveSearchRoot(root: ParentNode) {
   return root.querySelector<HTMLElement>('.protyle-wysiwyg') ?? root
+}
+
+export function resolveEditorSearchRoot(
+  context: EditorContext,
+  scrollContainer: HTMLElement | null = resolveEditorScrollContainer(context),
+) {
+  const candidates = Array.from(context.protyle.querySelectorAll<HTMLElement>('.protyle-wysiwyg'))
+  const chosen = pickPreferredSearchRoot(candidates, scrollContainer)
+
+  if (chosen) {
+    if (candidates.length > 1) {
+      debugLog('search-root:resolved', {
+        candidates: candidates.map(candidate => debugElement(candidate)),
+        chosen: debugElement(chosen),
+        rootId: context.rootId,
+        scrollContainer: debugElement(scrollContainer),
+      })
+    }
+
+    return chosen
+  }
+
+  return context.protyle
 }
 
 export function getUniqueBlockElements(root: ParentNode) {
@@ -319,6 +343,59 @@ function pickPreferredBlockElement(candidates: HTMLElement[], context: EditorCon
   return pickClosestBlockElement(renderableCandidates, containerRect)
 }
 
+function pickPreferredSearchRoot(
+  candidates: HTMLElement[],
+  scrollContainer: HTMLElement | null,
+) {
+  const usableCandidates = candidates.filter(candidate => (
+    candidate.isConnected
+    && !candidate.closest('.fn__none, .protyle-attr')
+  ))
+  if (!usableCandidates.length) {
+    return null
+  }
+
+  if (usableCandidates.length === 1) {
+    return usableCandidates[0] ?? null
+  }
+
+  const containerRect = scrollContainer?.getBoundingClientRect()
+  const viewportRect = createViewportRect()
+  const referenceRect = hasUsableRect(containerRect) ? containerRect : viewportRect
+
+  return usableCandidates
+    .map((element) => {
+      const rect = element.getBoundingClientRect()
+      const intersectsReference = hasUsableRect(rect)
+        && rect.bottom > referenceRect.top
+        && rect.top < referenceRect.bottom
+        && rect.right > referenceRect.left
+        && rect.left < referenceRect.right
+
+      return {
+        blockCount: element.querySelectorAll('[data-node-id][data-type]').length,
+        distanceToReferenceCenter: resolveRectCenterDistance(rect, referenceRect),
+        element,
+        intersectsReference,
+      }
+    })
+    .sort((left, right) => {
+      if (left.intersectsReference !== right.intersectsReference) {
+        return left.intersectsReference ? -1 : 1
+      }
+
+      if (left.distanceToReferenceCenter !== right.distanceToReferenceCenter) {
+        return left.distanceToReferenceCenter - right.distanceToReferenceCenter
+      }
+
+      if (left.blockCount !== right.blockCount) {
+        return right.blockCount - left.blockCount
+      }
+
+      return 0
+    })[0]?.element ?? null
+}
+
 function pickClosestBlockElement(
   candidates: Array<{ element: HTMLElement, rect: DOMRect | DOMRectReadOnly }>,
   containerRect: DOMRect | DOMRectReadOnly,
@@ -344,4 +421,33 @@ function hasUsableRect(rect: DOMRect | DOMRectReadOnly | null | undefined) {
     && Number.isFinite(rect.left)
     && Number.isFinite(rect.right)
     && (rect.width > 0 || rect.height > 0)
+}
+
+function createViewportRect() {
+  return {
+    bottom: window.innerHeight,
+    height: window.innerHeight,
+    left: 0,
+    right: window.innerWidth,
+    top: 0,
+    width: window.innerWidth,
+    x: 0,
+    y: 0,
+  } satisfies DOMRectReadOnly
+}
+
+function resolveRectCenterDistance(
+  rect: DOMRect | DOMRectReadOnly | null | undefined,
+  referenceRect: DOMRect | DOMRectReadOnly,
+) {
+  if (!hasUsableRect(rect)) {
+    return Number.POSITIVE_INFINITY
+  }
+
+  const rectCenterY = (rect.top + rect.bottom) / 2
+  const rectCenterX = (rect.left + rect.right) / 2
+  const referenceCenterY = (referenceRect.top + referenceRect.bottom) / 2
+  const referenceCenterX = (referenceRect.left + referenceRect.right) / 2
+
+  return Math.abs(rectCenterY - referenceCenterY) + Math.abs(rectCenterX - referenceCenterX)
 }
