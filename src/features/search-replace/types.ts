@@ -1,3 +1,5 @@
+import type { IProtyle } from 'siyuan'
+
 export interface TextOffsetRange {
   start: number
   end: number
@@ -16,6 +18,7 @@ export interface SearchOptions {
 
 export interface EditorContext {
   protyle: HTMLElement
+  protyleRef?: IProtyle | null
   rootId: string
   title: string
 }

@@ -4,6 +4,7 @@ import {
   adaptHotkey,
   showMessage,
 } from 'siyuan'
+import type { IProtyle } from 'siyuan'
 import '@/index.scss'
 import PluginInfoString from '@/../plugin.json'
 import {
@@ -82,12 +83,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
   private settingsData: PluginSettings = { ...DEFAULT_SETTINGS }
 
   private readonly handleEditorEvent = (event?: CustomEvent<{
-    protyle?: {
-      block?: {
-        rootID?: string
-      }
-      element?: HTMLElement
-    }
+    protyle?: IProtyle
   }>) => {
     onEditorContextChanged(createEditorContextFromProtyleLike(event?.detail?.protyle))
   }
@@ -100,21 +96,11 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     this.openPanelFromCommand(true)
   }
 
-  private readonly openFindPanelFromEditorCommand = (protyle: {
-    block?: {
-      rootID?: string
-    }
-    element?: HTMLElement
-  }) => {
+  private readonly openFindPanelFromEditorCommand = (protyle: IProtyle) => {
     this.openPanelFromCommand(false, protyle)
   }
 
-  private readonly openReplacePanelFromEditorCommand = (protyle: {
-    block?: {
-      rootID?: string
-    }
-    element?: HTMLElement
-  }) => {
+  private readonly openReplacePanelFromEditorCommand = (protyle: IProtyle) => {
     this.openPanelFromCommand(true, protyle)
   }
 

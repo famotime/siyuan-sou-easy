@@ -3398,6 +3398,304 @@ describe('search store editor context fallback', () => {
     expect(scrollTop).toBe(0)
   })
 
+  it('uses direct protyle navigation to load a far target block before approximate scrolling times out', async () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-background" data-node-id="root-1"></div>
+        <div class="protyle-title" data-node-id="root-1"></div>
+        <input class="protyle-title__input" value="Doc 1" />
+        <div class="protyle-content">
+          <div class="protyle-wysiwyg">
+            <div data-node-id="block-40" data-type="NodeParagraph"><div contenteditable="true">foo</div></div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    const scrollContainer = document.querySelector<HTMLElement>('.protyle-content')!
+    const wysiwyg = document.querySelector<HTMLElement>('.protyle-wysiwyg')!
+    const loadedBlock = document.querySelector<HTMLElement>('[data-node-id="block-40"]')!
+    let scrollTop = 450
+    let targetLoaded = false
+
+    Object.defineProperty(scrollContainer, 'clientHeight', {
+      configurable: true,
+      value: 300,
+    })
+    Object.defineProperty(scrollContainer, 'scrollHeight', {
+      configurable: true,
+      value: 1200,
+    })
+    Object.defineProperty(scrollContainer, 'scrollTop', {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value: number) => {
+        scrollTop = value
+      },
+    })
+    scrollContainer.scrollTo = vi.fn(({ top }: { top?: number }) => {
+      scrollTop = top ?? scrollTop
+    }) as any
+
+    vi.spyOn(scrollContainer, 'getBoundingClientRect').mockReturnValue({
+      bottom: 400,
+      height: 300,
+      left: 0,
+      right: 320,
+      toJSON: () => ({}),
+      top: 100,
+      width: 320,
+      x: 0,
+      y: 100,
+    })
+    vi.spyOn(loadedBlock, 'getBoundingClientRect').mockReturnValue({
+      bottom: 260,
+      height: 40,
+      left: 0,
+      right: 320,
+      toJSON: () => ({}),
+      top: 220,
+      width: 320,
+      x: 0,
+      y: 220,
+    })
+
+    const updateIndex = vi.fn((_protyle: any, blockId: string) => {
+      if (blockId !== 'block-80' || targetLoaded) {
+        return
+      }
+
+      targetLoaded = true
+      const targetBlock = document.createElement('div')
+      targetBlock.dataset.nodeId = 'block-80'
+      targetBlock.dataset.type = 'NodeParagraph'
+      targetBlock.innerHTML = '<div contenteditable="true">foo</div>'
+      wysiwyg.appendChild(targetBlock)
+      vi.spyOn(targetBlock, 'getBoundingClientRect').mockReturnValue({
+        bottom: 320,
+        height: 40,
+        left: 0,
+        right: 320,
+        toJSON: () => ({}),
+        top: 280,
+        width: 320,
+        x: 0,
+        y: 280,
+      })
+    })
+
+    editorMocks.state.context = {
+      protyle,
+      protyleRef: {
+        block: {
+          rootID: 'root-1',
+        },
+        element: protyle,
+        scroll: {
+          updateIndex,
+        },
+      },
+      rootId: 'root-1',
+      title: 'Doc 1',
+    } as any
+    editorMocks.scrollMatchIntoView.mockImplementation((_context, match, mode) => {
+      if (match?.id === 'block-80:0:3') {
+        if (mode === 'if-needed') {
+          return 'missing'
+        }
+
+        return targetLoaded ? 'scrolled' : 'missing'
+      }
+
+      return 'visible'
+    })
+    editorMocks.isMatchVisible.mockImplementation((_context, match) => {
+      if (match?.id !== 'block-80:0:3') {
+        return true
+      }
+
+      return targetLoaded
+    })
+
+    searchReplaceState.visible = true
+    searchReplaceState.matches = [
+      {
+        blockId: 'block-40',
+        blockIndex: 39,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-40:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+      {
+        blockId: 'block-80',
+        blockIndex: 79,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-80:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+    ]
+    searchReplaceState.currentIndex = 0
+    searchReplaceState.searchableBlockCount = 100
+    searchReplaceState.minimapBlocks = Array.from({ length: 100 }, (_, index) => ({
+      blockId: `block-${index + 1}`,
+      blockIndex: index,
+      blockType: 'NodeParagraph',
+    }))
+
+    goNext()
+
+    expect(searchReplaceState.currentIndex).toBe(1)
+    expect(searchReplaceState.navigationHint).toContain('等待内容加载')
+    expect(updateIndex).toHaveBeenCalledTimes(1)
+    expect(scrollContainer.scrollTo).not.toHaveBeenCalled()
+
+    await vi.advanceTimersByTimeAsync(120)
+
+    expect(searchReplaceState.navigationHint).toBe('')
+    expect(targetLoaded).toBe(true)
+    expect(updateIndex).toHaveBeenCalledTimes(1)
+    expect(scrollContainer.scrollTo).not.toHaveBeenCalled()
+  })
+
+  it('falls back to approximate DOM scrolling when the cached protyle instance points to another editor element', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-background" data-node-id="root-1"></div>
+        <div class="protyle-title" data-node-id="root-1"></div>
+        <input class="protyle-title__input" value="Doc 1" />
+        <div class="protyle-content">
+          <div class="protyle-wysiwyg">
+            <div data-node-id="block-40" data-type="NodeParagraph"><div contenteditable="true">foo</div></div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    const scrollContainer = document.querySelector<HTMLElement>('.protyle-content')!
+    const loadedBlock = document.querySelector<HTMLElement>('[data-node-id="block-40"]')!
+    let scrollTop = 450
+
+    Object.defineProperty(scrollContainer, 'clientHeight', {
+      configurable: true,
+      value: 300,
+    })
+    Object.defineProperty(scrollContainer, 'scrollHeight', {
+      configurable: true,
+      value: 1200,
+    })
+    Object.defineProperty(scrollContainer, 'scrollTop', {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value: number) => {
+        scrollTop = value
+      },
+    })
+    scrollContainer.scrollTo = vi.fn(({ top }: { top?: number }) => {
+      scrollTop = top ?? scrollTop
+    }) as any
+
+    vi.spyOn(scrollContainer, 'getBoundingClientRect').mockReturnValue({
+      bottom: 400,
+      height: 300,
+      left: 0,
+      right: 320,
+      toJSON: () => ({}),
+      top: 100,
+      width: 320,
+      x: 0,
+      y: 100,
+    })
+    vi.spyOn(loadedBlock, 'getBoundingClientRect').mockReturnValue({
+      bottom: 260,
+      height: 40,
+      left: 0,
+      right: 320,
+      toJSON: () => ({}),
+      top: 220,
+      width: 320,
+      x: 0,
+      y: 220,
+    })
+
+    const updateIndex = vi.fn()
+    const staleProtyleElement = document.createElement('div')
+    editorMocks.state.context = {
+      protyle,
+      protyleRef: {
+        block: {
+          rootID: 'root-1',
+        },
+        element: staleProtyleElement,
+        scroll: {
+          updateIndex,
+        },
+      },
+      rootId: 'root-1',
+      title: 'Doc 1',
+    } as any
+    editorMocks.scrollMatchIntoView.mockImplementation((_context, match) => {
+      if (match?.id === 'block-80:0:3') {
+        return 'missing'
+      }
+
+      return 'visible'
+    })
+
+    searchReplaceState.visible = true
+    searchReplaceState.matches = [
+      {
+        blockId: 'block-40',
+        blockIndex: 39,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-40:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+      {
+        blockId: 'block-80',
+        blockIndex: 79,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-80:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+    ]
+    searchReplaceState.currentIndex = 0
+    searchReplaceState.searchableBlockCount = 100
+    searchReplaceState.minimapBlocks = Array.from({ length: 100 }, (_, index) => ({
+      blockId: `block-${index + 1}`,
+      blockIndex: index,
+      blockType: 'NodeParagraph',
+    }))
+
+    goNext()
+
+    expect(searchReplaceState.currentIndex).toBe(1)
+    expect(updateIndex).not.toHaveBeenCalled()
+    expect(scrollContainer.scrollTo).toHaveBeenCalled()
+    expect(searchReplaceState.navigationHint).toContain('等待内容加载')
+  })
+
   it('nudges the upper lazy-load boundary when retries stay pinned at scrollTop 0', async () => {
     document.body.innerHTML = `
       <div class="protyle">
@@ -3518,6 +3816,135 @@ describe('search store editor context fallback', () => {
     expect(searchReplaceState.navigationHint).toBe('')
     expect(scrollPositions).toContain(1)
     expect(scrollTop).toBe(0)
+  })
+
+  it('nudges the lower lazy-load boundary when the container reaches max scrollTop and then snaps back', async () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-background" data-node-id="root-1"></div>
+        <div class="protyle-title" data-node-id="root-1"></div>
+        <input class="protyle-title__input" value="Doc 1" />
+        <div class="protyle-content protyle-content--transition">
+          <div class="protyle-wysiwyg">
+            <div data-node-id="block-40" data-type="NodeParagraph"><div contenteditable="true">foo</div></div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    const scrollContainer = document.querySelector<HTMLElement>('.protyle-content')!
+    let scrollTop = 450
+    let directScrollAttempts = 0
+    let nudgedAwayFromBoundary = false
+    let boundaryStimulated = false
+    const scrollPositions: number[] = []
+
+    Object.defineProperty(scrollContainer, 'clientHeight', {
+      configurable: true,
+      value: 300,
+    })
+    Object.defineProperty(scrollContainer, 'scrollHeight', {
+      configurable: true,
+      value: 1200,
+    })
+    Object.defineProperty(scrollContainer, 'scrollTop', {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value: number) => {
+        scrollPositions.push(value)
+        if (value === 899 && scrollTop === 900) {
+          nudgedAwayFromBoundary = true
+        }
+        if (value === 900 && nudgedAwayFromBoundary) {
+          boundaryStimulated = true
+        }
+        scrollTop = value
+      },
+    })
+    scrollContainer.scrollTo = vi.fn(({ top }: { top?: number }) => {
+      if (typeof top === 'number') {
+        scrollTop = top
+        if (top === 900 && !boundaryStimulated) {
+          window.setTimeout(() => {
+            if (!boundaryStimulated) {
+              scrollTop = 450
+            }
+          }, 0)
+        }
+      }
+    }) as any
+
+    editorMocks.state.context = {
+      protyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    editorMocks.scrollMatchIntoView.mockImplementation((_context, match, mode) => {
+      if (match?.id === 'block-80:0:3') {
+        if (mode === 'if-needed') {
+          return 'missing'
+        }
+
+        directScrollAttempts += 1
+        return boundaryStimulated && directScrollAttempts >= 2 ? 'scrolled' : 'missing'
+      }
+
+      return 'visible'
+    })
+    editorMocks.isMatchVisible.mockImplementation((_context, match) => {
+      if (match?.id !== 'block-80:0:3') {
+        return true
+      }
+
+      return boundaryStimulated && directScrollAttempts >= 2
+    })
+
+    searchReplaceState.visible = true
+    searchReplaceState.matches = [
+      {
+        blockId: 'block-40',
+        blockIndex: 39,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-40:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+      {
+        blockId: 'block-80',
+        blockIndex: 79,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-80:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+    ]
+    searchReplaceState.currentIndex = 0
+    searchReplaceState.searchableBlockCount = 100
+    searchReplaceState.minimapBlocks = Array.from({ length: 100 }, (_, index) => ({
+      blockId: `block-${index + 1}`,
+      blockIndex: index,
+      blockType: 'NodeParagraph',
+    }))
+
+    goNext()
+
+    expect(searchReplaceState.currentIndex).toBe(1)
+    expect(searchReplaceState.navigationHint).toContain('等待内容加载')
+
+    await vi.advanceTimersByTimeAsync(120)
+
+    expect(searchReplaceState.navigationHint).toBe('')
+    expect(scrollPositions).toContain(899)
+    expect(scrollTop).toBe(900)
   })
 
   it('abandons pending navigation after repeated misses and clears the loading hint', async () => {

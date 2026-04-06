@@ -1,3 +1,4 @@
+import type { IProtyle } from 'siyuan'
 import type { HotkeySettingKey } from './settings-panel'
 import {
   DEFAULT_SETTINGS,
@@ -5,12 +6,7 @@ import {
 } from '@/settings'
 
 type CommandCallback = () => void
-type EditorCommandCallback = (protyle: {
-  block?: {
-    rootID?: string
-  }
-  element?: HTMLElement
-}) => void
+type EditorCommandCallback = (protyle: IProtyle) => void
 
 interface PanelCommandDefinition {
   defaultHotkey: keyof PluginSettings

@@ -61,6 +61,10 @@ export function createPendingNavigationController({
   let pendingNavigationStalledAttempts = 0
   let pendingNavigationRetryCount = 0
   let pendingNavigationMatchId = ''
+  let pendingProtyleNavigationAttempts = 0
+  let pendingProtyleNavigationMatchId = ''
+  let pendingProtyleNavigationProgressKey = ''
+  let pendingProtyleNavigationRef: EditorContext['protyleRef'] = null
   let previousApproximateNavigationKey = ''
 
   function beginPendingNavigation(match: SearchMatch) {
@@ -70,6 +74,7 @@ export function createPendingNavigationController({
     pendingNavigationStalledAttempts = 0
     pendingNavigationRetryCount = 0
     previousApproximateNavigationKey = ''
+    resetPendingProtyleNavigation()
     state.navigationHint = t('navigationPending')
     debugLog('pending-navigation:begin', {
       blockId: match.blockId,
@@ -87,6 +92,7 @@ export function createPendingNavigationController({
     pendingNavigationRetryCount = 0
     pendingNavigationMatchId = ''
     previousApproximateNavigationKey = ''
+    resetPendingProtyleNavigation()
     state.navigationHint = ''
     debugLog('pending-navigation:clear', {
       reason,
@@ -112,6 +118,14 @@ export function createPendingNavigationController({
     })
     if (visibleAfterDirectScroll) {
       clearPendingNavigation('target-visible')
+      return
+    }
+
+    if (continuePendingProtyleNavigation(context, currentMatch)) {
+      window.clearTimeout(pendingNavigationTimer)
+      pendingNavigationTimer = window.setTimeout(() => {
+        retryPendingNavigation()
+      }, 120)
       return
     }
 
@@ -172,6 +186,105 @@ export function createPendingNavigationController({
     reset,
     retryPendingNavigation,
     retryPendingNavigationForMatch,
+  }
+
+  function continuePendingProtyleNavigation(context: EditorContext, match: SearchMatch) {
+    const directNavigation = resolveDirectProtyleNavigation(context, match)
+    if (!directNavigation) {
+      resetPendingProtyleNavigation()
+      return false
+    }
+
+    const progressKey = serializeLoadedBlockRange(directNavigation.loadedBlockRange)
+    const isNewAttempt = pendingProtyleNavigationMatchId !== match.id || pendingProtyleNavigationRef !== directNavigation.protyleRef
+
+    if (isNewAttempt) {
+      try {
+        directNavigation.updateIndex(directNavigation.protyleRef, match.blockId, () => {})
+      } catch (error) {
+        debugLog('pending-navigation:direct-protyle-fallback', {
+          error: error instanceof Error ? error.message : String(error),
+          matchId: match.id,
+          reason: 'update-index-threw',
+        })
+        resetPendingProtyleNavigation()
+        return false
+      }
+
+      pendingProtyleNavigationAttempts = 1
+      pendingProtyleNavigationMatchId = match.id
+      pendingProtyleNavigationProgressKey = progressKey
+      pendingProtyleNavigationRef = directNavigation.protyleRef
+      debugLog('pending-navigation:direct-protyle', {
+        attempt: pendingNavigationRetryCount,
+        loadedBlockRange: directNavigation.loadedBlockRange,
+        matchId: match.id,
+        progressKey,
+      })
+      return true
+    }
+
+    if (progressKey !== pendingProtyleNavigationProgressKey) {
+      pendingProtyleNavigationAttempts = 1
+      pendingProtyleNavigationProgressKey = progressKey
+      debugLog('pending-navigation:direct-protyle-progress', {
+        attempt: pendingNavigationRetryCount,
+        loadedBlockRange: directNavigation.loadedBlockRange,
+        matchId: match.id,
+        progressKey,
+      })
+      return true
+    }
+
+    pendingProtyleNavigationAttempts += 1
+    if (pendingProtyleNavigationAttempts <= 8) {
+      return true
+    }
+
+    debugLog('pending-navigation:direct-protyle-fallback', {
+      attempt: pendingNavigationRetryCount,
+      loadedBlockRange: directNavigation.loadedBlockRange,
+      matchId: match.id,
+      progressKey,
+      reason: 'no-render-progress',
+    })
+    resetPendingProtyleNavigation()
+    return false
+  }
+
+  function resolveDirectProtyleNavigation(context: EditorContext, match: SearchMatch) {
+    const protyleRef = context.protyleRef
+    if (!protyleRef || protyleRef.element !== context.protyle) {
+      return null
+    }
+
+    const updateIndex = protyleRef.scroll?.updateIndex
+    if (typeof updateIndex !== 'function') {
+      return null
+    }
+
+    const scrollContainer = resolveEditorScrollContainer(context)
+    const loadedBlockRange = resolveLoadedBlockRange(context, scrollContainer)
+    if (
+      loadedBlockRange
+      && match.blockIndex >= loadedBlockRange.min
+      && match.blockIndex <= loadedBlockRange.max
+    ) {
+      return null
+    }
+
+    return {
+      loadedBlockRange,
+      protyleRef,
+      updateIndex,
+    }
+  }
+
+  function resetPendingProtyleNavigation() {
+    pendingProtyleNavigationAttempts = 0
+    pendingProtyleNavigationMatchId = ''
+    pendingProtyleNavigationProgressKey = ''
+    pendingProtyleNavigationRef = null
   }
 
   function scrollApproximateMatchIntoView(context: EditorContext, match: SearchMatch) {
@@ -305,7 +418,7 @@ export function createPendingNavigationController({
     state: ApproximateScrollState,
     appliedScrollTop: number,
   ): 'lower' | 'upper' | null {
-    if (Math.abs(appliedScrollTop - state.previousScrollTop) > 1 || state.maxScrollTop <= 1) {
+    if (state.maxScrollTop <= 1) {
       return null
     }
 
@@ -316,7 +429,7 @@ export function createPendingNavigationController({
 
     if (
       state.nextScrollTop >= (state.maxScrollTop - 1)
-      && state.previousScrollTop >= (state.maxScrollTop - 1)
+      && appliedScrollTop >= (state.maxScrollTop - 1)
     ) {
       triggerBoundaryNudge(
         state.scrollContainer,
@@ -562,4 +675,17 @@ export function createPendingNavigationController({
   function isTransitionScrollContainer(element: HTMLElement | null | undefined) {
     return element?.classList.contains('protyle-content--transition') ?? false
   }
+}
+
+function serializeLoadedBlockRange(loadedBlockRange: LoadedBlockRange | null) {
+  if (!loadedBlockRange) {
+    return 'missing'
+  }
+
+  return [
+    loadedBlockRange.min,
+    loadedBlockRange.max,
+    loadedBlockRange.loadedIndexes.length,
+    loadedBlockRange.source,
+  ].join(':')
 }

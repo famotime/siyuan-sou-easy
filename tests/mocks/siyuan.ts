@@ -1,5 +1,15 @@
 import { vi } from 'vitest'
 
+export interface IProtyle {
+  block?: {
+    rootID?: string
+  }
+  element?: HTMLElement
+  scroll?: {
+    updateIndex?: (protyle: IProtyle, id: string, cb?: (index: number) => void) => void
+  }
+}
+
 export const fetchSyncPost = vi.fn(async () => ({
   code: 0,
   data: null,

@@ -1,3 +1,4 @@
+import type { IProtyle } from 'siyuan'
 import {
   createEditorContextFromElement,
   createEditorContextFromProtyleLike,
@@ -8,12 +9,7 @@ import {
   searchReplaceState,
 } from './store'
 
-export interface EditorProtyleLike {
-  block?: {
-    rootID?: string
-  }
-  element?: HTMLElement
-}
+export type EditorProtyleLike = IProtyle
 
 export function openSearchReplacePanelFromCommand(
   replaceVisible?: boolean,

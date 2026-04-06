@@ -1,3 +1,4 @@
+import type { IProtyle } from 'siyuan'
 import { debugElement, debugLog } from '../debug'
 import type { EditorContext } from '../types'
 
@@ -45,7 +46,12 @@ export function getActiveEditorContext(): EditorContext | null {
   return null
 }
 
-export function createEditorContextFromElement(protyle: HTMLElement | null | undefined, rootIdHint = '', titleHint = ''): EditorContext | null {
+export function createEditorContextFromElement(
+  protyle: HTMLElement | null | undefined,
+  rootIdHint = '',
+  titleHint = '',
+  protyleRef: IProtyle | null = null,
+): EditorContext | null {
   if (!(protyle instanceof HTMLElement)) {
     return null
   }
@@ -57,18 +63,14 @@ export function createEditorContextFromElement(protyle: HTMLElement | null | und
 
   return {
     protyle,
+    protyleRef: protyleRef?.element === protyle ? protyleRef : null,
     rootId,
     title: titleHint.trim() || getEditorTitle(protyle),
   }
 }
 
-export function createEditorContextFromProtyleLike(protyle: {
-  block?: {
-    rootID?: string
-  }
-  element?: HTMLElement
-} | null | undefined) {
-  return createEditorContextFromElement(protyle?.element, protyle?.block?.rootID)
+export function createEditorContextFromProtyleLike(protyle: IProtyle | null | undefined) {
+  return createEditorContextFromElement(protyle?.element, protyle?.block?.rootID, '', protyle ?? null)
 }
 
 export function findEditorContextByRootId(rootId: string, titleHint = '') {
