@@ -176,12 +176,7 @@ export function createSearchController({
         }
 
         minimapBlocks.push(...attributeViewSearch.blocks)
-        matches = [...matches, ...attributeViewSearch.matches].sort((left, right) => {
-          if (left.blockIndex !== right.blockIndex) {
-            return left.blockIndex - right.blockIndex
-          }
-          return left.id.localeCompare(right.id)
-        })
+        matches = [...matches, ...attributeViewSearch.matches].sort(compareSearchMatches)
       }
 
       state.minimapBlocks = minimapBlocks
@@ -347,4 +342,20 @@ export function createSearchController({
     state.currentIndex = 0
     state.error = error
   }
+}
+
+function compareSearchMatches(left: SearchMatch, right: SearchMatch) {
+  if (left.blockIndex !== right.blockIndex) {
+    return left.blockIndex - right.blockIndex
+  }
+
+  if (left.start !== right.start) {
+    return left.start - right.start
+  }
+
+  if (left.end !== right.end) {
+    return left.end - right.end
+  }
+
+  return left.id.localeCompare(right.id)
 }

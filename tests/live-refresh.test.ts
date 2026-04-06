@@ -196,6 +196,49 @@ describe('search store live refresh', () => {
     expect(searchReplaceState.matches).toHaveLength(1)
   })
 
+  it('preserves in-block match order after refresh merges and sorts results', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+    })
+    searchReplaceState.query = '文'
+
+    searchEngineMocks.findMatches.mockImplementation(() => ({
+      error: '',
+      matches: [
+        {
+          blockId: 'block-1',
+          blockIndex: 0,
+          blockType: 'NodeParagraph',
+          end: 3,
+          id: 'block-1:2:3',
+          matchedText: '文',
+          previewText: '三、全书白[文]四十七万余字',
+          replaceable: true,
+          rootId: 'root-1',
+          start: 2,
+        },
+        {
+          blockId: 'block-1',
+          blockIndex: 0,
+          blockType: 'NodeParagraph',
+          end: 11,
+          id: 'block-1:10:11',
+          matchedText: '文',
+          previewText: '合计白[文]连注译约为',
+          replaceable: true,
+          rootId: 'root-1',
+          start: 10,
+        },
+      ],
+    }))
+
+    openPanel(true)
+    await flushRefresh()
+
+    expect(searchReplaceState.matches.map(match => match.start)).toEqual([2, 10])
+  })
+
   it('invalidates the cached selection scope when the document changes without an active selection', async () => {
     applyPluginSettings({
       ...DEFAULT_SETTINGS,
