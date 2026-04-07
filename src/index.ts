@@ -29,6 +29,10 @@ import {
   createHotkeyInputElement,
 } from '@/features/search-replace/plugin-setting-elements'
 import {
+  buildIgnoredHotkeys,
+  buildKnownHotkeySources,
+} from '@/features/search-replace/plugin-hotkey-conflict'
+import {
   isHotkeyCaptureTarget,
   openSearchReplacePanelFromCommand,
   openSearchReplacePanelFromKeyboardEvent,
@@ -274,29 +278,21 @@ export default class FriendlySearchReplacePlugin extends Plugin {
   }
 
   private findHotkeySettingConflict(settingKey: HotkeySettingKey, hotkey: string) {
-    const ignoredLangKeys = settingKey === 'panelHotkey' ? ['togglePanel'] : ['toggleReplacePanel']
-    const ignoredHotkeys = [
-      this.settingsData[settingKey],
-      ...this.commands
-        .filter(cmd => ignoredLangKeys.includes(cmd.langKey || ''))
-        .map(cmd => cmd.customHotkey || cmd.hotkey)
-        .filter(Boolean),
-    ]
+    const ignoredHotkeys = buildIgnoredHotkeys({
+      commands: this.commands,
+      settingKey,
+      settingsData: this.settingsData,
+    })
     return findHotkeyConflict(hotkey, this.getKnownHotkeySources(settingKey), ignoredHotkeys)
   }
 
   private getKnownHotkeySources(settingKey: HotkeySettingKey): HotkeySource[] {
-    const ignoredLangKey = settingKey === 'panelHotkey' ? 'togglePanel' : 'toggleReplacePanel'
-    const commandSources = this.commands
-      .filter(command => command.langKey !== ignoredLangKey)
-      .map(command => ({
-        hotkey: command.customHotkey || command.hotkey,
-        label: command.langKey || 'plugin.command',
-      }))
-      .filter(command => Boolean(command.hotkey)) as HotkeySource[]
-
     const keymapSources = collectKeymapHotkeys((window as any).siyuan?.config?.keymap)
-    return [...commandSources, ...keymapSources]
+    return buildKnownHotkeySources({
+      commands: this.commands,
+      keymapSources,
+      settingKey,
+    })
   }
 
   private createCheckbox(checked: boolean, onChange: (checked: boolean) => Promise<void>) {

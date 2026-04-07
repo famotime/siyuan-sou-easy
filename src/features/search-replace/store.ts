@@ -28,6 +28,11 @@ import { invalidateDocumentSnapshot } from './store/document-snapshot'
 import { replaceAllMatches, replaceCurrentMatch } from './store/replacement'
 import { createSearchController } from './store/search-controller'
 import {
+  applyClosePanelState,
+  applyOpenPanelState,
+  resolveNextPanelVisibility,
+} from './store/search-session-state'
+import {
   type PanelPosition,
   searchReplaceState,
 } from './store/state'
@@ -103,7 +108,7 @@ export function resetStoredPanelPosition() {
 }
 
 export function openPanel(forceVisible?: boolean, replaceVisible?: boolean) {
-  searchReplaceState.visible = forceVisible ?? !searchReplaceState.visible
+  searchReplaceState.visible = resolveNextPanelVisibility(searchReplaceState.visible, forceVisible)
   if (!searchReplaceState.visible) {
     closePanel()
     return
@@ -118,11 +123,7 @@ export function openPanel(forceVisible?: boolean, replaceVisible?: boolean) {
     }
   }
 
-  if (typeof replaceVisible === 'boolean') {
-    searchReplaceState.replaceVisible = replaceVisible
-  } else {
-    searchReplaceState.replaceVisible = searchReplaceState.settings.defaultReplaceVisible
-  }
+  applyOpenPanelState(searchReplaceState, replaceVisible)
 
   const selectionText = searchReplaceState.settings.preloadSelection
     ? getCurrentSelectionText().trim()
@@ -136,13 +137,7 @@ export function openPanel(forceVisible?: boolean, replaceVisible?: boolean) {
 }
 
 export function closePanel() {
-  searchReplaceState.visible = false
-  searchReplaceState.busy = false
-  searchReplaceState.searching = false
-  searchReplaceState.error = ''
-  searchReplaceState.navigationHint = ''
-  searchReplaceState.minimapBlocks = []
-  searchReplaceState.searchableBlockCount = 0
+  applyClosePanelState(searchReplaceState)
   clearCachedEditorState()
   searchController.resetSearchSession()
 }

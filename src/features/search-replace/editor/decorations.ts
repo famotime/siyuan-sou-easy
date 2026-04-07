@@ -11,12 +11,15 @@ import { findAttributeViewCellElements } from './attribute-view'
 import { getBlockElement } from './blocks'
 import { locateTextRange } from './ranges'
 import {
-  resolveEditorScrollContainer,
   resolveVisibilityContainers,
   scrollContainerTo,
 } from './scroll-container'
 import {
-  getTableRowCells,
+  clampScrollOffset,
+  isRectVisibleWithinBoundary,
+  resolveRectCenterDelta,
+} from './scroll-geometry'
+import {
   getTableRowElements,
   resolveTableRowElementFromCell,
 } from './table-dom'
@@ -243,15 +246,6 @@ function isScrollTargetVisibleWithinContainers(target: ScrollTarget, containers:
   })
 }
 
-function isRectVisibleWithinBoundary(elementRect: DOMRect | DOMRectReadOnly, boundaryRect: DOMRect | DOMRectReadOnly) {
-  return (
-    elementRect.top >= boundaryRect.top
-    && elementRect.bottom <= boundaryRect.bottom
-    && elementRect.left >= boundaryRect.left
-    && elementRect.right <= boundaryRect.right
-  )
-}
-
 function safeScrollIntoView(
   element: HTMLElement,
   options: ScrollIntoViewOptions,
@@ -381,13 +375,7 @@ function centerElementWithinContainers(
 
       const elementRect = element.getBoundingClientRect()
       const containerRect = container.getBoundingClientRect()
-      const elementCenter = axis === 'y'
-        ? (elementRect.top + elementRect.bottom) / 2
-        : (elementRect.left + elementRect.right) / 2
-      const containerCenter = axis === 'y'
-        ? (containerRect.top + containerRect.bottom) / 2
-        : (containerRect.left + containerRect.right) / 2
-      const delta = elementCenter - containerCenter
+      const delta = resolveRectCenterDelta(elementRect, containerRect, axis)
 
       if (Math.abs(delta) <= 1) {
         return
@@ -427,13 +415,7 @@ function centerScrollTargetWithinContainers(
       }
 
       const containerRect = container.getBoundingClientRect()
-      const targetCenter = axis === 'y'
-        ? (targetRect.top + targetRect.bottom) / 2
-        : (targetRect.left + targetRect.right) / 2
-      const containerCenter = axis === 'y'
-        ? (containerRect.top + containerRect.bottom) / 2
-        : (containerRect.left + containerRect.right) / 2
-      const delta = targetCenter - containerCenter
+      const delta = resolveRectCenterDelta(targetRect, containerRect, axis)
 
       if (Math.abs(delta) <= 1) {
         return
@@ -460,14 +442,6 @@ function isContainerScrollableOnAxis(container: HTMLElement, axis: 'x' | 'y') {
   }
 
   return (container.scrollWidth || 0) > (container.clientWidth || 0)
-}
-
-function clampScrollOffset(offset: number, container: HTMLElement, axis: 'x' | 'y') {
-  const maxScrollOffset = axis === 'y'
-    ? Math.max(0, (container.scrollHeight || 0) - (container.clientHeight || 0))
-    : Math.max(0, (container.scrollWidth || 0) - (container.clientWidth || 0))
-
-  return Math.max(0, Math.min(maxScrollOffset, offset))
 }
 
 function applyTableCellHighlights(

@@ -30,6 +30,7 @@ import {
 import { createSearchDocumentEventController } from './search-document-events'
 import { createPendingNavigationController } from './search-pending-navigation'
 import { resolveBlocksForSearch } from './search-blocks'
+import { clearQueryEditState } from './search-session-state'
 import type { SearchReplaceState } from './state'
 
 interface SearchControllerOptions {
@@ -235,23 +236,13 @@ export function createSearchController({
   function handleQueryEdited(delay = 50) {
     window.clearTimeout(refreshTimer)
     latestRefreshRevision += 1
-    pendingQueryIndex = state.matches.length ? state.currentIndex : 0
+    pendingQueryIndex = clearQueryEditState(state)
     pendingNavigation.clearPendingNavigation()
-    state.searching = false
-    state.navigationHint = ''
-    state.error = ''
-    state.matches = []
-    state.minimapBlocks = []
-    state.searchableBlockCount = 0
 
     const context = resolveEditorContext()
     clearSearchDecorations(context)
 
-    if (!state.visible || !state.query.trim()) {
-      if (!state.query.trim()) {
-        state.currentIndex = 0
-        pendingQueryIndex = null
-      }
+    if (!state.visible || pendingQueryIndex === null) {
       return
     }
 

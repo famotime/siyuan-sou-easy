@@ -55,6 +55,8 @@
 | `store/search-controller.ts` | Search refresh orchestration and current-match reveal flow |
 | `store/search-document-events.ts` | Document listener binding and mutation-triggered refresh decisions |
 | `store/search-pending-navigation.ts` | Deferred navigation retry logic after editor/doc changes |
+| `store/search-pending-navigation-state.ts` | Pure retry-state helpers for pending navigation progress, timeout thresholds, and direct protyle fallback decisions |
+| `store/search-session-state.ts` | Pure panel/session state helpers for open-close transitions and query-edit resets |
 | `store/search-blocks.ts` | Searchable block resolution from live DOM and snapshot fallbacks |
 
 ### Attribute View Search
@@ -64,6 +66,8 @@
 | `attribute-view-search.ts` | High-level attribute-view search pipeline and match assembly |
 | `attribute-view/search-blocks.ts` | Attribute-view block discovery and AV/view id resolution |
 | `attribute-view/search-candidates.ts` | Candidate collection from DOM and rendered API payloads |
+| `attribute-view/search-dom-candidates.ts` | DOM-first attribute-view candidate extraction for titles, headers, groups, and row cells |
+| `attribute-view/search-candidate-policy.ts` | Fallback policy and merge/dedup rules between DOM candidates and rendered API candidates |
 | `attribute-view/search-values.ts` | Value normalization for relation, rollup, date, number, and asset-like fields |
 | `attribute-view/search-types.ts` | Attribute-view specific types and constants |
 
@@ -74,6 +78,7 @@
 | `editor.ts` | Barrel exports for editor-facing helpers |
 | `editor/context.ts` | Active editor resolution and `EditorContext` construction |
 | `editor/blocks.ts` | Searchable block collection, block text extraction, and table-aware metadata assembly |
+| `editor/block-selection.ts` | Search root and duplicate block candidate preference rules for editor DOM selection |
 | `editor/selection.ts` | Current selection text and selection-scope extraction |
 | `editor/ranges.ts` | Locate DOM ranges for match highlighting and replacement |
 | `editor/decorations.ts` | CSS highlight syncing, block/cell decoration, and scroll-into-view behavior |
@@ -81,6 +86,7 @@
 | `editor/attribute-view.ts` | Attribute-view cell lookup helpers for highlighting |
 | `editor/table-dom.ts` | Shared table row / cell resolution for native and custom table DOM shapes |
 | `editor/scroll-container.ts` | Shared editor scroll container discovery and container scrolling helpers |
+| `editor/scroll-geometry.ts` | Pure scroll visibility, center-delta, and clamp helpers shared by match scrolling |
 | `editor/constants.ts` | Editor and decoration constants |
 
 ### Plugin Bootstrap Helpers
@@ -90,6 +96,7 @@
 | `plugin-command-config.ts` | Command descriptors and hotkey synchronization |
 | `plugin-events.ts` | Editor-related event bus subscriptions |
 | `plugin-environment.ts` | Frontend environment detection |
+| `plugin-hotkey-conflict.ts` | Hotkey conflict ignore rules and known-source assembly for settings validation |
 | `plugin-panel-launch.ts` | Panel open/toggle behavior from commands and keyboard events |
 | `plugin-setting-elements.ts` | DOM helpers for settings panel controls |
 | `plugin-settings-ui.ts` | Settings panel registration and setting-row composition |
@@ -101,6 +108,7 @@
 | --- | --- |
 | `ui/use-panel-frame.ts` | Dragging, resizing, and position persistence for the panel |
 | `ui/use-panel-minimap.ts` | Minimap composable that combines store data with layout helpers |
+| `ui/minimap-context.ts` | Minimap editor-context fallback and scroll-container resolution helpers |
 | `ui/minimap-layout.ts` | Pure layout helpers for minimap geometry, viewport projection, and click-to-scroll calculations |
 | `ui/use-composed-input.ts` | IME-aware input behavior |
 | `ui/SearchToolbarRow.vue`, `ui/ReplaceActionRow.vue`, `ui/RegexHelpPanel.vue` | Panel UI pieces used by `App.vue` |
@@ -128,6 +136,13 @@
 ## Refactor Notes
 
 - `RF-101` split search controller concerns into document events, pending navigation, and block resolution helpers.
+- `RF-201` extracted pending-navigation retry/progress state transitions into a pure helper module to reduce the main controller state machine surface.
+- `RF-202` extracted pure scroll geometry helpers from `editor/decorations.ts` so visibility and centering math can evolve independently from DOM target resolution and CSS highlighting.
+- `RF-203` extracted search-root and duplicate-block preference rules from `editor/blocks.ts`, reducing coupling between DOM selection heuristics and block text/table metadata collection.
+- `RF-204` separated attribute-view DOM candidate extraction and fallback/merge policy so `search-candidates.ts` focuses on orchestration and rendered candidate assembly.
+- `RF-205` extracted panel open-close and query-edit state transitions from the store/controller layer into pure session-state helpers.
+- `RF-206` extracted minimap context fallback and scroll-container resolution from the composable so `use-panel-minimap.ts` keeps more of its logic at the orchestration layer.
+- `RF-207` extracted hotkey conflict ignore/source assembly from `src/index.ts`, reducing plugin entry coupling around settings validation.
 - `RF-102` separated attribute-view block discovery, candidate assembly, and value normalization.
 - `RF-103` extracted pure minimap layout helpers from the UI composable.
 - `RF-104` reduced `src/index.ts` responsibility by moving environment, panel launch, and settings element helpers out.

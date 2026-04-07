@@ -10,6 +10,10 @@ import {
   getActiveEditorContext,
   getUniqueBlockElements,
 } from '@/features/search-replace/editor'
+import {
+  resolveMinimapContext,
+  resolveMinimapScrollContainer,
+} from './minimap-context'
 import type { SearchReplaceState } from '../store/state'
 import type {
   EditorContext,
@@ -128,7 +132,7 @@ export function usePanelMinimap({
       return
     }
 
-    const context = resolveMinimapContext()
+    const context = resolveResolvedMinimapContext()
     if (!context) {
       clearMinimap()
       return
@@ -214,18 +218,13 @@ export function usePanelMinimap({
     refreshMinimap()
   }
 
-  function resolveMinimapContext() {
-    if (state.currentRootId) {
-      return findEditorContextByRootId(state.currentRootId, state.currentTitle) ?? getActiveEditorContext()
-    }
-
-    return getActiveEditorContext()
-  }
-
-  function resolveMinimapScrollContainer(context: EditorContext) {
-    return context.protyle.querySelector<HTMLElement>('.protyle-content')
-      ?? context.protyle.querySelector<HTMLElement>('.protyle-wysiwyg')
-      ?? context.protyle
+  function resolveResolvedMinimapContext() {
+    return resolveMinimapContext({
+      currentRootId: state.currentRootId,
+      currentTitle: state.currentTitle,
+      findEditorContextByRootId,
+      getActiveEditorContext,
+    })
   }
 
   function collectMinimapDocBlocks(

@@ -7,6 +7,17 @@ import { resolveEditorSearchRoot } from '../editor/blocks'
 import { resolveEditorScrollContainer } from '../editor/scroll-container'
 import { debugElement, debugLog } from '../debug'
 import { t } from '@/i18n/runtime'
+import {
+  advanceApproximateNavigationProgress,
+  createApproximateNavigationProgress,
+  createDirectNavigationProgress,
+  resetApproximateNavigationProgress,
+  resetDirectNavigationProgress,
+  resolveApproximateNavigationTimeoutReason,
+  resolveDirectNavigationAction,
+  type ApproximateNavigationProgress,
+  type DirectNavigationProgress,
+} from './search-pending-navigation-state'
 import type { SearchReplaceState } from './state'
 
 interface LoadedBlockRange {
@@ -55,25 +66,16 @@ export function createPendingNavigationController({
   scrollMatchIntoView,
   state,
 }: PendingNavigationControllerOptions) {
-  let pendingNavigationLowerBoundaryAttempts = 0
+  let approximateNavigationProgress: ApproximateNavigationProgress = createApproximateNavigationProgress()
   let pendingNavigationTimer = 0
-  let pendingNavigationUpperBoundaryAttempts = 0
-  let pendingNavigationStalledAttempts = 0
   let pendingNavigationRetryCount = 0
   let pendingNavigationMatchId = ''
-  let pendingProtyleNavigationAttempts = 0
-  let pendingProtyleNavigationMatchId = ''
-  let pendingProtyleNavigationProgressKey = ''
-  let pendingProtyleNavigationRef: EditorContext['protyleRef'] = null
-  let previousApproximateNavigationKey = ''
+  let directNavigationProgress: DirectNavigationProgress<EditorContext['protyleRef']> = createDirectNavigationProgress()
 
   function beginPendingNavigation(match: SearchMatch) {
-    pendingNavigationLowerBoundaryAttempts = 0
+    approximateNavigationProgress = resetApproximateNavigationProgress()
     pendingNavigationMatchId = match.id
-    pendingNavigationUpperBoundaryAttempts = 0
-    pendingNavigationStalledAttempts = 0
     pendingNavigationRetryCount = 0
-    previousApproximateNavigationKey = ''
     resetPendingProtyleNavigation()
     state.navigationHint = t('navigationPending')
     debugLog('pending-navigation:begin', {
@@ -85,13 +87,10 @@ export function createPendingNavigationController({
 
   function clearPendingNavigation(reason = 'reset') {
     window.clearTimeout(pendingNavigationTimer)
-    pendingNavigationLowerBoundaryAttempts = 0
+    approximateNavigationProgress = resetApproximateNavigationProgress()
     pendingNavigationTimer = 0
-    pendingNavigationUpperBoundaryAttempts = 0
-    pendingNavigationStalledAttempts = 0
     pendingNavigationRetryCount = 0
     pendingNavigationMatchId = ''
-    previousApproximateNavigationKey = ''
     resetPendingProtyleNavigation()
     state.navigationHint = ''
     debugLog('pending-navigation:clear', {
@@ -135,32 +134,13 @@ export function createPendingNavigationController({
       return
     }
 
-    const { key, waitingAtLowerBoundary, waitingAtUpperBoundary } = approximateNavigationState
-    if (key !== previousApproximateNavigationKey) {
-      pendingNavigationStalledAttempts = 1
-      pendingNavigationLowerBoundaryAttempts = waitingAtLowerBoundary ? 1 : 0
-      pendingNavigationUpperBoundaryAttempts = waitingAtUpperBoundary ? 1 : 0
-      previousApproximateNavigationKey = key
-    } else if (waitingAtLowerBoundary) {
-      pendingNavigationLowerBoundaryAttempts += 1
-    } else if (waitingAtUpperBoundary) {
-      pendingNavigationUpperBoundaryAttempts += 1
-    } else {
-      pendingNavigationStalledAttempts += 1
-    }
-
-    if (
-      pendingNavigationLowerBoundaryAttempts >= 200
-      || pendingNavigationUpperBoundaryAttempts >= 200
-      || pendingNavigationStalledAttempts >= 40
-    ) {
-      clearPendingNavigation(
-        pendingNavigationLowerBoundaryAttempts >= 200
-          ? 'lower-boundary-timeout'
-          : pendingNavigationUpperBoundaryAttempts >= 200
-            ? 'upper-boundary-timeout'
-            : 'stalled-timeout',
-      )
+    approximateNavigationProgress = advanceApproximateNavigationProgress(
+      approximateNavigationProgress,
+      approximateNavigationState,
+    )
+    const timeoutReason = resolveApproximateNavigationTimeoutReason(approximateNavigationProgress)
+    if (timeoutReason) {
+      clearPendingNavigation(timeoutReason)
       return
     }
 
@@ -196,9 +176,13 @@ export function createPendingNavigationController({
     }
 
     const progressKey = serializeLoadedBlockRange(directNavigation.loadedBlockRange)
-    const isNewAttempt = pendingProtyleNavigationMatchId !== match.id || pendingProtyleNavigationRef !== directNavigation.protyleRef
+    const action = resolveDirectNavigationAction(directNavigationProgress, {
+      matchId: match.id,
+      progressKey,
+      protyleRef: directNavigation.protyleRef,
+    })
 
-    if (isNewAttempt) {
+    if (action.kind === 'start') {
       try {
         directNavigation.updateIndex(directNavigation.protyleRef, match.blockId, () => {})
       } catch (error) {
@@ -211,10 +195,7 @@ export function createPendingNavigationController({
         return false
       }
 
-      pendingProtyleNavigationAttempts = 1
-      pendingProtyleNavigationMatchId = match.id
-      pendingProtyleNavigationProgressKey = progressKey
-      pendingProtyleNavigationRef = directNavigation.protyleRef
+      directNavigationProgress = action.state
       debugLog('pending-navigation:direct-protyle', {
         attempt: pendingNavigationRetryCount,
         loadedBlockRange: directNavigation.loadedBlockRange,
@@ -224,9 +205,8 @@ export function createPendingNavigationController({
       return true
     }
 
-    if (progressKey !== pendingProtyleNavigationProgressKey) {
-      pendingProtyleNavigationAttempts = 1
-      pendingProtyleNavigationProgressKey = progressKey
+    if (action.kind === 'progress') {
+      directNavigationProgress = action.state
       debugLog('pending-navigation:direct-protyle-progress', {
         attempt: pendingNavigationRetryCount,
         loadedBlockRange: directNavigation.loadedBlockRange,
@@ -236,8 +216,8 @@ export function createPendingNavigationController({
       return true
     }
 
-    pendingProtyleNavigationAttempts += 1
-    if (pendingProtyleNavigationAttempts <= 8) {
+    if (action.kind === 'wait') {
+      directNavigationProgress = action.state
       return true
     }
 
@@ -248,7 +228,7 @@ export function createPendingNavigationController({
       progressKey,
       reason: 'no-render-progress',
     })
-    resetPendingProtyleNavigation()
+    directNavigationProgress = action.state
     return false
   }
 
@@ -281,10 +261,7 @@ export function createPendingNavigationController({
   }
 
   function resetPendingProtyleNavigation() {
-    pendingProtyleNavigationAttempts = 0
-    pendingProtyleNavigationMatchId = ''
-    pendingProtyleNavigationProgressKey = ''
-    pendingProtyleNavigationRef = null
+    directNavigationProgress = resetDirectNavigationProgress()
   }
 
   function scrollApproximateMatchIntoView(context: EditorContext, match: SearchMatch) {
@@ -509,7 +486,7 @@ export function createPendingNavigationController({
     )
   }
 
-  function resolveLoadedBlockRange(context: EditorContext, scrollContainer?: HTMLElement | null) {
+  function resolveLoadedBlockRange(context: EditorContext, scrollContainer?: HTMLElement | null): LoadedBlockRange | null {
     const blockIndexById = new Map(state.minimapBlocks.map(block => [block.blockId, block.blockIndex]))
     if (!blockIndexById.size) {
       return null
@@ -555,7 +532,7 @@ export function createPendingNavigationController({
           loadedIndexes,
           max: centeredVisibleSegment.max,
           min: centeredVisibleSegment.min,
-          source: 'visible-segment',
+          source: 'visible-segment' as const,
           visibleIndexes: centeredVisibleSegment.indexes,
         }
       }
@@ -565,7 +542,7 @@ export function createPendingNavigationController({
       loadedIndexes,
       max: Math.max(...loadedIndexes),
       min: Math.min(...loadedIndexes),
-      source: 'all',
+      source: 'all' as const,
       visibleIndexes: [],
     }
   }
