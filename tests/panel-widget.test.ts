@@ -211,6 +211,35 @@ describe('search panel replace toggle', () => {
     expect(status?.textContent).toContain('数据库结果仅支持搜索与高亮，不支持替换')
   })
 
+  it('disables the replace input and replace actions when the current document is readonly', async () => {
+    mountPanel()
+    applyPluginSettings({ ...DEFAULT_SETTINGS })
+    searchReplaceState.documentReadonly = true
+    searchReplaceState.matches = [{
+      blockId: 'block-1',
+      blockIndex: 0,
+      blockType: 'NodeParagraph',
+      end: 3,
+      id: 'block-1:0:3',
+      matchedText: 'foo',
+      previewText: '[foo] bar',
+      replaceable: true,
+      rootId: 'root-1',
+      start: 0,
+    }] as any
+    openPanel(true, true)
+    await nextTick()
+
+    const replaceInput = host?.querySelector<HTMLInputElement>('.sfsr-row--secondary .sfsr-input')
+    const buttons = host?.querySelectorAll<HTMLButtonElement>('.sfsr-row--secondary .sfsr-action')
+
+    expect(replaceInput?.disabled).toBe(true)
+    expect(buttons).toHaveLength(3)
+    expect(buttons?.[0]?.disabled).toBe(true)
+    expect(buttons?.[1]?.disabled).toBe(false)
+    expect(buttons?.[2]?.disabled).toBe(true)
+  })
+
   it('does not show minimap controls inside the search toolbar', async () => {
     mountPanel()
     applyPluginSettings({ ...DEFAULT_SETTINGS })
@@ -512,6 +541,7 @@ describe('search panel replace toggle', () => {
     searchReplaceState.options = createSearchOptionsFromSettings(DEFAULT_SETTINGS)
     searchReplaceState.currentRootId = ''
     searchReplaceState.currentTitle = ''
+    searchReplaceState.documentReadonly = false
     searchReplaceState.navigationHint = ''
     searchReplaceState.minimapBlocks = []
     searchReplaceState.matches = []

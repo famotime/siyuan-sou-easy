@@ -57,7 +57,7 @@ export function getBlockElement(context: EditorContext, blockId: string) {
 }
 
 export function getBlockPlainText(blockElement: HTMLElement) {
-  const textNodes = getOwnedTextNodes(blockElement)
+  const textNodes = getSearchTextNodes(blockElement)
   return textNodes.map(node => node.nodeValue ?? '').join('')
 }
 
@@ -125,7 +125,7 @@ export function getUniqueBlockElements(root: ParentNode) {
 }
 
 export function getBlockTextLength(blockElement: HTMLElement) {
-  return getOwnedTextNodes(blockElement)
+  return getSearchTextNodes(blockElement)
     .reduce((length, node) => length + (node.nodeValue?.length ?? 0), 0)
 }
 
@@ -264,6 +264,15 @@ export function getOwnedTextNodes(blockElement: HTMLElement) {
   return editableRoots.flatMap(root => collectTextNodes(root, blockElement))
 }
 
+export function getSearchTextNodes(blockElement: HTMLElement) {
+  const editableRoots = getEditableRoots(blockElement)
+  if (editableRoots.length) {
+    return editableRoots.flatMap(root => collectTextNodes(root, blockElement))
+  }
+
+  return collectTextNodes(blockElement, blockElement, { ignoreWhitespaceOnly: true })
+}
+
 function isSupportedBlockType(blockType: string, options: SearchOptions) {
   if (SUPPORTED_NODE_TYPES.has(blockType)) {
     return true
@@ -283,10 +292,18 @@ function getEditableRoots(blockElement: HTMLElement) {
   })
 }
 
-function collectTextNodes(root: HTMLElement, ownerBlock: HTMLElement) {
+function collectTextNodes(
+  root: HTMLElement,
+  ownerBlock: HTMLElement,
+  options?: { ignoreWhitespaceOnly?: boolean },
+) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
       if (!(node instanceof Text) || !node.nodeValue?.length) {
+        return NodeFilter.FILTER_REJECT
+      }
+
+      if (options?.ignoreWhitespaceOnly && !node.nodeValue.trim()) {
         return NodeFilter.FILTER_REJECT
       }
 

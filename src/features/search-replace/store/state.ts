@@ -31,6 +31,7 @@ export interface SearchReplaceState {
   options: SearchOptions
   currentRootId: string
   currentTitle: string
+  documentReadonly: boolean
   navigationHint: string
   minimapBlocks: SearchableBlockSummary[]
   searchableBlockCount: number
@@ -54,6 +55,7 @@ function createInitialSearchReplaceState(): SearchReplaceState {
     options: createSearchOptionsFromSettings(DEFAULT_SETTINGS),
     currentRootId: '',
     currentTitle: '',
+    documentReadonly: false,
     navigationHint: '',
     minimapBlocks: [],
     searchableBlockCount: 0,

@@ -69,6 +69,7 @@
           :on-skip-current="skipCurrent"
           :on-toggle-preserve-case="togglePreserveCase"
           :preserve-case="state.preserveCase"
+          :replace-input-disabled="replaceInputDisabled"
           :replacement="state.replacement"
         />
 
@@ -287,8 +288,9 @@ const counterText = computed(() => {
   return t('matchCounter', { current, total })
 })
 
-const canReplaceCurrent = computed(() => Boolean(currentMatch.value?.replaceable) && !state.busy)
-const canReplaceAll = computed(() => Boolean(state.matches.length) && !hasAttributeViewMatches(state.matches) && !state.busy)
+const replaceInputDisabled = computed(() => state.documentReadonly)
+const canReplaceCurrent = computed(() => !state.documentReadonly && Boolean(currentMatch.value?.replaceable) && !state.busy)
+const canReplaceAll = computed(() => !state.documentReadonly && Boolean(state.matches.length) && !hasAttributeViewMatches(state.matches) && !state.busy)
 const {
   clearMinimap,
   minimapRef,

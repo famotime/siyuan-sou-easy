@@ -1,4 +1,4 @@
-import { getBlockElement, getOwnedTextNodes } from './blocks'
+import { getBlockElement, getOwnedTextNodes, getSearchTextNodes } from './blocks'
 import { findAttributeViewCellElements } from './attribute-view'
 import type {
   EditorContext,
@@ -33,7 +33,7 @@ export function locateTextRange(context: EditorContext, match: SearchMatch) {
     return null
   }
 
-  const textNodes = getOwnedTextNodes(blockElement)
+  const textNodes = getSearchTextNodes(blockElement)
   if (!textNodes.length) {
     return null
   }

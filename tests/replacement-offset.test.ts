@@ -5,6 +5,7 @@ import {
   applyReplacementsToClone,
   getBlockElement,
   getBlockPlainText,
+  isRangeReplaceable,
 } from '@/features/search-replace/editor'
 import type { EditorContext } from '@/features/search-replace/types'
 
@@ -92,5 +93,11 @@ describe('applyReplacementsToClone', () => {
     expect(outcome.appliedCount).toBe(1)
     expect(outcome.clone).not.toBeNull()
     expect(getBlockPlainText(outcome.clone as HTMLElement)).toBe('插件部署指南')
+  })
+
+  it('keeps readonly block text non-replaceable when no editable root exists', () => {
+    const block = createBlockFromHtml('<div contenteditable="false">本馆创编学生国学丛书</div>')
+
+    expect(isRangeReplaceable(block, 6, 8)).toBe(false)
   })
 })

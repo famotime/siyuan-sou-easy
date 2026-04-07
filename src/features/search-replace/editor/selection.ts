@@ -1,6 +1,6 @@
 import {
   getBlockTextLength,
-  getOwnedTextNodes,
+  getSearchTextNodes,
   getUniqueBlockElements,
 } from './blocks'
 import type {
@@ -101,7 +101,7 @@ function getDescendantBlockElements(rootElement: HTMLElement) {
 }
 
 function getSelectionRangesWithinBlock(blockElement: HTMLElement, selection: Selection) {
-  const textNodes = getOwnedTextNodes(blockElement)
+  const textNodes = getSearchTextNodes(blockElement)
   if (!textNodes.length) {
     return []
   }

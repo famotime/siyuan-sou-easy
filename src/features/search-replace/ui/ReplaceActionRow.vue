@@ -4,6 +4,7 @@
       ref="replaceInputRef"
       :value="props.replacement"
       class="b3-text-field sfsr-input"
+      :disabled="props.replaceInputDisabled"
       :placeholder="t('replacePlaceholder')"
       @compositionstart="props.onReplaceCompositionStart"
       @compositionend="props.onReplaceCompositionEnd"
@@ -59,6 +60,7 @@ const props = defineProps<{
   onSkipCurrent: () => void
   onTogglePreserveCase: () => void
   preserveCase: boolean
+  replaceInputDisabled: boolean
   replacement: string
 }>()
 

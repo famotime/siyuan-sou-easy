@@ -59,6 +59,57 @@ describe('current block highlight', () => {
     expect(protyle.querySelector('[data-node-id="block-1"]')?.classList.contains('sfsr-block-current')).toBe(true)
   })
 
+  it('highlights readonly block text when CSS highlights are supported', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-wysiwyg">
+          <div data-node-id="block-readonly" data-type="NodeParagraph" class="p">
+            <div contenteditable="false">
+              <span>本馆创编学生国学丛书</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector('.protyle') as HTMLElement
+    const context: EditorContext = {
+      protyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    const match: SearchMatch = {
+      blockId: 'block-readonly',
+      blockIndex: 0,
+      blockType: 'NodeParagraph',
+      end: 8,
+      id: 'block-readonly:6:8',
+      matchedText: '学生',
+      previewText: '本馆创编[学生]国学丛书',
+      replaceable: false,
+      rootId: 'root-1',
+      start: 6,
+    }
+
+    const highlights = new Map<string, { ranges: Range[] }>()
+    ;(globalThis as typeof globalThis & { Highlight?: new (...ranges: Range[]) => { ranges: Range[] } }).Highlight = class {
+      ranges: Range[]
+
+      constructor(...ranges: Range[]) {
+        this.ranges = ranges
+      }
+    }
+    ;(globalThis as typeof globalThis & { CSS?: { highlights?: Map<string, { ranges: Range[] }> } }).CSS = {
+      highlights,
+    }
+
+    syncSearchDecorations(context, [match], match)
+
+    expect(protyle.querySelector('[data-node-id="block-readonly"]')?.classList.contains('sfsr-block-current')).toBe(true)
+    expect(highlights.get('sfsr-match')?.ranges.map(range => range.toString())).toContain('学生')
+    expect(highlights.get('sfsr-current-match')?.ranges.map(range => range.toString())).toContain('学生')
+  })
+
   it('applies highlight classes to the actual heading block when metadata with the same node id exists', () => {
     document.body.innerHTML = `
       <div class="protyle">

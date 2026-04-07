@@ -51,7 +51,7 @@ export async function replaceCurrentMatch({
   updateDomBlock,
 }: ReplaceCurrentDependencies) {
   const match = getCurrentMatch()
-  if (!match || state.busy) {
+  if (!match || state.busy || state.documentReadonly) {
     return
   }
   if (isAttributeViewMatch(match)) {
@@ -123,7 +123,7 @@ export async function replaceAllMatches({
   state,
   updateDomBlock,
 }: ReplaceAllDependencies) {
-  if (!state.matches.length || state.busy) {
+  if (!state.matches.length || state.busy || state.documentReadonly) {
     return
   }
   if (hasAttributeViewMatches(state.matches)) {

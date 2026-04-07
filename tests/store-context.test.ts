@@ -217,6 +217,19 @@ describe('search store editor context fallback', () => {
     expect(searchReplaceState.matches).toHaveLength(2)
   })
 
+  it('marks the current document readonly when root attrs include sy-readonly', async () => {
+    kernelMocks.getBlockAttrs.mockResolvedValue({
+      'custom-sy-readonly': 'true',
+    })
+    searchReplaceState.query = 'foo'
+
+    openPanel(true)
+    await flushRefresh()
+
+    expect(kernelMocks.getBlockAttrs).toHaveBeenCalledWith('root-1')
+    expect(searchReplaceState.documentReadonly).toBe(true)
+  })
+
   it('keeps revealing matches when navigation runs from the panel', async () => {
     applyPluginSettings({
       ...DEFAULT_SETTINGS,
@@ -4456,6 +4469,7 @@ function resetState() {
   searchReplaceState.options = createSearchOptionsFromSettings(DEFAULT_SETTINGS)
   searchReplaceState.currentRootId = ''
   searchReplaceState.currentTitle = ''
+  searchReplaceState.documentReadonly = false
   searchReplaceState.navigationHint = ''
   searchReplaceState.minimapBlocks = []
   searchReplaceState.matches = []

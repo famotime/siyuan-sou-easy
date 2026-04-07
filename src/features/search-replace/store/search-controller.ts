@@ -15,6 +15,7 @@ import type {
   SearchMatch,
 } from '../types'
 import { t } from '@/i18n/runtime'
+import { getBlockAttrs } from '../kernel'
 import {
   clearSelectionScope,
   rememberEditorContext,
@@ -126,12 +127,17 @@ export function createSearchController({
     documentEvents.syncLiveRefreshObserver(context)
     if (!context) {
       state.searching = false
+      state.documentReadonly = false
       resetMatches(t('currentDocumentMissing'))
       clearSearchDecorations()
       return
     }
 
     applyResolvedContext(context)
+    state.documentReadonly = await resolveDocumentReadonly(context.rootId)
+    if (revision !== latestRefreshRevision) {
+      return
+    }
 
     if (!state.query.trim()) {
       state.searching = false
@@ -223,6 +229,15 @@ export function createSearchController({
 
   function resolveSelectionScope(context: EditorContext) {
     return resolveCachedSelectionScope(context, getCurrentSelectionScope)
+  }
+
+  async function resolveDocumentReadonly(rootId: string) {
+    try {
+      const attrs = await getBlockAttrs(rootId)
+      return isReadonlyBlockAttrs(attrs)
+    } catch {
+      return false
+    }
   }
 
   function scheduleRefresh(delay = 120) {
@@ -333,6 +348,11 @@ export function createSearchController({
     state.currentIndex = 0
     state.error = error
   }
+}
+
+function isReadonlyBlockAttrs(attrs: Record<string, string> | null | undefined) {
+  const readonlyValue = attrs?.['custom-sy-readonly'] ?? attrs?.['sy-readonly'] ?? ''
+  return readonlyValue === 'true' || readonlyValue === '1'
 }
 
 function compareSearchMatches(left: SearchMatch, right: SearchMatch) {

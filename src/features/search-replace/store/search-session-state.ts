@@ -19,6 +19,7 @@ export function applyOpenPanelState(
 export function applyClosePanelState(
   state: {
     busy: boolean
+    documentReadonly: boolean
     error: string
     minimapBlocks: unknown[]
     navigationHint: string
@@ -30,6 +31,7 @@ export function applyClosePanelState(
   state.visible = false
   state.busy = false
   state.searching = false
+  state.documentReadonly = false
   state.error = ''
   state.navigationHint = ''
   state.minimapBlocks = []
