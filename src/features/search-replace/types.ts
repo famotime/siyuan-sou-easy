@@ -52,6 +52,7 @@ export interface SearchableBlock {
   rootId: string
   blockType: string
   blockIndex: number
+  collapsedAncestorIds?: string[]
   text: string
   element: HTMLElement
   table?: TableSearchMetadata
@@ -69,6 +70,7 @@ export interface SearchMatch {
   rootId: string
   blockType: string
   blockIndex: number
+  collapsedAncestorIds?: string[]
   start: number
   end: number
   matchedText: string

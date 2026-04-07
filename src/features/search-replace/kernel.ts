@@ -23,6 +23,12 @@ export async function updateDomBlock(id: string, data: string) {
   })
 }
 
+export async function unfoldBlock(id: string) {
+  return requestApi('/api/block/unfoldBlock', {
+    id,
+  })
+}
+
 export async function getDocumentContent(id: string) {
   return requestApi<DocumentContentSnapshot>('/api/filetree/getDoc', {
     id,

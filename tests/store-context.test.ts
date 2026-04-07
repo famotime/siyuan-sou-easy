@@ -104,6 +104,7 @@ const kernelMocks = vi.hoisted(() => ({
     eof: true,
   })),
   renderAttributeView: vi.fn(async () => null),
+  unfoldBlock: vi.fn(async () => null),
   updateDomBlock: vi.fn(async () => null),
 }))
 
@@ -156,6 +157,7 @@ describe('search store editor context fallback', () => {
       eof: true,
     })
     kernelMocks.renderAttributeView.mockResolvedValue(null)
+    kernelMocks.unfoldBlock.mockResolvedValue(null)
     kernelMocks.updateDomBlock.mockResolvedValue(null)
     searchEngineMocks.findMatches.mockImplementation(() => ({
       error: '',
@@ -3285,6 +3287,130 @@ describe('search store editor context fallback', () => {
     await vi.advanceTimersByTimeAsync(120)
     expect(searchReplaceState.navigationHint).toBe('')
     expect(editorMocks.isMatchVisible).toHaveBeenCalled()
+  })
+
+  it('unfolds collapsed ancestor blocks before timing out pending navigation for hidden matches', async () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-background" data-node-id="root-1"></div>
+        <div class="protyle-title" data-node-id="root-1"></div>
+        <input class="protyle-title__input" value="Doc 1" />
+        <div class="protyle-content">
+          <div class="protyle-wysiwyg">
+            <div data-node-id="block-1" data-type="NodeParagraph"><div contenteditable="true">foo</div></div>
+            <div data-node-id="list-item-1" data-type="NodeListItem"><div contenteditable="true">去飞书开发者后台</div></div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    const scrollContainer = document.querySelector<HTMLElement>('.protyle-content')!
+    let scrollTop = 0
+    let ancestorExpanded = false
+
+    Object.defineProperty(scrollContainer, 'clientHeight', {
+      configurable: true,
+      value: 300,
+    })
+    Object.defineProperty(scrollContainer, 'scrollHeight', {
+      configurable: true,
+      value: 1200,
+    })
+    Object.defineProperty(scrollContainer, 'scrollTop', {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value: number) => {
+        scrollTop = value
+      },
+    })
+    scrollContainer.scrollTo = vi.fn(({ top }: { top?: number }) => {
+      scrollTop = top ?? scrollTop
+    }) as any
+
+    editorMocks.state.context = {
+      protyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    kernelMocks.unfoldBlock.mockImplementation(async (id: string) => {
+      if (id === 'list-item-1') {
+        ancestorExpanded = true
+      }
+      return null
+    })
+    editorMocks.scrollMatchIntoView.mockImplementation((_context, match) => {
+      if (match?.id === 'block-2:0:2') {
+        return ancestorExpanded ? 'scrolled' : 'missing'
+      }
+
+      return 'visible'
+    })
+    editorMocks.isMatchVisible.mockImplementation((_context, match) => {
+      if (match?.id !== 'block-2:0:2') {
+        return true
+      }
+
+      return ancestorExpanded
+    })
+
+    searchReplaceState.visible = true
+    searchReplaceState.matches = [
+      {
+        blockId: 'block-1',
+        blockIndex: 0,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-1:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+      {
+        blockId: 'block-2',
+        blockIndex: 1,
+        blockType: 'NodeParagraph',
+        collapsedAncestorIds: ['list-item-1'],
+        end: 2,
+        id: 'block-2:0:2',
+        matchedText: '飞书',
+        previewText: '[飞书]开放平台',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      } as any,
+    ]
+    searchReplaceState.currentIndex = 0
+    searchReplaceState.searchableBlockCount = 2
+    searchReplaceState.minimapBlocks = [
+      {
+        blockId: 'block-1',
+        blockIndex: 0,
+        blockType: 'NodeParagraph',
+      },
+      {
+        blockId: 'block-2',
+        blockIndex: 1,
+        blockType: 'NodeParagraph',
+      },
+    ]
+
+    goNext()
+
+    expect(searchReplaceState.currentIndex).toBe(1)
+    expect(searchReplaceState.navigationHint).toContain('等待内容加载')
+    expect(kernelMocks.unfoldBlock).toHaveBeenCalledWith('list-item-1')
+
+    await vi.advanceTimersByTimeAsync(120)
+
+    expect(searchReplaceState.navigationHint).toBe('')
+    expect(editorMocks.scrollMatchIntoView).toHaveBeenCalledWith(
+      editorMocks.state.context,
+      expect.objectContaining({ id: 'block-2:0:2' }),
+      'always',
+    )
   })
 
   it('keeps retrying backward navigation while waiting at the upper lazy-load boundary', async () => {

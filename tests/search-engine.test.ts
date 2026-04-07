@@ -174,4 +174,17 @@ describe('findMatches', () => {
       rowIndex: 1,
     })
   })
+
+  it('attaches folded ancestor ids to matches so pending navigation can expand collapsed parents', () => {
+    const result = findMatches([
+      {
+        ...createBlock('飞书开放平台', 1),
+        collapsedAncestorIds: ['list-item-1'],
+      } as SearchableBlock,
+    ], '飞书', defaultOptions)
+
+    expect(result.error).toBe('')
+    expect(result.matches).toHaveLength(1)
+    expect((result.matches[0] as any).collapsedAncestorIds).toEqual(['list-item-1'])
+  })
 })

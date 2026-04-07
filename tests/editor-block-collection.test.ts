@@ -11,6 +11,7 @@ import {
 import {
   applyReplacementsToClone,
   collectSearchableBlocks,
+  collectSearchableBlocksFromDocumentContent,
   createEditorContextFromElement,
   getBlockElement,
   getBlockPlainText,
@@ -438,5 +439,24 @@ describe('editor block collection', () => {
     expect(blocks).toHaveLength(1)
     expect(blocks[0]?.blockId).toBe('block-2')
     expect(blocks[0]?.text).toBe('Visible block')
+  })
+
+  it('records folded ancestor ids from document snapshots so hidden child matches can be unfolded later', () => {
+    const blocks = collectSearchableBlocksFromDocumentContent(`
+      <div class="protyle-wysiwyg">
+        <div data-node-id="list-item-1" data-type="NodeListItem" fold="1">
+          <div contenteditable="true">去飞书开发者后台</div>
+          <div data-node-id="block-2" data-type="NodeParagraph">
+            <div contenteditable="true">飞书开放平台</div>
+          </div>
+        </div>
+      </div>
+    `, 'root-1', defaultOptions) as Array<any>
+
+    expect(blocks).toHaveLength(2)
+    expect(blocks[0]?.blockId).toBe('list-item-1')
+    expect(blocks[0]?.collapsedAncestorIds).toEqual([])
+    expect(blocks[1]?.blockId).toBe('block-2')
+    expect(blocks[1]?.collapsedAncestorIds).toEqual(['list-item-1'])
   })
 })

@@ -6,6 +6,7 @@ import type {
 import { resolveEditorSearchRoot } from '../editor/blocks'
 import { resolveEditorScrollContainer } from '../editor/scroll-container'
 import { debugElement, debugLog } from '../debug'
+import { unfoldBlock } from '../kernel'
 import { t } from '@/i18n/runtime'
 import {
   advanceApproximateNavigationProgress,
@@ -70,12 +71,14 @@ export function createPendingNavigationController({
   let pendingNavigationTimer = 0
   let pendingNavigationRetryCount = 0
   let pendingNavigationMatchId = ''
+  let attemptedCollapsedAncestorIds = new Set<string>()
   let directNavigationProgress: DirectNavigationProgress<EditorContext['protyleRef']> = createDirectNavigationProgress()
 
   function beginPendingNavigation(match: SearchMatch) {
     approximateNavigationProgress = resetApproximateNavigationProgress()
     pendingNavigationMatchId = match.id
     pendingNavigationRetryCount = 0
+    attemptedCollapsedAncestorIds = new Set()
     resetPendingProtyleNavigation()
     state.navigationHint = t('navigationPending')
     debugLog('pending-navigation:begin', {
@@ -91,6 +94,7 @@ export function createPendingNavigationController({
     pendingNavigationTimer = 0
     pendingNavigationRetryCount = 0
     pendingNavigationMatchId = ''
+    attemptedCollapsedAncestorIds = new Set()
     resetPendingProtyleNavigation()
     state.navigationHint = ''
     debugLog('pending-navigation:clear', {
@@ -103,6 +107,10 @@ export function createPendingNavigationController({
     const context = resolveEditorContext()
     if (!state.visible || !context || !currentMatch || currentMatch.id !== pendingNavigationMatchId) {
       clearPendingNavigation('context-mismatch')
+      return
+    }
+
+    if (attemptExpandCollapsedAncestors(currentMatch)) {
       return
     }
 
@@ -262,6 +270,45 @@ export function createPendingNavigationController({
 
   function resetPendingProtyleNavigation() {
     directNavigationProgress = resetDirectNavigationProgress()
+  }
+
+  function attemptExpandCollapsedAncestors(match: SearchMatch) {
+    const collapsedAncestorIds = (match.collapsedAncestorIds ?? []).filter((ancestorId) => {
+      return ancestorId.trim().length > 0 && !attemptedCollapsedAncestorIds.has(ancestorId)
+    })
+
+    if (!collapsedAncestorIds.length) {
+      return false
+    }
+
+    collapsedAncestorIds.forEach(ancestorId => attemptedCollapsedAncestorIds.add(ancestorId))
+    debugLog('pending-navigation:unfold-collapsed-ancestors', {
+      ancestorIds: collapsedAncestorIds,
+      matchId: match.id,
+    })
+
+    void Promise.all(collapsedAncestorIds.map(async (ancestorId) => {
+      try {
+        await unfoldBlock(ancestorId)
+      } catch (error) {
+        debugLog('pending-navigation:unfold-collapsed-ancestor-failed', {
+          ancestorId,
+          error: error instanceof Error ? error.message : String(error),
+          matchId: match.id,
+        })
+      }
+    })).finally(() => {
+      if (pendingNavigationMatchId !== match.id) {
+        return
+      }
+
+      window.clearTimeout(pendingNavigationTimer)
+      pendingNavigationTimer = window.setTimeout(() => {
+        retryPendingNavigation()
+      }, 120)
+    })
+
+    return true
   }
 
   function scrollApproximateMatchIntoView(context: EditorContext, match: SearchMatch) {

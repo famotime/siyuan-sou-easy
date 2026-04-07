@@ -151,6 +151,7 @@ function collectSearchableBlocksFromRoot(root: ParentNode, rootId: string, optio
       rootId,
       blockType,
       blockIndex,
+      collapsedAncestorIds: resolveCollapsedAncestorIds(element),
       text,
       element,
       table: tableMetadata?.table,
@@ -158,6 +159,22 @@ function collectSearchableBlocksFromRoot(root: ParentNode, rootId: string, optio
   })
 
   return blocks
+}
+
+function resolveCollapsedAncestorIds(blockElement: HTMLElement) {
+  const collapsedAncestorIds: string[] = []
+  let currentAncestor = blockElement.parentElement?.closest<HTMLElement>('[data-node-id][data-type]')
+
+  while (currentAncestor) {
+    const ancestorId = currentAncestor.dataset.nodeId?.trim()
+    if (ancestorId && currentAncestor.getAttribute('fold') === '1') {
+      collapsedAncestorIds.unshift(ancestorId)
+    }
+
+    currentAncestor = currentAncestor.parentElement?.closest<HTMLElement>('[data-node-id][data-type]')
+  }
+
+  return collapsedAncestorIds
 }
 
 function collectTableSearchMetadata(blockElement: HTMLElement): { text: string, table?: TableSearchMetadata } | null {

@@ -68,6 +68,7 @@ export function findMatches(
         rootId: block.rootId,
         blockType: block.blockType,
         blockIndex: block.blockIndex,
+        collapsedAncestorIds: block.collapsedAncestorIds ?? [],
         start,
         end,
         matchedText,
