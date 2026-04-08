@@ -12,9 +12,12 @@ const loadSettings = vi.fn().mockResolvedValue({
   debugLog: false,
   defaultReplaceVisible: false,
   includeCodeBlock: false,
+  largeCodeBlockLineThreshold: 1000,
   minimapVisible: false,
+  optimizeLargeCodeBlocks: true,
   panelHotkey: 'Ctrl+F11',
   preloadSelection: true,
+  preserveCase: false,
   rememberPanelPosition: true,
   replacePanelHotkey: 'Ctrl+F12',
   searchAttributeView: false,
@@ -36,9 +39,12 @@ vi.mock('@/settings', () => ({
     debugLog: false,
     defaultReplaceVisible: false,
     includeCodeBlock: false,
+    largeCodeBlockLineThreshold: 1000,
     minimapVisible: false,
+    optimizeLargeCodeBlocks: true,
     panelHotkey: 'Ctrl+F11',
     preloadSelection: true,
+    preserveCase: false,
     rememberPanelPosition: true,
     replacePanelHotkey: 'Ctrl+F12',
     searchAttributeView: false,
@@ -68,8 +74,12 @@ describe('plugin settings panel', () => {
       settingDefaultReplaceVisibleTitle: 'Default replace',
       settingIncludeCodeBlockDesc: 'include code',
       settingIncludeCodeBlockTitle: 'Include code',
+      settingLargeCodeBlockLineThresholdDesc: 'large code threshold',
+      settingLargeCodeBlockLineThresholdTitle: 'Large code threshold',
       settingMinimapDesc: 'show minimap on panel',
       settingMinimapTitle: 'Document minimap',
+      settingOptimizeLargeCodeBlocksDesc: 'optimize large code blocks',
+      settingOptimizeLargeCodeBlocksTitle: 'Optimize large code blocks',
       settingPanelHotkeyDesc: 'panel hotkey',
       settingPanelHotkeyTitle: 'Panel hotkey',
       settingPreloadSelectionDesc: 'preload selection',
@@ -85,7 +95,7 @@ describe('plugin settings panel', () => {
 
     plugin.openSetting()
 
-    expect(addItemSpy).toHaveBeenCalledTimes(9)
+    expect(addItemSpy).toHaveBeenCalledTimes(11)
     expect(addItemSpy.mock.calls.map(([item]) => ({
       description: item.description,
       title: item.title,
@@ -117,6 +127,14 @@ describe('plugin settings panel', () => {
       {
         description: 'include code',
         title: 'Include code',
+      },
+      {
+        description: 'optimize large code blocks',
+        title: 'Optimize large code blocks',
+      },
+      {
+        description: 'large code threshold',
+        title: 'Large code threshold',
       },
       {
         description: 'search database blocks',

@@ -16,7 +16,9 @@ describe('normalizeSettings', () => {
     const settings = normalizeSettings({
       debugLog: true,
       includeCodeBlock: true,
+      largeCodeBlockLineThreshold: 2048,
       minimapVisible: true,
+      optimizeLargeCodeBlocks: true,
       preserveCase: true,
       searchAttributeView: true,
     })
@@ -24,7 +26,9 @@ describe('normalizeSettings', () => {
     expect(settings).toMatchObject({
       debugLog: true,
       includeCodeBlock: true,
+      largeCodeBlockLineThreshold: 2048,
       minimapVisible: true,
+      optimizeLargeCodeBlocks: true,
       preserveCase: true,
       searchAttributeView: true,
     })
@@ -36,10 +40,22 @@ describe('normalizeSettings', () => {
     expect(settings).toMatchObject({
       debugLog: DEFAULT_SETTINGS.debugLog,
       includeCodeBlock: DEFAULT_SETTINGS.includeCodeBlock,
+      largeCodeBlockLineThreshold: DEFAULT_SETTINGS.largeCodeBlockLineThreshold,
       minimapVisible: DEFAULT_SETTINGS.minimapVisible,
+      optimizeLargeCodeBlocks: DEFAULT_SETTINGS.optimizeLargeCodeBlocks,
       preserveCase: DEFAULT_SETTINGS.preserveCase,
       searchAttributeView: DEFAULT_SETTINGS.searchAttributeView,
     })
+  })
+
+  it('clamps invalid large code block thresholds back to the default', () => {
+    expect(normalizeSettings({
+      largeCodeBlockLineThreshold: 0,
+    }).largeCodeBlockLineThreshold).toBe(DEFAULT_SETTINGS.largeCodeBlockLineThreshold)
+
+    expect(normalizeSettings({
+      largeCodeBlockLineThreshold: Number.NaN,
+    }).largeCodeBlockLineThreshold).toBe(DEFAULT_SETTINGS.largeCodeBlockLineThreshold)
   })
 })
 

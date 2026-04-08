@@ -54,6 +54,8 @@ export interface SearchableBlock {
   blockIndex: number
   collapsedAncestorIds?: string[]
   text: string
+  blockTextLength?: number
+  blockLineCount?: number
   element: HTMLElement
   table?: TableSearchMetadata
 }
@@ -76,6 +78,8 @@ export interface SearchMatch {
   matchedText: string
   previewText: string
   replaceable: boolean
+  blockTextLength?: number
+  blockLineCount?: number
   sourceKind?: 'block' | 'attribute-view'
   table?: TableMatchMetadata
   attributeView?: {
@@ -90,6 +94,11 @@ export interface SearchMatch {
     targetKind?: 'cell' | 'column-header' | 'group-title' | 'view-name'
     visualIndex?: number
   }
+}
+
+export interface SearchDecorationOptions {
+  optimizeLargeCodeBlocks?: boolean
+  largeCodeBlockLineThreshold?: number
 }
 
 export type ScrollMatchResult = 'idle' | 'missing' | 'scrolled' | 'visible'

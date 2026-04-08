@@ -70,3 +70,46 @@ export function createCheckboxElement(
   })
   return input
 }
+
+export function createNumberInputElement(
+  value: number,
+  onChange: (value: number) => Promise<boolean>,
+) {
+  const input = document.createElement('input')
+  input.className = 'b3-text-field fn__size200'
+  input.type = 'number'
+  input.min = '1'
+  input.step = '1'
+
+  let currentValue = normalizeNumberValue(value)
+  input.value = String(currentValue)
+
+  input.addEventListener('change', async () => {
+    const nextValue = normalizeNumberValue(Number.parseInt(input.value, 10))
+    input.value = String(nextValue)
+    const accepted = await onChange(nextValue)
+    if (accepted) {
+      currentValue = nextValue
+      return
+    }
+
+    input.value = String(currentValue)
+  })
+
+  input.addEventListener('blur', () => {
+    if (!input.value.trim()) {
+      input.value = String(currentValue)
+    }
+  })
+
+  return input
+}
+
+function normalizeNumberValue(value: number) {
+  if (!Number.isFinite(value)) {
+    return 1
+  }
+
+  const normalized = Math.floor(value)
+  return normalized > 0 ? normalized : 1
+}

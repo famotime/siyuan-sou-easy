@@ -26,6 +26,7 @@ import {
 import { debugElement, debugLog, debugRect } from '../debug'
 import type {
   EditorContext,
+  SearchDecorationOptions,
   SearchMatch,
   ScrollMatchResult,
 } from '../types'
@@ -43,6 +44,17 @@ interface ResolvedMatchScrollState {
   visibilityContainers: HTMLElement[]
 }
 
+interface TextHighlightCacheEntry {
+  context: HTMLElement
+  highlightedMatchIds: Set<string>
+  matches: SearchMatch[]
+  optionsKey: string
+  ranges: Range[]
+  rangesByMatchId: Map<string, Range>
+}
+
+let textHighlightCache: TextHighlightCacheEntry | null = null
+
 export function buildPreview(text: string, start: number, end: number, windowSize = 18) {
   const rawBefore = text.slice(Math.max(0, start - windowSize), start)
   const rawAfter = text.slice(end, Math.min(text.length, end + windowSize))
@@ -54,10 +66,16 @@ export function buildPreview(text: string, start: number, end: number, windowSiz
   return `${prefix}${before}[${match}]${after}${suffix}`
 }
 
-export function syncSearchDecorations(context: EditorContext, matches: SearchMatch[], currentMatch: SearchMatch | null) {
+export function syncSearchDecorations(
+  context: EditorContext,
+  matches: SearchMatch[],
+  currentMatch: SearchMatch | null,
+  options: SearchDecorationOptions = {},
+) {
   clearSearchDecorations(context)
 
-  const textHighlightedMatchIds = applyMatchTextHighlights(context, matches)
+  const textHighlightState = applyMatchTextHighlights(context, matches, options)
+  const textHighlightedMatchIds = textHighlightState.highlightedMatchIds
   const tableCellHighlightedMatchIds = applyTableCellHighlights(context, matches, currentMatch, textHighlightedMatchIds)
   applyAttributeViewCellHighlights(context, matches, currentMatch)
   const matchedBlockIds = new Set(
@@ -77,7 +95,7 @@ export function syncSearchDecorations(context: EditorContext, matches: SearchMat
   })
 
   if (currentMatch) {
-    applyCurrentTextHighlight(context, currentMatch)
+    applyCurrentTextHighlight(context, currentMatch, textHighlightState.rangesByMatchId)
     const usesTableTextHighlight = currentMatch.blockType === TABLE_NODE_TYPE && textHighlightedMatchIds.has(currentMatch.id)
     if (!usesTableTextHighlight && !tableCellHighlightedMatchIds.has(currentMatch.id)) {
       getBlockElement(context, currentMatch.blockId)?.classList.add(CURRENT_MATCH_CLASS)
@@ -476,8 +494,12 @@ function applyTableCellHighlights(
   return highlightedMatchIds
 }
 
-function applyCurrentTextHighlight(context: EditorContext, match: SearchMatch) {
-  const range = locateTextRange(context, match)
+function applyCurrentTextHighlight(
+  context: EditorContext,
+  match: SearchMatch,
+  cachedRangesByMatchId?: Map<string, Range>,
+) {
+  const range = getReusableMatchRange(context, match, cachedRangesByMatchId)
   if (!range) {
     return false
   }
@@ -516,31 +538,30 @@ function getHighlightConstructor() {
   return typeof HighlightConstructor === 'function' ? HighlightConstructor : null
 }
 
-function applyMatchTextHighlights(context: EditorContext, matches: SearchMatch[]) {
+function applyMatchTextHighlights(
+  context: EditorContext,
+  matches: SearchMatch[],
+  options: SearchDecorationOptions,
+) {
   const registry = getHighlightRegistry()
   const HighlightConstructor = getHighlightConstructor()
   if (!registry || !HighlightConstructor || !matches.length) {
-    return new Set<string>()
-  }
-
-  const highlightedMatchIds = new Set<string>()
-  const ranges: Range[] = []
-
-  matches.forEach((match) => {
-    const range = locateTextRange(context, match)
-    if (!range) {
-      return
+    return {
+      highlightedMatchIds: new Set<string>(),
+      rangesByMatchId: new Map<string, Range>(),
     }
-
-    ranges.push(range)
-    highlightedMatchIds.add(match.id)
-  })
-
-  if (ranges.length > 0) {
-    registry.set(MATCH_TEXT_HIGHLIGHT_NAME, new HighlightConstructor(...ranges))
   }
 
-  return highlightedMatchIds
+  const cacheEntry = resolveTextHighlightCache(context, matches, options)
+
+  if (cacheEntry.ranges.length > 0) {
+    registry.set(MATCH_TEXT_HIGHLIGHT_NAME, new HighlightConstructor(...cacheEntry.ranges))
+  }
+
+  return {
+    highlightedMatchIds: cacheEntry.highlightedMatchIds,
+    rangesByMatchId: cacheEntry.rangesByMatchId,
+  }
 }
 
 function applyAttributeViewCellHighlights(
@@ -668,4 +689,104 @@ function resolveNodeElement(node: Node | null) {
   }
 
   return node instanceof Element ? node : node.parentElement
+}
+
+function resolveTextHighlightCache(
+  context: EditorContext,
+  matches: SearchMatch[],
+  options: SearchDecorationOptions,
+) {
+  const optionsKey = buildTextHighlightOptionsKey(options)
+  if (
+    textHighlightCache
+    && textHighlightCache.context === context.protyle
+    && textHighlightCache.matches === matches
+    && textHighlightCache.optionsKey === optionsKey
+    && areCachedRangesReusable(context, textHighlightCache.ranges)
+  ) {
+    return textHighlightCache
+  }
+
+  const highlightedMatchIds = new Set<string>()
+  const ranges: Range[] = []
+  const rangesByMatchId = new Map<string, Range>()
+
+  matches.forEach((match) => {
+    if (shouldSkipSharedTextHighlight(match, options)) {
+      return
+    }
+
+    const range = locateTextRange(context, match)
+    if (!range || !isReusableRange(context, range)) {
+      return
+    }
+
+    ranges.push(range)
+    highlightedMatchIds.add(match.id)
+    rangesByMatchId.set(match.id, range)
+  })
+
+  textHighlightCache = {
+    context: context.protyle,
+    highlightedMatchIds,
+    matches,
+    optionsKey,
+    ranges,
+    rangesByMatchId,
+  }
+
+  return textHighlightCache
+}
+
+function buildTextHighlightOptionsKey(options: SearchDecorationOptions) {
+  return [
+    options.optimizeLargeCodeBlocks ? '1' : '0',
+    String(options.largeCodeBlockLineThreshold ?? ''),
+  ].join(':')
+}
+
+function shouldSkipSharedTextHighlight(match: SearchMatch, options: SearchDecorationOptions) {
+  if (!options.optimizeLargeCodeBlocks) {
+    return false
+  }
+
+  if (match.blockType !== 'NodeCodeBlock') {
+    return false
+  }
+
+  const lineThreshold = options.largeCodeBlockLineThreshold
+  if (!Number.isFinite(lineThreshold) || (lineThreshold ?? 0) <= 0) {
+    return false
+  }
+
+  return (match.blockLineCount ?? 0) >= (lineThreshold as number)
+}
+
+function getReusableMatchRange(
+  context: EditorContext,
+  match: SearchMatch,
+  cachedRangesByMatchId?: Map<string, Range>,
+) {
+  const cachedRange = cachedRangesByMatchId?.get(match.id)
+  if (cachedRange && isReusableRange(context, cachedRange)) {
+    return cachedRange
+  }
+
+  const range = locateTextRange(context, match)
+  return isReusableRange(context, range) ? range : null
+}
+
+function areCachedRangesReusable(context: EditorContext, ranges: Range[]) {
+  return ranges.every(range => isReusableRange(context, range))
+}
+
+function isReusableRange(context: EditorContext, range: Range | null | undefined) {
+  if (!(range instanceof Range)) {
+    return false
+  }
+
+  return range.startContainer.isConnected
+    && range.endContainer.isConnected
+    && context.protyle.contains(range.startContainer)
+    && context.protyle.contains(range.endContainer)
 }

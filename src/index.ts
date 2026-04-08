@@ -27,6 +27,7 @@ import {
   HOTKEY_CAPTURE_INPUT_ATTRIBUTE,
   createCheckboxElement,
   createHotkeyInputElement,
+  createNumberInputElement,
 } from '@/features/search-replace/plugin-setting-elements'
 import {
   buildIgnoredHotkeys,
@@ -39,6 +40,7 @@ import {
 } from '@/features/search-replace/plugin-panel-launch'
 import {
   type HotkeySettingKey,
+  type NumberSettingKey,
 } from '@/features/search-replace/settings-panel'
 import {
   createPanelCommands,
@@ -201,6 +203,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     registerSearchReplaceSettings({
       createCheckbox: this.createCheckbox.bind(this),
       createHotkeyInput: this.createHotkeyInput.bind(this),
+      createNumberInput: this.createNumberInput.bind(this),
       i18n: this.i18n,
       onBooleanChange: async (settingKey, checked) => {
         await this.applySettings({
@@ -210,6 +213,9 @@ export default class FriendlySearchReplacePlugin extends Plugin {
       },
       onHotkeyChange: async (settingKey, value) => {
         return await this.updateHotkeySetting(settingKey, value)
+      },
+      onNumberChange: async (settingKey, value) => {
+        return await this.updateNumberSetting(settingKey, value)
       },
       setting,
       settings: this.settingsData,
@@ -297,5 +303,17 @@ export default class FriendlySearchReplacePlugin extends Plugin {
 
   private createCheckbox(checked: boolean, onChange: (checked: boolean) => Promise<void>) {
     return createCheckboxElement(checked, onChange)
+  }
+
+  private async updateNumberSetting(settingKey: NumberSettingKey, value: number) {
+    await this.applySettings({
+      ...this.settingsData,
+      [settingKey]: value,
+    })
+    return true
+  }
+
+  private createNumberInput(value: number, onChange: (value: number) => Promise<boolean>) {
+    return createNumberInputElement(value, onChange)
   }
 }
