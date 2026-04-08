@@ -7,9 +7,12 @@ type BooleanSettingKey =
   | 'defaultReplaceVisible'
   | 'includeCodeBlock'
   | 'minimapVisible'
+  | 'optimizeLargeCodeBlocks'
   | 'preloadSelection'
   | 'rememberPanelPosition'
   | 'searchAttributeView'
+
+export type NumberSettingKey = 'largeCodeBlockLineThreshold'
 
 interface SettingDefinition<TKey extends keyof PluginSettings> {
   descriptionKey: string
@@ -57,6 +60,11 @@ export const BOOLEAN_SETTING_DEFINITIONS: ReadonlyArray<SettingDefinition<Boolea
     titleKey: 'settingIncludeCodeBlockTitle',
   },
   {
+    descriptionKey: 'settingOptimizeLargeCodeBlocksDesc',
+    settingKey: 'optimizeLargeCodeBlocks',
+    titleKey: 'settingOptimizeLargeCodeBlocksTitle',
+  },
+  {
     descriptionKey: 'settingSearchAttributeViewDesc',
     settingKey: 'searchAttributeView',
     titleKey: 'settingSearchAttributeViewTitle',
@@ -65,5 +73,13 @@ export const BOOLEAN_SETTING_DEFINITIONS: ReadonlyArray<SettingDefinition<Boolea
     descriptionKey: 'settingDebugLogDesc',
     settingKey: 'debugLog',
     titleKey: 'settingDebugLogTitle',
+  },
+]
+
+export const NUMBER_SETTING_DEFINITIONS: ReadonlyArray<SettingDefinition<NumberSettingKey>> = [
+  {
+    descriptionKey: 'settingLargeCodeBlockLineThresholdDesc',
+    settingKey: 'largeCodeBlockLineThreshold',
+    titleKey: 'settingLargeCodeBlockLineThresholdTitle',
   },
 ]

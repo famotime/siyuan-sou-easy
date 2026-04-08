@@ -10,6 +10,8 @@ export interface PluginSettings {
   minimapVisible: boolean
   preloadSelection: boolean
   includeCodeBlock: boolean
+  optimizeLargeCodeBlocks: boolean
+  largeCodeBlockLineThreshold: number
   searchAttributeView: boolean
   debugLog: boolean
   preserveCase: boolean
@@ -23,6 +25,8 @@ export const DEFAULT_SETTINGS: PluginSettings = {
   minimapVisible: false,
   preloadSelection: true,
   includeCodeBlock: false,
+  optimizeLargeCodeBlocks: true,
+  largeCodeBlockLineThreshold: 1000,
   searchAttributeView: false,
   debugLog: false,
   preserveCase: false,
@@ -62,6 +66,10 @@ export function normalizeSettings(settings?: Partial<PluginSettings> | null): Pl
     includeCodeBlock: typeof settings?.includeCodeBlock === 'boolean'
       ? settings.includeCodeBlock
       : DEFAULT_SETTINGS.includeCodeBlock,
+    optimizeLargeCodeBlocks: typeof settings?.optimizeLargeCodeBlocks === 'boolean'
+      ? settings.optimizeLargeCodeBlocks
+      : DEFAULT_SETTINGS.optimizeLargeCodeBlocks,
+    largeCodeBlockLineThreshold: normalizeLargeCodeBlockLineThreshold(settings?.largeCodeBlockLineThreshold),
     searchAttributeView: typeof settings?.searchAttributeView === 'boolean'
       ? settings.searchAttributeView
       : DEFAULT_SETTINGS.searchAttributeView,
@@ -93,4 +101,13 @@ function normalizeHotkey(value: string | undefined, fallback: string) {
 
   const normalized = normalizeCommandHotkey(value.trim())
   return normalized || normalizedFallback
+}
+
+function normalizeLargeCodeBlockLineThreshold(value: number | undefined) {
+  if (!Number.isFinite(value)) {
+    return DEFAULT_SETTINGS.largeCodeBlockLineThreshold
+  }
+
+  const normalized = Math.floor(value)
+  return normalized > 0 ? normalized : DEFAULT_SETTINGS.largeCodeBlockLineThreshold
 }
