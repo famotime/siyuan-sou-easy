@@ -173,6 +173,70 @@ describe('attribute view search', () => {
     expect(result.matches[0]?.previewText).toBe('[传感器]分组')
   })
 
+  it('keeps grouped DOM matches in visual top-to-bottom left-to-right order', async () => {
+    const context = renderEditor(`
+      <div data-node-id="av-block-dom-order" data-type="NodeAttributeView" class="av" data-av-id="av-dom-order" data-render="true">
+        <div class="av__title">传感器</div>
+        <div class="av__group">
+          <div class="av__group-title">111</div>
+          <div class="av__row av__row--header">
+            <div class="av__body">
+              <div class="av__cell av__cell--header"><div class="av__celltext">传感器</div></div>
+              <div class="av__cell av__cell--header"><div class="av__celltext">单选</div></div>
+              <div class="av__cell av__cell--header"><div class="av__celltext">文本</div></div>
+              <div class="av__cell av__cell--header"><div class="av__celltext">传感器</div></div>
+            </div>
+          </div>
+          <div class="av__row" data-id="item-1">
+            <div class="av__body">
+              <div class="av__cell"><div class="av__celltext">foo</div></div>
+              <div class="av__cell"><div class="av__celltext">传感器</div></div>
+              <div class="av__cell"><div class="av__celltext">bar</div></div>
+              <div class="av__cell"><div class="av__celltext">baz</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="av__group">
+          <div class="av__group-title">字段 [传感器] 为空</div>
+          <div class="av__row av__row--header">
+            <div class="av__body">
+              <div class="av__cell av__cell--header"><div class="av__celltext">传感器</div></div>
+              <div class="av__cell av__cell--header"><div class="av__celltext">单选</div></div>
+              <div class="av__cell av__cell--header"><div class="av__celltext">文本</div></div>
+              <div class="av__cell av__cell--header"><div class="av__celltext">传感器</div></div>
+            </div>
+          </div>
+          <div class="av__row" data-id="item-2">
+            <div class="av__body">
+              <div class="av__cell"><div class="av__celltext">传感器</div></div>
+              <div class="av__cell"><div class="av__celltext"></div></div>
+              <div class="av__cell"><div class="av__celltext"></div></div>
+              <div class="av__cell"><div class="av__celltext"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `)
+
+    const result = await searchAttributeViewMatches({
+      context,
+      options: DEFAULT_OPTIONS,
+      query: '传感器',
+      startingBlockIndex: 0,
+    })
+
+    expect(result.matches.map(match => match.previewText)).toEqual([
+      '[传感器]',
+      '[传感器]',
+      '[传感器]',
+      '单选: [传感器]',
+      '字段 [[传感器]] 为空',
+      '[传感器]',
+      '[传感器]',
+      '传感器: [传感器]',
+    ])
+  })
+
   it('searches rendered number field content when DOM candidates are unavailable', async () => {
     kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
       { id: 'col-score', name: '评分' },

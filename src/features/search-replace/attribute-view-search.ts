@@ -104,11 +104,17 @@ function buildAttributeViewMatches({
   options: SearchOptions
   query: string
 }) {
-  const candidateBySyntheticBlockId = new Map<string, AttributeViewCellCandidate>()
+  const candidateBySyntheticBlockId = new Map<string, {
+    candidate: AttributeViewCellCandidate
+    visualIndex: number
+  }>()
   const searchResult = findMatches(
     candidates.map((candidate, index) => {
       const syntheticBlockId = `${candidate.avBlockId}::${candidate.targetKind}::${candidate.itemID ?? candidate.rowID ?? candidate.keyID}:${index}`
-      candidateBySyntheticBlockId.set(syntheticBlockId, candidate)
+      candidateBySyntheticBlockId.set(syntheticBlockId, {
+        candidate,
+        visualIndex: index,
+      })
       return {
         blockId: syntheticBlockId,
         blockIndex: attributeViewBlock.blockIndex,
@@ -123,11 +129,12 @@ function buildAttributeViewMatches({
   )
 
   return searchResult.matches.flatMap((match) => {
-    const candidate = candidateBySyntheticBlockId.get(match.blockId)
-    if (!candidate) {
+    const resolvedCandidate = candidateBySyntheticBlockId.get(match.blockId)
+    if (!resolvedCandidate) {
       return []
     }
 
+    const { candidate, visualIndex } = resolvedCandidate
     const preview = buildPreview(candidate.text, match.start, match.end)
     return [{
       ...match,
@@ -141,9 +148,10 @@ function buildAttributeViewMatches({
         rowID: candidate.rowID,
         rowLabel: candidate.rowLabel,
         targetKind: candidate.targetKind,
+        visualIndex,
       },
       blockId: candidate.avBlockId,
-      id: `av:${candidate.avBlockId}:${candidate.targetKind}:${candidate.itemID ?? candidate.rowID ?? candidate.keyID}:${match.start}:${match.end}`,
+      id: `av:${candidate.avBlockId}:${candidate.targetKind}:${candidate.itemID ?? candidate.rowID ?? ''}:${candidate.keyID}:${match.start}:${match.end}`,
       previewText: buildAttributeViewPreviewText(candidate, preview),
       replaceable: false,
       sourceKind: 'attribute-view' as const,

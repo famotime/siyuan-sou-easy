@@ -1551,6 +1551,115 @@ describe('search store editor context fallback', () => {
     expect(searchReplaceState.matches[0]?.attributeView?.columnIndex).toBe(0)
   })
 
+  it('keeps attribute view matches in visual row-major order when merged into the result list', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+      searchAttributeView: true,
+    })
+
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-content">
+          <div class="protyle-wysiwyg">
+            <div data-node-id="av-block-order" data-type="NodeAttributeView" data-av-id="av-order" data-render="true">
+              <div class="av__row av__row--header">
+                <div class="av__body">
+                  <div class="av__cell av__cell--header" data-av-key-id="col-1"><div class="av__celltext">列一</div></div>
+                  <div class="av__cell av__cell--header" data-av-key-id="col-2"><div class="av__celltext">列二</div></div>
+                </div>
+              </div>
+              <div class="av__row" data-id="row-b">
+                <div class="av__body">
+                  <div class="av__cell" data-av-key-id="col-1"><div class="av__celltext">foo 1</div></div>
+                  <div class="av__cell" data-av-key-id="col-2"><div class="av__celltext">foo 2</div></div>
+                </div>
+              </div>
+              <div class="av__row" data-id="row-a">
+                <div class="av__body">
+                  <div class="av__cell" data-av-key-id="col-1"><div class="av__celltext">foo 3</div></div>
+                  <div class="av__cell" data-av-key-id="col-2"><div class="av__celltext">foo 4</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    editorMocks.state.blocks = []
+    editorMocks.state.context = {
+      protyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    searchEngineMocks.findMatches.mockImplementation((blocks, query) => {
+      if (blocks[0]?.blockType !== 'NodeAttributeView') {
+        return {
+          error: '',
+          matches: [],
+        }
+      }
+
+      expect(query).toBe('foo')
+      return {
+        error: '',
+        matches: blocks.flatMap((block: any) => {
+          const start = block.text.indexOf('foo')
+          if (start < 0) {
+            return []
+          }
+
+          return [{
+            blockId: block.blockId,
+            blockIndex: block.blockIndex,
+            blockType: block.blockType,
+            end: start + 3,
+            id: `${block.blockId}:${start}:${start + 3}`,
+            matchedText: 'foo',
+            previewText: '[foo]',
+            replaceable: true,
+            rootId: block.rootId,
+            start,
+          }]
+        }),
+      }
+    })
+
+    searchReplaceState.query = 'foo'
+
+    openPanel(true)
+    await flushRefresh()
+
+    expect(searchReplaceState.matches.map(match => ({
+      columnIndex: match.attributeView?.columnIndex,
+      previewText: match.previewText,
+      rowID: match.attributeView?.rowID,
+    }))).toEqual([
+      {
+        columnIndex: 0,
+        previewText: '列一: [foo] 1',
+        rowID: 'row-b',
+      },
+      {
+        columnIndex: 1,
+        previewText: '列二: [foo] 2',
+        rowID: 'row-b',
+      },
+      {
+        columnIndex: 0,
+        previewText: '列一: [foo] 3',
+        rowID: 'row-a',
+      },
+      {
+        columnIndex: 1,
+        previewText: '列二: [foo] 4',
+        rowID: 'row-a',
+      },
+    ])
+  })
+
   it('keeps navigating toward unloaded long-document matches and shows a loading hint until the target block is available', async () => {
     document.body.innerHTML = `
       <div class="protyle">

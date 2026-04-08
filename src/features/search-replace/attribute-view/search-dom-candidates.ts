@@ -30,7 +30,7 @@ export function extractDomAttributeViewSearchCandidates({
     avID,
     blockElement,
   })
-  const headerNames = headerCandidates.map(candidate => candidate.columnName)
+  const headerNames = headerCandidates.map(({ candidate }) => candidate.columnName)
   const rowCandidates = collectDomAttributeViewRowCandidates({
     attributeViewBlock,
     avID,
@@ -44,6 +44,8 @@ export function extractDomAttributeViewSearchCandidates({
     ...groupTitleCandidates,
     ...rowCandidates,
   ]
+    .sort((left, right) => compareDomCandidateOrder(left.sourceElement, right.sourceElement))
+    .map(({ candidate }) => candidate)
 }
 
 function collectDomAttributeViewTitleCandidates({
@@ -65,14 +67,14 @@ function collectDomAttributeViewTitleCandidates({
     }
 
     seen.add(text)
-    return [{
+    return [createOrderedCandidate(element, {
       avBlockId: attributeViewBlock.avBlockId,
       avID,
       columnName: text,
       keyID: `__dom-view-name-${index}__`,
       text,
       targetKind: 'view-name' as const,
-    }]
+    })]
   })
 }
 
@@ -92,7 +94,7 @@ function collectDomAttributeViewHeaderCandidates({
       return []
     }
 
-    return [{
+    return [createOrderedCandidate(cell, {
       avBlockId: attributeViewBlock.avBlockId,
       avID,
       columnName: text,
@@ -100,7 +102,7 @@ function collectDomAttributeViewHeaderCandidates({
       keyID: resolveDomAttributeViewKeyId(cell, columnIndex),
       text,
       targetKind: 'column-header' as const,
-    }]
+    })]
   })
 }
 
@@ -123,14 +125,14 @@ function collectDomAttributeViewGroupTitleCandidates({
     }
 
     seen.add(text)
-    return [{
+    return [createOrderedCandidate(element, {
       avBlockId: attributeViewBlock.avBlockId,
       avID,
       columnName: text,
       keyID: `__dom-group-title-${index}__`,
       text,
       targetKind: 'group-title' as const,
-    }]
+    })]
   })
 }
 
@@ -158,7 +160,7 @@ function collectDomAttributeViewRowCandidates({
         return []
       }
 
-      return [{
+      return [createOrderedCandidate(cell, {
         avBlockId: attributeViewBlock.avBlockId,
         avID,
         columnName: headerNames[columnIndex] ?? '',
@@ -169,7 +171,7 @@ function collectDomAttributeViewRowCandidates({
         rowLabel: rowLabel || undefined,
         text,
         targetKind: 'cell' as const,
-      }]
+      })]
     })
   })
 }
@@ -236,9 +238,11 @@ function getDomAttributeViewRowCells(rowElement: HTMLElement) {
 function resolveDomAttributeViewKeyId(cellElement: HTMLElement, columnIndex: number) {
   return cellElement.dataset.avKeyId?.trim()
     || cellElement.dataset.keyId?.trim()
+    || cellElement.dataset.colId?.trim()
     || cellElement.dataset.columnId?.trim()
     || cellElement.querySelector<HTMLElement>('[data-av-key-id]')?.dataset.avKeyId?.trim()
     || cellElement.querySelector<HTMLElement>('[data-key-id]')?.dataset.keyId?.trim()
+    || cellElement.querySelector<HTMLElement>('[data-col-id]')?.dataset.colId?.trim()
     || cellElement.querySelector<HTMLElement>('[data-column-id]')?.dataset.columnId?.trim()
     || `__dom-col-${columnIndex}__`
 }
@@ -281,4 +285,27 @@ function getTopLevelElements(elements: HTMLElement[]) {
     elements.findIndex(candidate => candidate === element) === index
       && !elements.some(candidate => candidate !== element && candidate.contains(element))
   ))
+}
+
+function createOrderedCandidate(sourceElement: HTMLElement, candidate: AttributeViewCellCandidate) {
+  return {
+    candidate,
+    sourceElement,
+  }
+}
+
+function compareDomCandidateOrder(left: HTMLElement, right: HTMLElement) {
+  if (left === right) {
+    return 0
+  }
+
+  const position = left.compareDocumentPosition(right)
+  if (position & Node.DOCUMENT_POSITION_FOLLOWING) {
+    return -1
+  }
+  if (position & Node.DOCUMENT_POSITION_PRECEDING) {
+    return 1
+  }
+
+  return 0
 }

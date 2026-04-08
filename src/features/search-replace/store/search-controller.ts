@@ -360,6 +360,17 @@ function compareSearchMatches(left: SearchMatch, right: SearchMatch) {
     return left.blockIndex - right.blockIndex
   }
 
+  const leftVisualIndex = left.attributeView?.visualIndex
+  const rightVisualIndex = right.attributeView?.visualIndex
+  if (
+    left.blockId === right.blockId
+    && typeof leftVisualIndex === 'number'
+    && typeof rightVisualIndex === 'number'
+    && leftVisualIndex !== rightVisualIndex
+  ) {
+    return leftVisualIndex - rightVisualIndex
+  }
+
   if (left.start !== right.start) {
     return left.start - right.start
   }
