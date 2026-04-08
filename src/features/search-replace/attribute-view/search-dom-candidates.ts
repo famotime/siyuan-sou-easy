@@ -60,7 +60,9 @@ function collectDomAttributeViewTitleCandidates({
   const seen = new Set<string>()
   return Array.from(blockElement.querySelectorAll<HTMLElement>(
     '.av__title, .av__title-text, .av__header-title, .av__name',
-  )).flatMap((element, index) => {
+  ))
+    .filter(isVisibleAttributeViewElement)
+    .flatMap((element, index) => {
     const text = getAttributeViewDomText(element)
     if (!text || seen.has(text)) {
       return []
@@ -118,7 +120,9 @@ function collectDomAttributeViewGroupTitleCandidates({
   const seen = new Set<string>()
   return Array.from(blockElement.querySelectorAll<HTMLElement>(
     '.av__group-title, .av__group-name, .av__group-label',
-  )).flatMap((element, index) => {
+  ))
+    .filter(isVisibleAttributeViewElement)
+    .flatMap((element, index) => {
     const text = getAttributeViewDomText(element)
     if (!text || seen.has(text)) {
       return []
@@ -186,6 +190,7 @@ function resolveDomAttributeViewRows(blockElement: HTMLElement) {
     '[data-row-id]',
   ].join(', ')))
     .filter(rowElement => !rowElement.classList.contains('av__row--header'))
+    .filter(isVisibleAttributeViewElement)
   if (explicitRows.length > 0) {
     return getTopLevelElements(explicitRows)
   }
@@ -193,6 +198,7 @@ function resolveDomAttributeViewRows(blockElement: HTMLElement) {
   const fallbackRows = Array.from(blockElement.querySelectorAll<HTMLElement>('[data-id]'))
     .filter(rowElement => rowElement !== blockElement)
     .filter(rowElement => !rowElement.classList.contains('av__row--header'))
+    .filter(isVisibleAttributeViewElement)
     .filter(rowElement => rowElement.querySelector('.av__cell, [data-av-key-id], [data-key-id], .av__celltext'))
 
   return getTopLevelElements(fallbackRows)
@@ -200,11 +206,13 @@ function resolveDomAttributeViewRows(blockElement: HTMLElement) {
 
 function resolveDomAttributeViewHeaderCells(blockElement: HTMLElement) {
   const headerCells = Array.from(blockElement.querySelectorAll<HTMLElement>('.av__row--header .av__cell.av__cell--header'))
+    .filter(isVisibleAttributeViewElement)
   if (headerCells.length) {
     return headerCells
   }
 
   return Array.from(blockElement.querySelectorAll<HTMLElement>('.av__cell.av__cell--header'))
+    .filter(isVisibleAttributeViewElement)
 }
 
 function getDomAttributeViewRowCells(rowElement: HTMLElement) {
@@ -216,18 +224,21 @@ function getDomAttributeViewRowCells(rowElement: HTMLElement) {
     .filter((child): child is HTMLElement => child instanceof HTMLElement)
     .filter(child => child.classList.contains('av__cell'))
     .filter(child => !child.classList.contains('av__cell--header'))
+    .filter(isVisibleAttributeViewElement)
   if (directCells.length > 0) {
     return directCells
   }
 
   const descendantCells = Array.from(body.querySelectorAll<HTMLElement>('.av__cell'))
     .filter(child => !child.classList.contains('av__cell--header'))
+    .filter(isVisibleAttributeViewElement)
   if (descendantCells.length > 0) {
     return getTopLevelElements(descendantCells)
   }
 
   const keyedCells = Array.from(body.querySelectorAll<HTMLElement>('[data-av-key-id], [data-key-id]'))
     .filter(child => !child.classList.contains('av__cell--header'))
+    .filter(isVisibleAttributeViewElement)
   if (keyedCells.length > 0) {
     return getTopLevelElements(keyedCells)
   }
@@ -255,7 +266,11 @@ function getAttributeViewDomText(element: HTMLElement) {
       }
 
       const parentElement = node.parentElement
-      if (!parentElement || parentElement.closest('.protyle-attr, .fn__none, svg, style, script')) {
+      if (
+        !parentElement
+        || parentElement.closest('.protyle-attr, svg, style, script')
+        || !isVisibleAttributeViewElement(parentElement)
+      ) {
         return NodeFilter.FILTER_REJECT
       }
 
@@ -285,6 +300,29 @@ function getTopLevelElements(elements: HTMLElement[]) {
     elements.findIndex(candidate => candidate === element) === index
       && !elements.some(candidate => candidate !== element && candidate.contains(element))
   ))
+}
+
+function isVisibleAttributeViewElement(element: HTMLElement) {
+  let current: HTMLElement | null = element
+  while (current) {
+    if (
+      current.classList.contains('fn__none')
+      || current.hasAttribute('hidden')
+      || current.getAttribute('aria-hidden') === 'true'
+      || current.closest('.protyle-attr')
+    ) {
+      return false
+    }
+
+    const style = globalThis.getComputedStyle?.(current)
+    if (style && (style.display === 'none' || style.visibility === 'hidden')) {
+      return false
+    }
+
+    current = current.parentElement
+  }
+
+  return true
 }
 
 function createOrderedCandidate(sourceElement: HTMLElement, candidate: AttributeViewCellCandidate) {

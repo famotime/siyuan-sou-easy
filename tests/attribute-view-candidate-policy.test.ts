@@ -54,13 +54,42 @@ describe('attribute view candidate policy helpers', () => {
       text: 'Beta',
     }
 
-    expect(buildAttributeViewCandidateSignature(domCandidate)).toBe('cell::item-1::item-1::col-1::Alpha')
+    expect(buildAttributeViewCandidateSignature(domCandidate)).toBe('cell::item-1::col-1::Alpha')
     expect(mergeAttributeViewSearchCandidates([domCandidate], [
       duplicateRenderedCandidate,
       newRenderedCandidate,
     ])).toEqual([
       domCandidate,
       newRenderedCandidate,
+    ])
+  })
+
+  it('deduplicates DOM fallback cells and rendered cells for the same row and column', () => {
+    const domCandidate = {
+      avBlockId: 'av-1',
+      avID: 'av-1',
+      columnIndex: 1,
+      itemID: 'item-1',
+      keyID: '__dom-col-1__',
+      rowID: 'item-1',
+      targetKind: 'cell' as const,
+      text: '传感器',
+    }
+    const renderedCandidate = {
+      avBlockId: 'av-1',
+      avID: 'av-1',
+      columnIndex: 1,
+      itemID: 'item-1',
+      keyID: 'col-sensor',
+      rowID: 'item-1',
+      targetKind: 'cell' as const,
+      text: '传感器',
+    }
+
+    expect(mergeAttributeViewSearchCandidates([domCandidate], [
+      renderedCandidate,
+    ])).toEqual([
+      domCandidate,
     ])
   })
 })

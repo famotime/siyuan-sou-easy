@@ -237,6 +237,120 @@ describe('attribute view search', () => {
     ])
   })
 
+  it('deduplicates cloned DOM rows for the same attribute view cell', async () => {
+    const context = renderEditor(`
+      <div data-node-id="av-block-dom-clones" data-type="NodeAttributeView" class="av" data-av-id="av-dom-clones" data-render="true">
+        <div class="av__row av__row--header">
+          <div class="av__body">
+            <div class="av__cell av__cell--header"><div class="av__celltext">主键</div></div>
+          </div>
+        </div>
+        <div class="av__table-pane av__table-pane--fixed">
+          <div class="av__row" data-id="item-1">
+            <div class="av__body">
+              <div class="av__cell"><div class="av__celltext">传感器</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="av__table-pane av__table-pane--scrollable">
+          <div class="av__row" data-id="item-1">
+            <div class="av__body">
+              <div class="av__cell"><div class="av__celltext">传感器</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `)
+
+    const result = await searchAttributeViewMatches({
+      context,
+      options: DEFAULT_OPTIONS,
+      query: '传感器',
+      startingBlockIndex: 0,
+    })
+
+    expect(result.matches).toHaveLength(1)
+    expect(result.matches[0]?.previewText).toBe('主键: [传感器]')
+  })
+
+  it('ignores hidden inactive attribute view DOM from other views', async () => {
+    const context = renderEditor(`
+      <div data-node-id="av-block-hidden-views" data-type="NodeAttributeView" class="av" data-av-id="av-hidden-views" data-render="true">
+        <div class="av__view av__view--table">
+          <div class="av__row av__row--header">
+            <div class="av__body">
+              <div class="av__cell av__cell--header"><div class="av__celltext">主键</div></div>
+            </div>
+          </div>
+          <div class="av__row" data-id="item-1">
+            <div class="av__body">
+              <div class="av__cell"><div class="av__celltext">传感器</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="av__view av__view--gallery" aria-hidden="true">
+          <div class="av__gallery-item" data-id="item-1">
+            <div class="av__card-body">
+              <div data-key-id="col-1"><div class="av__celltext">传感器</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="av__view av__view--kanban" hidden>
+          <div class="av__kanban-item" data-id="item-1">
+            <div class="av__body">
+              <div class="av__cell"><div class="av__celltext">传感器</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `)
+
+    const result = await searchAttributeViewMatches({
+      context,
+      options: DEFAULT_OPTIONS,
+      query: '传感器',
+      startingBlockIndex: 0,
+    })
+
+    expect(result.matches).toHaveLength(1)
+    expect(result.matches[0]?.previewText).toBe('主键: [传感器]')
+  })
+
+  it('does not search text that exists only inside hidden inactive views', async () => {
+    const context = renderEditor(`
+      <div data-node-id="av-block-hidden-only" data-type="NodeAttributeView" class="av" data-av-id="av-hidden-only" data-render="true">
+        <div class="av__view av__view--table">
+          <div class="av__row av__row--header">
+            <div class="av__body">
+              <div class="av__cell av__cell--header"><div class="av__celltext">主键</div></div>
+            </div>
+          </div>
+          <div class="av__row" data-id="item-1">
+            <div class="av__body">
+              <div class="av__cell"><div class="av__celltext">Alpha</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="av__view av__view--gallery" aria-hidden="true">
+          <div class="av__gallery-item" data-id="item-2">
+            <div class="av__card-body">
+              <div data-key-id="col-1"><div class="av__celltext">传感器</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `)
+
+    const result = await searchAttributeViewMatches({
+      context,
+      options: DEFAULT_OPTIONS,
+      query: '传感器',
+      startingBlockIndex: 0,
+    })
+
+    expect(result.matches).toHaveLength(0)
+  })
+
   it('searches rendered number field content when DOM candidates are unavailable', async () => {
     kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
       { id: 'col-score', name: '评分' },

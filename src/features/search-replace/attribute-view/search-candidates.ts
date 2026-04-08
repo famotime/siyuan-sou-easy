@@ -30,7 +30,7 @@ export async function resolveAttributeViewSearchCandidates({
     avID,
   })
   if (shouldReturnDomCandidatesOnly(domCandidates)) {
-    return domCandidates
+    return mergeAttributeViewSearchCandidates(domCandidates, [])
   }
 
   const [renderedAttributeView, attributeViewKeys] = await Promise.all([
@@ -51,7 +51,7 @@ export async function resolveAttributeViewSearchCandidates({
     renderedAttributeView,
     requestedViewID: viewID,
   })) {
-    return domCandidates
+    return mergeAttributeViewSearchCandidates(domCandidates, [])
   }
 
   const renderedCandidates = extractRenderedAttributeViewSearchCandidates({

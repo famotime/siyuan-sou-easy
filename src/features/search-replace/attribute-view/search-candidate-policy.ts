@@ -46,10 +46,10 @@ export function mergeAttributeViewSearchCandidates(
   domCandidates: AttributeViewCellCandidate[],
   renderedCandidates: AttributeViewCellCandidate[],
 ) {
-  const merged = [...domCandidates]
-  const seen = new Set(domCandidates.map(buildAttributeViewCandidateSignature))
+  const merged: AttributeViewCellCandidate[] = []
+  const seen = new Set<string>()
 
-  renderedCandidates.forEach((candidate) => {
+  ;[...domCandidates, ...renderedCandidates].forEach((candidate) => {
     const signature = buildAttributeViewCandidateSignature(candidate)
     if (seen.has(signature)) {
       return
@@ -63,11 +63,41 @@ export function mergeAttributeViewSearchCandidates(
 }
 
 export function buildAttributeViewCandidateSignature(candidate: AttributeViewCellCandidate) {
+  const rowIdentity = candidate.itemID ?? candidate.rowID ?? ''
+  const columnIdentity = resolveAttributeViewColumnIdentity(candidate)
+
+  if (candidate.targetKind === 'cell') {
+    return [
+      candidate.targetKind,
+      rowIdentity,
+      columnIdentity,
+      candidate.text,
+    ].join('::')
+  }
+
+  if (candidate.targetKind === 'column-header') {
+    return [
+      candidate.targetKind,
+      columnIdentity,
+      candidate.text,
+    ].join('::')
+  }
+
   return [
     candidate.targetKind,
-    candidate.itemID ?? '',
-    candidate.rowID ?? '',
-    candidate.keyID,
     candidate.text,
   ].join('::')
+}
+
+function resolveAttributeViewColumnIdentity(candidate: AttributeViewCellCandidate) {
+  if (typeof candidate.columnIndex === 'number') {
+    return `col:${candidate.columnIndex}`
+  }
+
+  const normalizedKeyID = candidate.keyID.trim()
+  if (normalizedKeyID && !normalizedKeyID.startsWith('__dom-col-')) {
+    return normalizedKeyID
+  }
+
+  return normalizedKeyID || candidate.columnName.trim()
 }
