@@ -284,6 +284,18 @@ describe('attribute view search', () => {
     })
 
     expect(result.matches).toHaveLength(6)
+    expect(result.matches.map(match => ({
+      columnIndex: match.attributeView?.columnIndex,
+      keyID: match.attributeView?.keyID,
+      rowID: match.attributeView?.rowID,
+    }))).toEqual([
+      { columnIndex: 0, keyID: 'col-fixed', rowID: 'item-1' },
+      { columnIndex: 1, keyID: 'col-main', rowID: 'item-1' },
+      { columnIndex: 2, keyID: 'col-tail', rowID: 'item-1' },
+      { columnIndex: 0, keyID: 'col-fixed', rowID: 'item-2' },
+      { columnIndex: 1, keyID: 'col-main', rowID: 'item-2' },
+      { columnIndex: 2, keyID: 'col-tail', rowID: 'item-2' },
+    ])
     expect(result.matches.map(match => match.previewText)).toEqual([
       '固定列: [传感器]-fixed',
       '主列: [传感器]-main',
