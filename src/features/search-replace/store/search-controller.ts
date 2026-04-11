@@ -289,7 +289,10 @@ export function createSearchController({
       scrollMode,
       totalMatches: state.matches.length,
     })
-    syncSearchDecorations(context, state.matches, currentMatch)
+    syncSearchDecorations(context, state.matches, currentMatch, {
+      largeCodeBlockLineThreshold: state.settings.largeCodeBlockLineThreshold,
+      optimizeLargeCodeBlocks: state.settings.optimizeLargeCodeBlocks,
+    })
     if (!currentMatch) {
       pendingNavigation.clearPendingNavigation()
       return

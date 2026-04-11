@@ -153,6 +153,8 @@ function collectSearchableBlocksFromRoot(root: ParentNode, rootId: string, optio
       blockIndex,
       collapsedAncestorIds: resolveCollapsedAncestorIds(element),
       text,
+      blockLineCount: countBlockLines(text),
+      blockTextLength: text.length,
       element,
       table: tableMetadata?.table,
     })
@@ -342,4 +344,18 @@ function isOwnedByBlock(element: Element, ownerBlock: HTMLElement) {
 
   return ownerBlock.dataset.type === TABLE_NODE_TYPE
     && Boolean(nearestBlock && ownerBlock.contains(nearestBlock))
+}
+
+function countBlockLines(text: string) {
+  if (!text.length) {
+    return 0
+  }
+
+  let lineCount = 1
+  for (let index = 0; index < text.length; index += 1) {
+    if (text[index] === '\n') {
+      lineCount += 1
+    }
+  }
+  return lineCount
 }
