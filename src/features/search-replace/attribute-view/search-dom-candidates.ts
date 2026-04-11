@@ -261,7 +261,11 @@ function normalizeDomAttributeViewRowGroups({
     order: number
   }>()
   const discoveredColumnIndexByKeyID = new Map<string, number>()
-  let nextDiscoveredColumnIndex = headerInfo.headers.length
+  const reservedHeaderColumnIndices = new Set(headerInfo.keyedColumnIndexByKeyID.values())
+  let nextDiscoveredColumnIndex = Math.max(
+    0,
+    ...Array.from(reservedHeaderColumnIndices, columnIndex => columnIndex + 1),
+  )
 
   for (const [rowIndex, rowElement] of resolveDomAttributeViewRows(blockElement).entries()) {
     const stableRowID = resolveDomAttributeViewRowId(rowElement)
@@ -334,8 +338,9 @@ function normalizeDomAttributeViewRowGroups({
       return existing
     }
 
-    const discoveredIndex = map.size === 0 && fallbackIndex === 0
-      ? 0
+    const discoveredIndex = !reservedHeaderColumnIndices.has(fallbackIndex)
+      && !Array.from(map.values()).includes(fallbackIndex)
+      ? fallbackIndex
       : Math.max(nextDiscoveredColumnIndex, fallbackIndex)
     map.set(keyID, discoveredIndex)
     nextDiscoveredColumnIndex = Math.max(nextDiscoveredColumnIndex, discoveredIndex + 1)
