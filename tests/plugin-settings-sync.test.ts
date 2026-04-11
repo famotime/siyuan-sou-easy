@@ -7,6 +7,7 @@ import {
   it,
   vi,
 } from 'vitest'
+import { adaptHotkey } from 'siyuan'
 
 const applyPluginSettings = vi.fn()
 const loadSettings = vi.fn().mockResolvedValue({
@@ -104,12 +105,12 @@ describe('plugin settings sync', () => {
       replacePanelHotkey: 'Ctrl+Alt+H',
     }))
     expect(plugin.commands[0]).toMatchObject({
-      customHotkey: 'Ctrl+Alt+F',
-      hotkey: 'Ctrl+Shift+F',
+      customHotkey: adaptHotkey('Ctrl+Alt+F'),
+      hotkey: adaptHotkey('Ctrl+Shift+F'),
     })
     expect(plugin.commands[1]).toMatchObject({
-      customHotkey: 'Ctrl+Alt+H',
-      hotkey: 'Ctrl+Shift+H',
+      customHotkey: adaptHotkey('Ctrl+Alt+H'),
+      hotkey: adaptHotkey('Ctrl+Shift+H'),
     })
     expect(plugin.commands[2]).toMatchObject({
       customHotkey: 'Ctrl+P',

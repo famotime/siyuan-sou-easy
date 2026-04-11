@@ -35,11 +35,18 @@ const editorMocks = vi.hoisted(() => {
     applyReplacementsToClone: vi.fn(),
     clearSearchDecorations: vi.fn(),
     collectSearchableBlocks: vi.fn(() => state.blocks),
+    createBlockElementFromDom: vi.fn((dom: string) => {
+      const container = document.createElement('div')
+      container.innerHTML = dom
+      return container.firstElementChild as HTMLElement | null
+    }),
     createEditorContextFromElement: vi.fn(() => state.context),
     findEditorContextByRootId: vi.fn(() => (state.contextAvailable ? state.context : null)),
     getActiveEditorContext: vi.fn(() => (state.contextAvailable ? state.context : null)),
     getBlockElement: vi.fn(),
+    getCurrentSelectionScope: vi.fn(() => new Map()),
     getCurrentSelectionText: vi.fn(() => ''),
+    isMatchVisible: vi.fn(() => true),
     scrollMatchIntoView: vi.fn(),
     syncSearchDecorations: vi.fn(),
   }
@@ -53,6 +60,7 @@ const searchEngineMocks = vi.hoisted(() => ({
 }))
 
 const kernelMocks = vi.hoisted(() => ({
+  getBlockDoms: vi.fn(async () => ({})),
   updateDomBlock: vi.fn(async () => null),
 }))
 
@@ -109,7 +117,7 @@ describe('search store actions', () => {
     document.body.innerHTML = ''
   })
 
-  it('preloads the current selection only when query is empty and preloadSelection is enabled', () => {
+  it('preloads the current selection whenever preloadSelection is enabled', () => {
     applyPluginSettings({
       ...DEFAULT_SETTINGS,
       preloadSelection: true,
@@ -131,7 +139,7 @@ describe('search store actions', () => {
 
     openPanel(true)
 
-    expect(searchReplaceState.query).toBe('keep-me')
+    expect(searchReplaceState.query).toBe('bar')
   })
 
   it('does not preload the selection when preloadSelection is disabled', () => {
