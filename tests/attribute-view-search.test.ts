@@ -392,6 +392,46 @@ describe('attribute view search', () => {
     ])
   })
 
+  it('does not reuse unkeyed header slots for body-only keyed columns', async () => {
+    const context = renderEditor(`
+      <div data-node-id="av-block-mixed-header-extra" data-type="NodeAttributeView" class="av" data-av-id="av-mixed-header-extra" data-render="true">
+        <div class="av__row av__row--header">
+          <div class="av__body">
+            <div class="av__cell av__cell--header"><div class="av__celltext">前置列</div></div>
+            <div class="av__cell av__cell--header" data-key-id="col-fixed"><div class="av__celltext">固定列</div></div>
+            <div class="av__cell av__cell--header" data-key-id="col-main"><div class="av__celltext">主列</div></div>
+          </div>
+        </div>
+        <div class="av__row" data-id="item-1">
+          <div class="av__body">
+            <div class="av__cell" data-key-id="col-extra"><div class="av__celltext">传感器-extra</div></div>
+            <div class="av__cell" data-key-id="col-fixed"><div class="av__celltext">传感器-fixed</div></div>
+            <div class="av__cell" data-key-id="col-main"><div class="av__celltext">传感器-main</div></div>
+          </div>
+        </div>
+      </div>
+    `)
+
+    const result = await searchAttributeViewMatches({
+      context,
+      options: DEFAULT_OPTIONS,
+      query: '传感器',
+      startingBlockIndex: 0,
+    })
+
+    expect(result.matches).toHaveLength(3)
+    expect(result.matches.map(match => ({
+      columnIndex: match.attributeView?.columnIndex,
+      columnName: match.attributeView?.columnName,
+      keyID: match.attributeView?.keyID,
+      previewText: match.previewText,
+    }))).toEqual([
+      { columnIndex: 1, columnName: '固定列', keyID: 'col-fixed', previewText: '固定列: [传感器]-fixed' },
+      { columnIndex: 2, columnName: '主列', keyID: 'col-main', previewText: '主列: [传感器]-main' },
+      { columnIndex: 3, columnName: '', keyID: 'col-extra', previewText: '[传感器]-extra' },
+    ])
+  })
+
   it('deduplicates cloned DOM rows for the same attribute view cell', async () => {
     const context = renderEditor(`
       <div data-node-id="av-block-dom-clones" data-type="NodeAttributeView" class="av" data-av-id="av-dom-clones" data-render="true">

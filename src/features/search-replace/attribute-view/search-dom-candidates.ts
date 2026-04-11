@@ -261,7 +261,9 @@ function normalizeDomAttributeViewRowGroups({
     order: number
   }>()
   const discoveredColumnIndexByKeyID = new Map<string, number>()
-  const reservedHeaderColumnIndices = new Set(headerInfo.keyedColumnIndexByKeyID.values())
+  const reservedHeaderColumnIndices = headerInfo.keyedColumnIndexByKeyID.size > 0
+    ? new Set(headerInfo.headers.map(header => header.columnIndex))
+    : new Set<number>()
   let nextDiscoveredColumnIndex = Math.max(
     0,
     ...Array.from(reservedHeaderColumnIndices, columnIndex => columnIndex + 1),
