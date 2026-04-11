@@ -306,6 +306,53 @@ describe('attribute view search', () => {
     ])
   })
 
+  it('keeps blank keyed header slots in canonical split-pane column order', async () => {
+    const context = renderEditor(`
+      <div data-node-id="av-block-split-blank-header" data-type="NodeAttributeView" class="av" data-av-id="av-split-blank-header" data-render="true">
+        <div class="av__row av__row--header">
+          <div class="av__body">
+            <div class="av__cell av__cell--header" data-key-id="col-fixed"><div class="av__celltext">固定列</div></div>
+            <div class="av__cell av__cell--header" data-key-id="col-blank"><div class="av__celltext"></div></div>
+            <div class="av__cell av__cell--header" data-key-id="col-tail"><div class="av__celltext">尾列</div></div>
+          </div>
+        </div>
+        <div class="av__table-pane av__table-pane--scrollable">
+          <div class="av__row" data-id="item-1">
+            <div class="av__body">
+              <div class="av__cell" data-key-id="col-tail"><div class="av__celltext">传感器-tail</div></div>
+              <div class="av__cell" data-key-id="col-blank"><div class="av__celltext">传感器-blank</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="av__table-pane av__table-pane--fixed">
+          <div class="av__row" data-id="item-1">
+            <div class="av__body">
+              <div class="av__cell" data-key-id="col-fixed"><div class="av__celltext">传感器-fixed</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `)
+
+    const result = await searchAttributeViewMatches({
+      context,
+      options: DEFAULT_OPTIONS,
+      query: '传感器',
+      startingBlockIndex: 0,
+    })
+
+    expect(result.matches).toHaveLength(3)
+    expect(result.matches.map(match => ({
+      columnIndex: match.attributeView?.columnIndex,
+      keyID: match.attributeView?.keyID,
+      previewText: match.previewText,
+    }))).toEqual([
+      { columnIndex: 0, keyID: 'col-fixed', previewText: '固定列: [传感器]-fixed' },
+      { columnIndex: 1, keyID: 'col-blank', previewText: '[传感器]-blank' },
+      { columnIndex: 2, keyID: 'col-tail', previewText: '尾列: [传感器]-tail' },
+    ])
+  })
+
   it('deduplicates cloned DOM rows for the same attribute view cell', async () => {
     const context = renderEditor(`
       <div data-node-id="av-block-dom-clones" data-type="NodeAttributeView" class="av" data-av-id="av-dom-clones" data-render="true">

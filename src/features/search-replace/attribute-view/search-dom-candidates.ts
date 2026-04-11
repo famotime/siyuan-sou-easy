@@ -89,17 +89,19 @@ function collectDomAttributeViewHeaderCandidates({
   avID: string
   headerInfo: DomAttributeViewHeaderInfo
 }) {
-  return headerInfo.headers.map(({ cell, columnIndex, keyID, text }) => (
-    createOrderedCandidate(cell, {
-      avBlockId: attributeViewBlock.avBlockId,
-      avID,
-      columnName: text,
-      columnIndex,
-      keyID,
-      text,
-      targetKind: 'column-header' as const,
-    })
-  ))
+  return headerInfo.headers
+    .filter(({ emitCandidate }) => emitCandidate)
+    .map(({ cell, columnIndex, keyID, text }) => (
+      createOrderedCandidate(cell, {
+        avBlockId: attributeViewBlock.avBlockId,
+        avID,
+        columnName: text,
+        columnIndex,
+        keyID,
+        text,
+        targetKind: 'column-header' as const,
+      })
+    ))
 }
 
 function collectDomAttributeViewGroupTitleCandidates({
@@ -169,6 +171,7 @@ function collectDomAttributeViewRowCandidates({
 type DomAttributeViewHeader = {
   cell: HTMLElement
   columnIndex: number
+  emitCandidate: boolean
   keyID: string
   text: string
 }
@@ -202,14 +205,13 @@ function resolveDomAttributeViewHeaderInfo(blockElement: HTMLElement): DomAttrib
   let nextColumnIndex = 0
 
   for (const [fallbackColumnIndex, cell] of resolveDomAttributeViewHeaderCells(blockElement).entries()) {
-    const text = getAttributeViewDomText(cell)
-    if (!text) {
-      continue
-    }
-
     const keyID = resolveDomAttributeViewKeyId(cell, fallbackColumnIndex)
     const stableKeyID = getStableDomAttributeViewKeyID(keyID)
+    const text = getAttributeViewDomText(cell)
     if (stableKeyID && keyedColumnIndexByKeyID.has(stableKeyID)) {
+      continue
+    }
+    if (!stableKeyID && !text) {
       continue
     }
 
@@ -229,6 +231,7 @@ function resolveDomAttributeViewHeaderInfo(blockElement: HTMLElement): DomAttrib
     headers.push({
       cell,
       columnIndex,
+      emitCandidate: Boolean(text),
       keyID,
       text,
     })
