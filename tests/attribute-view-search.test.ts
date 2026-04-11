@@ -376,6 +376,11 @@ describe('attribute view search', () => {
     })
 
     expect(result.matches).toHaveLength(1)
+    expect(result.matches[0]?.attributeView).toMatchObject({
+      columnIndex: 0,
+      keyID: 'col-primary',
+      rowID: 'item-1',
+    })
     expect(result.matches[0]?.previewText).toBe('主键: [传感器]')
   })
 
