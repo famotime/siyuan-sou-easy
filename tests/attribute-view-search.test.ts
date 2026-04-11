@@ -237,6 +237,71 @@ describe('attribute view search', () => {
     ])
   })
 
+  it('deduplicates split-pane table cells while keeping logical column order', async () => {
+    const context = renderEditor(`
+      <div data-node-id="av-block-split-order" data-type="NodeAttributeView" class="av" data-av-id="av-split-order" data-render="true">
+        <div class="av__row av__row--header">
+          <div class="av__body">
+            <div class="av__cell av__cell--header"><div class="av__celltext">固定列</div></div>
+            <div class="av__cell av__cell--header"><div class="av__celltext">主列</div></div>
+            <div class="av__cell av__cell--header"><div class="av__celltext">尾列</div></div>
+          </div>
+        </div>
+        <div class="av__table-pane av__table-pane--fixed">
+          <div class="av__row" data-id="item-1">
+            <div class="av__body">
+              <div class="av__cell"><div class="av__celltext">传感器-fixed</div></div>
+              <div class="av__cell"><div class="av__celltext">传感器-main</div></div>
+              <div class="av__cell"><div class="av__celltext">传感器-tail</div></div>
+            </div>
+          </div>
+          <div class="av__row" data-id="item-2">
+            <div class="av__body">
+              <div class="av__cell"><div class="av__celltext">传感器-fixed-2</div></div>
+              <div class="av__cell"><div class="av__celltext">传感器-main-2</div></div>
+              <div class="av__cell"><div class="av__celltext">传感器-tail-2</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="av__table-pane av__table-pane--scrollable">
+          <div class="av__row" data-id="item-1">
+            <div class="av__body">
+              <div class="av__cell"><div class="av__celltext"></div></div>
+              <div class="av__cell"><div class="av__celltext">传感器-fixed</div></div>
+              <div class="av__cell"><div class="av__celltext">传感器-main</div></div>
+              <div class="av__cell"><div class="av__celltext">传感器-tail</div></div>
+            </div>
+          </div>
+          <div class="av__row" data-id="item-2">
+            <div class="av__body">
+              <div class="av__cell"><div class="av__celltext"></div></div>
+              <div class="av__cell"><div class="av__celltext">传感器-fixed-2</div></div>
+              <div class="av__cell"><div class="av__celltext">传感器-main-2</div></div>
+              <div class="av__cell"><div class="av__celltext">传感器-tail-2</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `)
+
+    const result = await searchAttributeViewMatches({
+      context,
+      options: DEFAULT_OPTIONS,
+      query: '传感器',
+      startingBlockIndex: 0,
+    })
+
+    expect(result.matches).toHaveLength(6)
+    expect(result.matches.map(match => match.previewText)).toEqual([
+      '固定列: [传感器]-fixed',
+      '主列: [传感器]-main',
+      '尾列: [传感器]-tail',
+      '固定列: [传感器]-fixed-2',
+      '主列: [传感器]-main-2',
+      '尾列: [传感器]-tail-2',
+    ])
+  })
+
   it('deduplicates cloned DOM rows for the same attribute view cell', async () => {
     const context = renderEditor(`
       <div data-node-id="av-block-dom-clones" data-type="NodeAttributeView" class="av" data-av-id="av-dom-clones" data-render="true">
@@ -256,6 +321,43 @@ describe('attribute view search', () => {
           <div class="av__row" data-id="item-1">
             <div class="av__body">
               <div class="av__cell"><div class="av__celltext">传感器</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `)
+
+    const result = await searchAttributeViewMatches({
+      context,
+      options: DEFAULT_OPTIONS,
+      query: '传感器',
+      startingBlockIndex: 0,
+    })
+
+    expect(result.matches).toHaveLength(1)
+    expect(result.matches[0]?.previewText).toBe('主键: [传感器]')
+  })
+
+  it('does not double-count a logical cell rendered in multiple panes', async () => {
+    const context = renderEditor(`
+      <div data-node-id="av-block-split-duplicates" data-type="NodeAttributeView" class="av" data-av-id="av-split-duplicates" data-render="true">
+        <div class="av__row av__row--header">
+          <div class="av__body">
+            <div class="av__cell av__cell--header"><div class="av__celltext">主键</div></div>
+          </div>
+        </div>
+        <div class="av__table-pane av__table-pane--fixed">
+          <div class="av__row" data-id="item-1">
+            <div class="av__body">
+              <div class="av__cell" data-key-id="col-primary"><div class="av__celltext">传感器</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="av__table-pane av__table-pane--scrollable">
+          <div class="av__row" data-id="item-1">
+            <div class="av__body">
+              <div class="av__cell"><div class="av__celltext"></div></div>
+              <div class="av__cell" data-key-id="col-primary"><div class="av__celltext">传感器</div></div>
             </div>
           </div>
         </div>
