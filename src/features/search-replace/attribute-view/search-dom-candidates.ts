@@ -20,22 +20,22 @@ export function extractDomAttributeViewSearchCandidates({
     avID,
     blockElement,
   })
+  const headerInfo = resolveDomAttributeViewHeaderInfo(blockElement)
   const headerCandidates = collectDomAttributeViewHeaderCandidates({
     attributeViewBlock,
     avID,
-    blockElement,
+    headerInfo,
   })
   const groupTitleCandidates = collectDomAttributeViewGroupTitleCandidates({
     attributeViewBlock,
     avID,
     blockElement,
   })
-  const headerNames = headerCandidates.map(({ candidate }) => candidate.columnName)
   const rowCandidates = collectDomAttributeViewRowCandidates({
     attributeViewBlock,
     avID,
     blockElement,
-    headerNames,
+    headerInfo,
   })
 
   return [
@@ -83,29 +83,23 @@ function collectDomAttributeViewTitleCandidates({
 function collectDomAttributeViewHeaderCandidates({
   attributeViewBlock,
   avID,
-  blockElement,
+  headerInfo,
 }: {
   attributeViewBlock: AttributeViewBlockSummary
   avID: string
-  blockElement: HTMLElement
+  headerInfo: DomAttributeViewHeaderInfo
 }) {
-  const headerCells = resolveDomAttributeViewHeaderCells(blockElement)
-  return headerCells.flatMap((cell, columnIndex) => {
-    const text = getAttributeViewDomText(cell)
-    if (!text) {
-      return []
-    }
-
-    return [createOrderedCandidate(cell, {
+  return headerInfo.headers.map(({ cell, columnIndex, keyID, text }) => (
+    createOrderedCandidate(cell, {
       avBlockId: attributeViewBlock.avBlockId,
       avID,
       columnName: text,
       columnIndex,
-      keyID: resolveDomAttributeViewKeyId(cell, columnIndex),
+      keyID,
       text,
       targetKind: 'column-header' as const,
-    })]
-  })
+    })
+  ))
 }
 
 function collectDomAttributeViewGroupTitleCandidates({
@@ -144,40 +138,221 @@ function collectDomAttributeViewRowCandidates({
   attributeViewBlock,
   avID,
   blockElement,
-  headerNames,
+  headerInfo,
 }: {
   attributeViewBlock: AttributeViewBlockSummary
   avID: string
   blockElement: HTMLElement
-  headerNames: string[]
+  headerInfo: DomAttributeViewHeaderInfo
 }) {
-  return resolveDomAttributeViewRows(blockElement).flatMap((rowElement) => {
-    const rowID = resolveDomAttributeViewRowId(rowElement)
-    const rowCells = getDomAttributeViewRowCells(rowElement)
-    const rowLabel = rowCells
-      .map(cell => getAttributeViewDomText(cell))
-      .find(Boolean)
+  const groups = normalizeDomAttributeViewRowGroups({
+    blockElement,
+    headerInfo,
+  })
 
-    return rowCells.flatMap((cell, columnIndex) => {
+  return groups.flatMap(group => (
+    group.candidates.map(candidate => createOrderedCandidate(group.sourceElement, {
+      avBlockId: attributeViewBlock.avBlockId,
+      avID,
+      columnName: candidate.columnName,
+      columnIndex: candidate.columnIndex,
+      itemID: group.rowID,
+      keyID: candidate.keyID,
+      rowID: group.rowID,
+      rowLabel: group.rowLabel,
+      text: candidate.text,
+      targetKind: 'cell' as const,
+    }))
+  ))
+}
+
+type DomAttributeViewHeader = {
+  cell: HTMLElement
+  columnIndex: number
+  keyID: string
+  text: string
+}
+
+type DomAttributeViewHeaderInfo = {
+  headers: DomAttributeViewHeader[]
+  keyedColumnIndexByKeyID: Map<string, number>
+  headerNameByColumnIndex: Map<number, string>
+  headerNameByKeyID: Map<string, string>
+}
+
+type DomAttributeViewNormalizedRowCandidate = {
+  columnIndex: number
+  columnName: string
+  keyID: string
+  text: string
+}
+
+type DomAttributeViewNormalizedRowGroup = {
+  candidates: DomAttributeViewNormalizedRowCandidate[]
+  rowID?: string
+  rowLabel?: string
+  sourceElement: HTMLElement
+}
+
+function resolveDomAttributeViewHeaderInfo(blockElement: HTMLElement): DomAttributeViewHeaderInfo {
+  const keyedColumnIndexByKeyID = new Map<string, number>()
+  const headerNameByColumnIndex = new Map<number, string>()
+  const headerNameByKeyID = new Map<string, string>()
+  const headers: DomAttributeViewHeader[] = []
+  let nextColumnIndex = 0
+
+  for (const [fallbackColumnIndex, cell] of resolveDomAttributeViewHeaderCells(blockElement).entries()) {
+    const text = getAttributeViewDomText(cell)
+    if (!text) {
+      continue
+    }
+
+    const keyID = resolveDomAttributeViewKeyId(cell, fallbackColumnIndex)
+    const stableKeyID = getStableDomAttributeViewKeyID(keyID)
+    if (stableKeyID && keyedColumnIndexByKeyID.has(stableKeyID)) {
+      continue
+    }
+
+    const columnIndex = stableKeyID
+      ? nextColumnIndex
+      : fallbackColumnIndex
+
+    if (stableKeyID) {
+      keyedColumnIndexByKeyID.set(stableKeyID, columnIndex)
+      headerNameByKeyID.set(stableKeyID, text)
+      nextColumnIndex = columnIndex + 1
+    } else {
+      nextColumnIndex = Math.max(nextColumnIndex, columnIndex + 1)
+    }
+
+    headerNameByColumnIndex.set(columnIndex, text)
+    headers.push({
+      cell,
+      columnIndex,
+      keyID,
+      text,
+    })
+  }
+
+  return {
+    headers,
+    headerNameByColumnIndex,
+    headerNameByKeyID,
+    keyedColumnIndexByKeyID,
+  }
+}
+
+function normalizeDomAttributeViewRowGroups({
+  blockElement,
+  headerInfo,
+}: {
+  blockElement: HTMLElement
+  headerInfo: DomAttributeViewHeaderInfo
+}) {
+  const groups: Array<DomAttributeViewNormalizedRowGroup & {
+    dedupeKeys: Set<string>
+    order: number
+  }> = []
+  const groupsByRowID = new Map<string, DomAttributeViewNormalizedRowGroup & {
+    dedupeKeys: Set<string>
+    order: number
+  }>()
+  const discoveredColumnIndexByKeyID = new Map<string, number>()
+  let nextDiscoveredColumnIndex = headerInfo.headers.length
+
+  for (const [rowIndex, rowElement] of resolveDomAttributeViewRows(blockElement).entries()) {
+    const stableRowID = resolveDomAttributeViewRowId(rowElement)
+    const rowGroup = stableRowID
+      ? groupsByRowID.get(stableRowID) ?? createDomAttributeViewRowGroup(rowElement, stableRowID, rowIndex)
+      : createDomAttributeViewRowGroup(rowElement, undefined, rowIndex)
+
+    if (stableRowID && !groupsByRowID.has(stableRowID)) {
+      groupsByRowID.set(stableRowID, rowGroup)
+      groups.push(rowGroup)
+    }
+    if (!stableRowID) {
+      groups.push(rowGroup)
+    }
+
+    const rowCells = getDomAttributeViewRowCells(rowElement)
+    for (const [cellIndex, cell] of rowCells.entries()) {
       const text = getAttributeViewDomText(cell)
       if (!text) {
-        return []
+        continue
       }
 
-      return [createOrderedCandidate(cell, {
-        avBlockId: attributeViewBlock.avBlockId,
-        avID,
-        columnName: headerNames[columnIndex] ?? '',
+      rowGroup.rowLabel ||= text
+
+      const resolvedKeyID = resolveDomAttributeViewKeyId(cell, cellIndex)
+      const stableKeyID = getStableDomAttributeViewKeyID(resolvedKeyID)
+      const columnIndex = stableKeyID && headerInfo.keyedColumnIndexByKeyID.has(stableKeyID)
+        ? headerInfo.keyedColumnIndexByKeyID.get(stableKeyID)!
+        : stableKeyID
+          ? getOrCreateDiscoveredColumnIndex(discoveredColumnIndexByKeyID, stableKeyID, cellIndex)
+          : cellIndex
+      const columnName = stableKeyID
+        ? headerInfo.headerNameByKeyID.get(stableKeyID) ?? headerInfo.headerNameByColumnIndex.get(columnIndex) ?? ''
+        : headerInfo.headerNameByColumnIndex.get(columnIndex) ?? ''
+      const logicalColumnKey = stableKeyID ?? `index:${columnIndex}`
+      const dedupeKey = `${logicalColumnKey}::${text}`
+      if (rowGroup.dedupeKeys.has(dedupeKey)) {
+        continue
+      }
+
+      if (stableKeyID && !headerInfo.keyedColumnIndexByKeyID.has(stableKeyID) && !discoveredColumnIndexByKeyID.has(stableKeyID)) {
+        discoveredColumnIndexByKeyID.set(stableKeyID, columnIndex)
+        nextDiscoveredColumnIndex = Math.max(nextDiscoveredColumnIndex, columnIndex + 1)
+      }
+
+      rowGroup.dedupeKeys.add(dedupeKey)
+      rowGroup.candidates.push({
         columnIndex,
-        itemID: rowID,
-        keyID: resolveDomAttributeViewKeyId(cell, columnIndex),
-        rowID,
-        rowLabel: rowLabel || undefined,
+        columnName,
+        keyID: resolvedKeyID,
         text,
-        targetKind: 'cell' as const,
-      })]
-    })
-  })
+      })
+    }
+  }
+
+  return groups.map(({ candidates, dedupeKeys: _, order: __, ...group }) => ({
+    ...group,
+    candidates: candidates
+      .map((candidate, index) => ({
+        ...candidate,
+        order: index,
+      }))
+      .sort((left, right) => left.columnIndex - right.columnIndex || left.order - right.order)
+      .map(({ order, ...candidate }) => candidate),
+  }))
+
+  function getOrCreateDiscoveredColumnIndex(map: Map<string, number>, keyID: string, fallbackIndex: number) {
+    const existing = map.get(keyID)
+    if (existing !== undefined) {
+      return existing
+    }
+
+    const discoveredIndex = map.size === 0 && fallbackIndex === 0
+      ? 0
+      : Math.max(nextDiscoveredColumnIndex, fallbackIndex)
+    map.set(keyID, discoveredIndex)
+    nextDiscoveredColumnIndex = Math.max(nextDiscoveredColumnIndex, discoveredIndex + 1)
+    return discoveredIndex
+  }
+}
+
+function createDomAttributeViewRowGroup(
+  sourceElement: HTMLElement,
+  rowID: string | undefined,
+  order: number,
+) {
+  return {
+    candidates: [],
+    dedupeKeys: new Set<string>(),
+    order,
+    rowID,
+    rowLabel: undefined,
+    sourceElement,
+  }
 }
 
 function resolveDomAttributeViewRows(blockElement: HTMLElement) {
@@ -256,6 +431,10 @@ function resolveDomAttributeViewKeyId(cellElement: HTMLElement, columnIndex: num
     || cellElement.querySelector<HTMLElement>('[data-col-id]')?.dataset.colId?.trim()
     || cellElement.querySelector<HTMLElement>('[data-column-id]')?.dataset.columnId?.trim()
     || `__dom-col-${columnIndex}__`
+}
+
+function getStableDomAttributeViewKeyID(keyID: string) {
+  return keyID.startsWith('__dom-col-') ? undefined : keyID
 }
 
 function getAttributeViewDomText(element: HTMLElement) {
