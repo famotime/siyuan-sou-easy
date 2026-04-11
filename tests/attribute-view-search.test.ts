@@ -237,6 +237,201 @@ describe('attribute view search', () => {
     ])
   })
 
+  it('deduplicates split-pane table cells while keeping logical column order', async () => {
+    const context = renderEditor(`
+      <div data-node-id="av-block-split-order" data-type="NodeAttributeView" class="av" data-av-id="av-split-order" data-render="true">
+        <div class="av__row av__row--header">
+          <div class="av__body">
+            <div class="av__cell av__cell--header" data-key-id="col-fixed"><div class="av__celltext">固定列</div></div>
+            <div class="av__cell av__cell--header" data-key-id="col-main"><div class="av__celltext">主列</div></div>
+            <div class="av__cell av__cell--header" data-key-id="col-tail"><div class="av__celltext">尾列</div></div>
+          </div>
+        </div>
+        <div class="av__table-pane av__table-pane--scrollable">
+          <div class="av__row" data-id="item-1">
+            <div class="av__body">
+              <div class="av__cell" data-key-id="col-main"><div class="av__celltext">传感器-main</div></div>
+              <div class="av__cell" data-key-id="col-tail"><div class="av__celltext">传感器-tail</div></div>
+            </div>
+          </div>
+          <div class="av__row" data-id="item-2">
+            <div class="av__body">
+              <div class="av__cell" data-key-id="col-main"><div class="av__celltext">传感器-main-2</div></div>
+              <div class="av__cell" data-key-id="col-tail"><div class="av__celltext">传感器-tail-2</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="av__table-pane av__table-pane--fixed">
+          <div class="av__row" data-id="item-1">
+            <div class="av__body">
+              <div class="av__cell" data-key-id="col-fixed"><div class="av__celltext">传感器-fixed</div></div>
+            </div>
+          </div>
+          <div class="av__row" data-id="item-2">
+            <div class="av__body">
+              <div class="av__cell" data-key-id="col-fixed"><div class="av__celltext">传感器-fixed-2</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `)
+
+    const result = await searchAttributeViewMatches({
+      context,
+      options: DEFAULT_OPTIONS,
+      query: '传感器',
+      startingBlockIndex: 0,
+    })
+
+    expect(result.matches).toHaveLength(6)
+    expect(result.matches.map(match => ({
+      columnIndex: match.attributeView?.columnIndex,
+      keyID: match.attributeView?.keyID,
+      rowID: match.attributeView?.rowID,
+    }))).toEqual([
+      { columnIndex: 0, keyID: 'col-fixed', rowID: 'item-1' },
+      { columnIndex: 1, keyID: 'col-main', rowID: 'item-1' },
+      { columnIndex: 2, keyID: 'col-tail', rowID: 'item-1' },
+      { columnIndex: 0, keyID: 'col-fixed', rowID: 'item-2' },
+      { columnIndex: 1, keyID: 'col-main', rowID: 'item-2' },
+      { columnIndex: 2, keyID: 'col-tail', rowID: 'item-2' },
+    ])
+    expect(result.matches.map(match => match.previewText)).toEqual([
+      '固定列: [传感器]-fixed',
+      '主列: [传感器]-main',
+      '尾列: [传感器]-tail',
+      '固定列: [传感器]-fixed-2',
+      '主列: [传感器]-main-2',
+      '尾列: [传感器]-tail-2',
+    ])
+  })
+
+  it('keeps blank keyed header slots in canonical split-pane column order', async () => {
+    const context = renderEditor(`
+      <div data-node-id="av-block-split-blank-header" data-type="NodeAttributeView" class="av" data-av-id="av-split-blank-header" data-render="true">
+        <div class="av__row av__row--header">
+          <div class="av__body">
+            <div class="av__cell av__cell--header" data-key-id="col-fixed"><div class="av__celltext">固定列</div></div>
+            <div class="av__cell av__cell--header" data-key-id="col-blank"><div class="av__celltext"></div></div>
+            <div class="av__cell av__cell--header" data-key-id="col-tail"><div class="av__celltext">尾列</div></div>
+          </div>
+        </div>
+        <div class="av__table-pane av__table-pane--scrollable">
+          <div class="av__row" data-id="item-1">
+            <div class="av__body">
+              <div class="av__cell" data-key-id="col-tail"><div class="av__celltext">传感器-tail</div></div>
+              <div class="av__cell" data-key-id="col-blank"><div class="av__celltext">传感器-blank</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="av__table-pane av__table-pane--fixed">
+          <div class="av__row" data-id="item-1">
+            <div class="av__body">
+              <div class="av__cell" data-key-id="col-fixed"><div class="av__celltext">传感器-fixed</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `)
+
+    const result = await searchAttributeViewMatches({
+      context,
+      options: DEFAULT_OPTIONS,
+      query: '传感器',
+      startingBlockIndex: 0,
+    })
+
+    expect(result.matches).toHaveLength(3)
+    expect(result.matches.map(match => ({
+      columnIndex: match.attributeView?.columnIndex,
+      keyID: match.attributeView?.keyID,
+      previewText: match.previewText,
+    }))).toEqual([
+      { columnIndex: 0, keyID: 'col-fixed', previewText: '固定列: [传感器]-fixed' },
+      { columnIndex: 1, keyID: 'col-blank', previewText: '[传感器]-blank' },
+      { columnIndex: 2, keyID: 'col-tail', previewText: '尾列: [传感器]-tail' },
+    ])
+  })
+
+  it('appends body-only keyed columns after header-defined columns', async () => {
+    const context = renderEditor(`
+      <div data-node-id="av-block-body-only-column" data-type="NodeAttributeView" class="av" data-av-id="av-body-only-column" data-render="true">
+        <div class="av__row av__row--header">
+          <div class="av__body">
+            <div class="av__cell av__cell--header" data-key-id="col-fixed"><div class="av__celltext">固定列</div></div>
+            <div class="av__cell av__cell--header" data-key-id="col-main"><div class="av__celltext">主列</div></div>
+          </div>
+        </div>
+        <div class="av__row" data-id="item-1">
+          <div class="av__body">
+            <div class="av__cell" data-key-id="col-extra"><div class="av__celltext">传感器-extra</div></div>
+            <div class="av__cell" data-key-id="col-fixed"><div class="av__celltext">传感器-fixed</div></div>
+            <div class="av__cell" data-key-id="col-main"><div class="av__celltext">传感器-main</div></div>
+          </div>
+        </div>
+      </div>
+    `)
+
+    const result = await searchAttributeViewMatches({
+      context,
+      options: DEFAULT_OPTIONS,
+      query: '传感器',
+      startingBlockIndex: 0,
+    })
+
+    expect(result.matches).toHaveLength(3)
+    expect(result.matches.map(match => ({
+      columnIndex: match.attributeView?.columnIndex,
+      columnName: match.attributeView?.columnName,
+      keyID: match.attributeView?.keyID,
+      previewText: match.previewText,
+    }))).toEqual([
+      { columnIndex: 0, columnName: '固定列', keyID: 'col-fixed', previewText: '固定列: [传感器]-fixed' },
+      { columnIndex: 1, columnName: '主列', keyID: 'col-main', previewText: '主列: [传感器]-main' },
+      { columnIndex: 2, columnName: '', keyID: 'col-extra', previewText: '[传感器]-extra' },
+    ])
+  })
+
+  it('does not reuse unkeyed header slots for body-only keyed columns', async () => {
+    const context = renderEditor(`
+      <div data-node-id="av-block-mixed-header-extra" data-type="NodeAttributeView" class="av" data-av-id="av-mixed-header-extra" data-render="true">
+        <div class="av__row av__row--header">
+          <div class="av__body">
+            <div class="av__cell av__cell--header"><div class="av__celltext">前置列</div></div>
+            <div class="av__cell av__cell--header" data-key-id="col-fixed"><div class="av__celltext">固定列</div></div>
+            <div class="av__cell av__cell--header" data-key-id="col-main"><div class="av__celltext">主列</div></div>
+          </div>
+        </div>
+        <div class="av__row" data-id="item-1">
+          <div class="av__body">
+            <div class="av__cell" data-key-id="col-extra"><div class="av__celltext">传感器-extra</div></div>
+            <div class="av__cell" data-key-id="col-fixed"><div class="av__celltext">传感器-fixed</div></div>
+            <div class="av__cell" data-key-id="col-main"><div class="av__celltext">传感器-main</div></div>
+          </div>
+        </div>
+      </div>
+    `)
+
+    const result = await searchAttributeViewMatches({
+      context,
+      options: DEFAULT_OPTIONS,
+      query: '传感器',
+      startingBlockIndex: 0,
+    })
+
+    expect(result.matches).toHaveLength(3)
+    expect(result.matches.map(match => ({
+      columnIndex: match.attributeView?.columnIndex,
+      columnName: match.attributeView?.columnName,
+      keyID: match.attributeView?.keyID,
+      previewText: match.previewText,
+    }))).toEqual([
+      { columnIndex: 1, columnName: '固定列', keyID: 'col-fixed', previewText: '固定列: [传感器]-fixed' },
+      { columnIndex: 2, columnName: '主列', keyID: 'col-main', previewText: '主列: [传感器]-main' },
+      { columnIndex: 3, columnName: '', keyID: 'col-extra', previewText: '[传感器]-extra' },
+    ])
+  })
+
   it('deduplicates cloned DOM rows for the same attribute view cell', async () => {
     const context = renderEditor(`
       <div data-node-id="av-block-dom-clones" data-type="NodeAttributeView" class="av" data-av-id="av-dom-clones" data-render="true">
@@ -270,6 +465,48 @@ describe('attribute view search', () => {
     })
 
     expect(result.matches).toHaveLength(1)
+    expect(result.matches[0]?.previewText).toBe('主键: [传感器]')
+  })
+
+  it('does not double-count a logical cell rendered in multiple panes', async () => {
+    const context = renderEditor(`
+      <div data-node-id="av-block-split-duplicates" data-type="NodeAttributeView" class="av" data-av-id="av-split-duplicates" data-render="true">
+        <div class="av__row av__row--header">
+          <div class="av__body">
+            <div class="av__cell av__cell--header"><div class="av__celltext">主键</div></div>
+          </div>
+        </div>
+        <div class="av__table-pane av__table-pane--fixed">
+          <div class="av__row" data-id="item-1">
+            <div class="av__body">
+              <div class="av__cell" data-key-id="col-primary"><div class="av__celltext">传感器</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="av__table-pane av__table-pane--scrollable">
+          <div class="av__row" data-id="item-1">
+            <div class="av__body">
+              <div class="av__cell"><div class="av__celltext"></div></div>
+              <div class="av__cell" data-key-id="col-primary"><div class="av__celltext">传感器</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `)
+
+    const result = await searchAttributeViewMatches({
+      context,
+      options: DEFAULT_OPTIONS,
+      query: '传感器',
+      startingBlockIndex: 0,
+    })
+
+    expect(result.matches).toHaveLength(1)
+    expect(result.matches[0]?.attributeView).toMatchObject({
+      columnIndex: 0,
+      keyID: 'col-primary',
+      rowID: 'item-1',
+    })
     expect(result.matches[0]?.previewText).toBe('主键: [传感器]')
   })
 
