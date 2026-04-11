@@ -8,8 +8,10 @@ import {
   it,
   vi,
 } from 'vitest'
+import { openTab } from 'siyuan'
 
 import { DEFAULT_SETTINGS, createSearchOptionsFromSettings } from '@/settings'
+import { setPluginInstance } from '@/plugin-instance'
 
 const editorMocks = vi.hoisted(() => {
   const state = {
@@ -128,6 +130,7 @@ describe('search store editor context fallback', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     resetState()
+    setPluginInstance(null)
     editorMocks.state.blocks = [{
       blockId: 'block-1',
       blockIndex: 0,
@@ -192,6 +195,7 @@ describe('search store editor context fallback', () => {
 
   afterEach(async () => {
     closePanel()
+    setPluginInstance(null)
     await vi.runOnlyPendingTimersAsync()
     vi.useRealTimers()
   })
@@ -4288,6 +4292,221 @@ describe('search store editor context fallback', () => {
     expect(searchReplaceState.navigationHint).toBe('')
     expect(editorMocks.scrollMatchIntoView).toHaveBeenCalledTimes(41)
     expect(scrollContainer.scrollTo).toHaveBeenCalled()
+  })
+
+  it('uses native block navigation for far missing matches and resumes after the editor context returns', async () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-background" data-node-id="root-1"></div>
+        <div class="protyle-title" data-node-id="root-1"></div>
+        <input class="protyle-title__input" value="Doc 1" />
+        <div class="protyle-content">
+          <div class="protyle-wysiwyg">
+            ${Array.from({ length: 25 }, (_, offset) => {
+              const index = 124 + offset
+              return `<div data-node-id="block-${index + 1}" data-type="NodeParagraph"><div contenteditable="true">foo</div></div>`
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    const scrollContainer = document.querySelector<HTMLElement>('.protyle-content')!
+    let scrollTop = 7916
+    let targetLoaded = false
+
+    Object.defineProperty(scrollContainer, 'clientHeight', {
+      configurable: true,
+      value: 1484,
+    })
+    Object.defineProperty(scrollContainer, 'scrollHeight', {
+      configurable: true,
+      value: 23328,
+    })
+    Object.defineProperty(scrollContainer, 'scrollTop', {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value: number) => {
+        scrollTop = value
+      },
+    })
+    scrollContainer.scrollTo = vi.fn(({ top }: { top?: number }) => {
+      if (typeof top === 'number') {
+        scrollTop = top
+      }
+    }) as any
+    vi.spyOn(scrollContainer, 'getBoundingClientRect').mockReturnValue({
+      bottom: 1484,
+      height: 1484,
+      left: 0,
+      right: 1280,
+      toJSON: () => ({}),
+      top: 0,
+      width: 1280,
+      x: 0,
+      y: 0,
+    })
+    document.querySelectorAll<HTMLElement>('[data-node-id][data-type]').forEach((element, offset) => {
+      const top = offset * 40
+      vi.spyOn(element, 'getBoundingClientRect').mockReturnValue({
+        bottom: top + 36,
+        height: 36,
+        left: 0,
+        right: 800,
+        toJSON: () => ({}),
+        top,
+        width: 800,
+        x: 0,
+        y: top,
+      })
+    })
+
+    editorMocks.state.context = {
+      protyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    editorMocks.state.contextAvailable = true
+    editorMocks.scrollMatchIntoView.mockImplementation((_context, match) => {
+      if (match?.id === 'block-564:0:3') {
+        return targetLoaded ? 'scrolled' : 'missing'
+      }
+
+      return 'visible'
+    })
+    editorMocks.isMatchVisible.mockImplementation((_context, match) => {
+      if (match?.id === 'block-564:0:3') {
+        return targetLoaded
+      }
+
+      return true
+    })
+    setPluginInstance({
+      app: { layout: {} },
+      i18n: {},
+    } as any)
+
+    searchReplaceState.visible = true
+    searchReplaceState.query = 'foo'
+    searchReplaceState.matches = [
+      {
+        blockId: 'block-126',
+        blockIndex: 125,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-126:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+      {
+        blockId: 'block-564',
+        blockIndex: 563,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-564:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+      },
+    ]
+    searchReplaceState.currentIndex = 0
+    searchReplaceState.searchableBlockCount = 600
+    searchReplaceState.minimapBlocks = Array.from({ length: 600 }, (_, index) => ({
+      blockId: `block-${index + 1}`,
+      blockIndex: index,
+      blockType: 'NodeParagraph',
+    }))
+
+    goNext()
+
+    expect(searchReplaceState.currentIndex).toBe(1)
+    expect(openTab).toHaveBeenCalledTimes(1)
+    expect(openTab).toHaveBeenCalledWith(expect.objectContaining({
+      app: expect.any(Object),
+      doc: expect.objectContaining({
+        action: [
+          'cb-get-html',
+          'cb-get-hl',
+          'cb-get-focus',
+          'cb-get-unchangeid',
+          'cb-get-before',
+          'cb-get-append',
+        ],
+        id: 'block-564',
+      }),
+      openNewTab: false,
+      removeCurrentTab: true,
+    }))
+    expect(searchReplaceState.navigationHint).toContain('等待内容加载')
+
+    editorMocks.state.contextAvailable = false
+    await vi.advanceTimersByTimeAsync(360)
+
+    expect(openTab).toHaveBeenCalledTimes(1)
+    expect(searchReplaceState.navigationHint).toContain('等待内容加载')
+
+    const restoredProtyle = protyle.cloneNode(true) as HTMLElement
+    const restoredContent = restoredProtyle.querySelector<HTMLElement>('.protyle-wysiwyg')!
+    restoredContent.innerHTML = `
+      <div data-node-id="block-564" data-type="NodeParagraph"><div contenteditable="true">foo</div></div>
+    `
+    const restoredTarget = restoredContent.querySelector<HTMLElement>('[data-node-id="block-564"]')!
+    vi.spyOn(restoredTarget, 'getBoundingClientRect').mockReturnValue({
+      bottom: 640,
+      height: 36,
+      left: 0,
+      right: 800,
+      toJSON: () => ({}),
+      top: 604,
+      width: 800,
+      x: 0,
+      y: 604,
+    })
+    const restoredScrollContainer = restoredProtyle.querySelector<HTMLElement>('.protyle-content')!
+    Object.defineProperty(restoredScrollContainer, 'clientHeight', {
+      configurable: true,
+      value: 1484,
+    })
+    Object.defineProperty(restoredScrollContainer, 'scrollHeight', {
+      configurable: true,
+      value: 23328,
+    })
+    Object.defineProperty(restoredScrollContainer, 'scrollTop', {
+      configurable: true,
+      get: () => 21844,
+      set: () => {},
+    })
+    restoredScrollContainer.scrollTo = vi.fn() as any
+    vi.spyOn(restoredScrollContainer, 'getBoundingClientRect').mockReturnValue({
+      bottom: 1484,
+      height: 1484,
+      left: 0,
+      right: 1280,
+      toJSON: () => ({}),
+      top: 0,
+      width: 1280,
+      x: 0,
+      y: 0,
+    })
+
+    targetLoaded = true
+    editorMocks.state.context = {
+      protyle: restoredProtyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    editorMocks.state.contextAvailable = true
+
+    await vi.advanceTimersByTimeAsync(120)
+
+    expect(searchReplaceState.navigationHint).toBe('')
+    expect(openTab).toHaveBeenCalledTimes(1)
   })
 
   it('replaces the current match even when the panel has taken focus from the editor', async () => {

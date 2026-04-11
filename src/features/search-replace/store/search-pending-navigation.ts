@@ -7,6 +7,10 @@ import { resolveEditorSearchRoot } from '../editor/blocks'
 import { resolveEditorScrollContainer } from '../editor/scroll-container'
 import { debugElement, debugLog } from '../debug'
 import { unfoldBlock } from '../kernel'
+import {
+  canTriggerNativeMatchNavigation,
+  triggerNativeMatchNavigation,
+} from '../native-navigation'
 import { t } from '@/i18n/runtime'
 import {
   advanceApproximateNavigationProgress,
@@ -67,12 +71,17 @@ export function createPendingNavigationController({
   scrollMatchIntoView,
   state,
 }: PendingNavigationControllerOptions) {
+  const NATIVE_NAVIGATION_DISTANCE_THRESHOLD = 20
+  const NATIVE_NAVIGATION_WAIT_MS = 1500
+
   let approximateNavigationProgress: ApproximateNavigationProgress = createApproximateNavigationProgress()
   let pendingNavigationTimer = 0
   let pendingNavigationRetryCount = 0
   let pendingNavigationMatchId = ''
   let attemptedCollapsedAncestorIds = new Set<string>()
   let directNavigationProgress: DirectNavigationProgress<EditorContext['protyleRef']> = createDirectNavigationProgress()
+  let nativeNavigationAttemptedMatchId = ''
+  let nativeNavigationWaitDeadline = 0
 
   function beginPendingNavigation(match: SearchMatch) {
     approximateNavigationProgress = resetApproximateNavigationProgress()
@@ -80,6 +89,7 @@ export function createPendingNavigationController({
     pendingNavigationRetryCount = 0
     attemptedCollapsedAncestorIds = new Set()
     resetPendingProtyleNavigation()
+    resetPendingNativeNavigation()
     state.navigationHint = t('navigationPending')
     debugLog('pending-navigation:begin', {
       blockId: match.blockId,
@@ -96,6 +106,7 @@ export function createPendingNavigationController({
     pendingNavigationMatchId = ''
     attemptedCollapsedAncestorIds = new Set()
     resetPendingProtyleNavigation()
+    resetPendingNativeNavigation()
     state.navigationHint = ''
     debugLog('pending-navigation:clear', {
       reason,
@@ -105,7 +116,23 @@ export function createPendingNavigationController({
   function retryPendingNavigation() {
     const currentMatch = getCurrentMatch()
     const context = resolveEditorContext()
-    if (!state.visible || !context || !currentMatch || currentMatch.id !== pendingNavigationMatchId) {
+    if (!state.visible || !currentMatch || currentMatch.id !== pendingNavigationMatchId) {
+      clearPendingNavigation('context-mismatch')
+      return
+    }
+
+    if (!context) {
+      if (isWaitingForNativeNavigation(currentMatch.id)) {
+        debugLog('pending-navigation:native-wait', {
+          attempt: pendingNavigationRetryCount,
+          matchId: currentMatch.id,
+          reason: 'context-missing',
+          waitRemainingMs: Math.max(0, nativeNavigationWaitDeadline - Date.now()),
+        })
+        schedulePendingNavigationRetry()
+        return
+      }
+
       clearPendingNavigation('context-mismatch')
       return
     }
@@ -128,11 +155,13 @@ export function createPendingNavigationController({
       return
     }
 
+    if (continuePendingNativeNavigation(context, currentMatch, directScrollResult)) {
+      schedulePendingNavigationRetry()
+      return
+    }
+
     if (continuePendingProtyleNavigation(context, currentMatch)) {
-      window.clearTimeout(pendingNavigationTimer)
-      pendingNavigationTimer = window.setTimeout(() => {
-        retryPendingNavigation()
-      }, 120)
+      schedulePendingNavigationRetry()
       return
     }
 
@@ -152,10 +181,7 @@ export function createPendingNavigationController({
       return
     }
 
-    window.clearTimeout(pendingNavigationTimer)
-    pendingNavigationTimer = window.setTimeout(() => {
-      retryPendingNavigation()
-    }, 120)
+    schedulePendingNavigationRetry()
   }
 
   function retryPendingNavigationForMatch(matchId: string) {
@@ -270,6 +296,93 @@ export function createPendingNavigationController({
 
   function resetPendingProtyleNavigation() {
     directNavigationProgress = resetDirectNavigationProgress()
+  }
+
+  function resetPendingNativeNavigation() {
+    nativeNavigationAttemptedMatchId = ''
+    nativeNavigationWaitDeadline = 0
+  }
+
+  function continuePendingNativeNavigation(
+    context: EditorContext,
+    match: SearchMatch,
+    directScrollResult: ScrollMatchResult,
+  ) {
+    if (directScrollResult !== 'missing' || !canTriggerNativeMatchNavigation(match)) {
+      return false
+    }
+
+    if (nativeNavigationAttemptedMatchId === match.id) {
+      if (isWaitingForNativeNavigation(match.id)) {
+        debugLog('pending-navigation:native-wait', {
+          attempt: pendingNavigationRetryCount,
+          matchId: match.id,
+          reason: 'native-in-flight',
+          waitRemainingMs: Math.max(0, nativeNavigationWaitDeadline - Date.now()),
+        })
+        return true
+      }
+
+      debugLog('pending-navigation:native-skip', {
+        attempt: pendingNavigationRetryCount,
+        matchId: match.id,
+        reason: 'already-attempted',
+      })
+      return false
+    }
+
+    const loadedBlockRange = resolveLoadedBlockRange(context, resolveEditorScrollContainer(context))
+    const boundaryDistance = resolveNativeNavigationDistance(match, loadedBlockRange)
+    if (boundaryDistance < NATIVE_NAVIGATION_DISTANCE_THRESHOLD) {
+      debugLog('pending-navigation:native-skip', {
+        attempt: pendingNavigationRetryCount,
+        boundaryDistance,
+        loadedBlockRange,
+        matchId: match.id,
+        reason: 'distance-too-small',
+      })
+      return false
+    }
+
+    nativeNavigationAttemptedMatchId = match.id
+    nativeNavigationWaitDeadline = Date.now() + NATIVE_NAVIGATION_WAIT_MS
+    debugLog('pending-navigation:native-trigger', {
+      attempt: pendingNavigationRetryCount,
+      boundaryDistance,
+      blockId: match.blockId,
+      loadedBlockRange,
+      matchId: match.id,
+      waitMs: NATIVE_NAVIGATION_WAIT_MS,
+    })
+    void triggerNativeMatchNavigation(match).then((result) => {
+      if (pendingNavigationMatchId !== match.id) {
+        return
+      }
+
+      if (result === 'triggered') {
+        return
+      }
+
+      nativeNavigationWaitDeadline = 0
+      debugLog('pending-navigation:native-fail', {
+        matchId: match.id,
+        result,
+      })
+    })
+
+    return true
+  }
+
+  function isWaitingForNativeNavigation(matchId: string) {
+    return nativeNavigationAttemptedMatchId === matchId
+      && nativeNavigationWaitDeadline > Date.now()
+  }
+
+  function schedulePendingNavigationRetry() {
+    window.clearTimeout(pendingNavigationTimer)
+    pendingNavigationTimer = window.setTimeout(() => {
+      retryPendingNavigation()
+    }, 120)
   }
 
   function attemptExpandCollapsedAncestors(match: SearchMatch) {
@@ -699,6 +812,22 @@ export function createPendingNavigationController({
   function isTransitionScrollContainer(element: HTMLElement | null | undefined) {
     return element?.classList.contains('protyle-content--transition') ?? false
   }
+}
+
+function resolveNativeNavigationDistance(match: SearchMatch, loadedBlockRange: LoadedBlockRange | null) {
+  if (!loadedBlockRange) {
+    return 0
+  }
+
+  if (match.blockIndex < loadedBlockRange.min) {
+    return loadedBlockRange.min - match.blockIndex
+  }
+
+  if (match.blockIndex > loadedBlockRange.max) {
+    return match.blockIndex - loadedBlockRange.max
+  }
+
+  return 0
 }
 
 function serializeLoadedBlockRange(loadedBlockRange: LoadedBlockRange | null) {

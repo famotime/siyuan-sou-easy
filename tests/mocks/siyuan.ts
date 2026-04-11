@@ -17,6 +17,8 @@ export const fetchSyncPost = vi.fn(async () => ({
 }))
 
 export const getFrontend = vi.fn(() => 'desktop')
+export const openMobileFileById = vi.fn()
+export const openTab = vi.fn(async () => ({}))
 
 export const showMessage = vi.fn()
 

@@ -3,7 +3,7 @@
 ## Scope
 
 - Repository: `siyuan-sou-easy`
-- Last updated: `2026-03-29`
+- Last updated: `2026-04-11`
 - Purpose: map the current module layout after refactors `RF-101` to `RF-105`
 
 ## Top Level
@@ -39,6 +39,7 @@
 | `store.ts` | Public facade used by the Vue app and plugin bootstrap; coordinates state, refresh, navigation, and replace actions |
 | `types.ts` | Cross-module search, editor, match, and attribute-view types |
 | `kernel.ts` | SiYuan kernel API bridge for block DOM fetch/update operations |
+| `native-navigation.ts` | Single-trigger SiYuan native block navigation fallback for far missing matches |
 | `search-engine.ts` | Query matching, regex handling, and match list generation |
 | `match-utils.ts` | Shared match helpers |
 | `debug.ts` | Optional debug logging hooks |
