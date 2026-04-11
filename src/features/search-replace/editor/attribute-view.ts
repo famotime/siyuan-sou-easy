@@ -26,6 +26,11 @@ export function findAttributeViewCellElements(context: EditorContext, match: Sea
     return findAttributeViewHeaderCellElements(blockElement, match)
   }
 
+  const exactKeyedCells = findAttributeViewExactKeyedCellElements(blockElement, match)
+  if (exactKeyedCells.length) {
+    return exactKeyedCells
+  }
+
   const rowElements = findAttributeViewRowElements(blockElement, match)
   for (const rowElement of rowElements) {
     const rowCells = getAttributeViewRowCells(rowElement)
@@ -52,6 +57,38 @@ export function findAttributeViewCellElements(context: EditorContext, match: Sea
   return Array.from(blockElement.querySelectorAll<HTMLElement>('.av__cell'))
     .filter(cell => !cell.classList.contains('av__cell--header'))
     .filter(cell => cellContainsMatchedText(cell, match.matchedText))
+}
+
+function findAttributeViewExactKeyedCellElements(blockElement: HTMLElement, match: SearchMatch) {
+  const stableKeyID = normalizeStableAttributeViewKeyID(match.attributeView?.keyID)
+  if (!stableKeyID) {
+    return []
+  }
+
+  const rowElements = findAttributeViewRowElements(blockElement, match)
+  const keyedCells = rowElements.flatMap((rowElement) => {
+    const selectors = [
+      `[data-av-key-id="${escapeAttributeValue(stableKeyID)}"]`,
+      `[data-key-id="${escapeAttributeValue(stableKeyID)}"]`,
+    ]
+
+    return selectors.flatMap(selector => Array.from(rowElement.querySelectorAll<HTMLElement>(selector)))
+  })
+
+  const exactMatchedCells = getTopLevelElements(keyedCells)
+    .filter(cell => !cell.classList.contains('av__cell--header'))
+    .filter(cell => cellContainsMatchedText(cell, match.matchedText))
+  if (exactMatchedCells.length) {
+    return [exactMatchedCells[0]!]
+  }
+
+  const uniqueKeyedCells = getTopLevelElements(keyedCells)
+    .filter(cell => !cell.classList.contains('av__cell--header'))
+  if (uniqueKeyedCells.length) {
+    return [uniqueKeyedCells[0]!]
+  }
+
+  return []
 }
 
 function findAttributeViewRowElements(blockElement: HTMLElement, match: SearchMatch) {
@@ -241,6 +278,15 @@ function buildLegacyAttributeViewCellSelectors(match: SearchMatch) {
 
 function escapeAttributeValue(value: string) {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+}
+
+function normalizeStableAttributeViewKeyID(keyID?: string) {
+  const normalizedKeyID = keyID?.trim() ?? ''
+  if (!normalizedKeyID || normalizedKeyID.startsWith('__dom-col-')) {
+    return ''
+  }
+
+  return normalizedKeyID
 }
 
 function getTopLevelElements(elements: HTMLElement[]) {

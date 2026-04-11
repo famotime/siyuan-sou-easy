@@ -326,6 +326,78 @@ describe('current block highlight', () => {
     expect(protyle.querySelector('[data-key-id="col-title"]')?.classList.contains('sfsr-av-cell-current')).toBe(true)
   })
 
+  it('highlights the logical split-pane attribute view cell by global column index', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-wysiwyg">
+          <div data-node-id="av-block-split-pane" data-type="NodeAttributeView" class="av" data-av-id="av-split-pane" data-render="true">
+            <div class="av__row av__row--header">
+              <div class="av__body">
+                <div class="av__cell av__cell--header" data-key-id="col-fixed"><div class="av__celltext">固定列</div></div>
+                <div class="av__cell av__cell--header" data-key-id="col-main"><div class="av__celltext">主列</div></div>
+                <div class="av__cell av__cell--header" data-key-id="col-tail"><div class="av__celltext">尾列</div></div>
+              </div>
+            </div>
+            <div class="av__table-pane av__table-pane--scrollable">
+              <div class="av__row" data-id="item-1">
+                <div class="av__body">
+                  <div class="av__cell" data-key-id="col-main"><div class="av__celltext">传感器-main</div></div>
+                  <div class="av__cell" data-key-id="col-tail"><div class="av__celltext">传感器-tail</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="av__table-pane av__table-pane--fixed">
+              <div class="av__row" data-id="item-1">
+                <div class="av__body">
+                  <div class="av__cell" data-key-id="col-fixed"><div class="av__celltext">传感器-fixed</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector('.protyle') as HTMLElement
+    const context: EditorContext = {
+      protyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    const match: SearchMatch = {
+      attributeView: {
+        avBlockId: 'av-block-split-pane',
+        avID: 'av-split-pane',
+        columnName: '主列',
+        columnIndex: 1,
+        itemID: 'item-1',
+        keyID: 'col-main',
+        rowID: 'item-1',
+      },
+      blockId: 'av-block-split-pane',
+      blockIndex: 0,
+      blockType: 'NodeAttributeView',
+      end: 4,
+      id: 'av:av-block-split-pane:item-1:col-main:0:4',
+      matchedText: '传感器-main',
+      previewText: '主列: [传感器-main]',
+      replaceable: false,
+      rootId: 'root-1',
+      sourceKind: 'attribute-view',
+      start: 0,
+    }
+
+    syncSearchDecorations(context, [match], match)
+
+    const fixedCell = protyle.querySelector<HTMLElement>('.av__table-pane--fixed .av__cell[data-key-id="col-fixed"]')
+    const mainCell = protyle.querySelector<HTMLElement>('.av__table-pane--scrollable .av__cell[data-key-id="col-main"]')
+    const tailCell = protyle.querySelector<HTMLElement>('.av__table-pane--scrollable .av__cell[data-key-id="col-tail"]')
+
+    expect(fixedCell?.classList.contains('sfsr-av-cell-current')).toBe(false)
+    expect(mainCell?.classList.contains('sfsr-av-cell-current')).toBe(true)
+    expect(tailCell?.classList.contains('sfsr-av-cell-current')).toBe(false)
+  })
+
   it('highlights only the matched kanban field when repeated text appears in multiple fields', () => {
     document.body.innerHTML = `
       <div class="protyle">
