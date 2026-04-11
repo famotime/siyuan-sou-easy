@@ -247,37 +247,29 @@ describe('attribute view search', () => {
             <div class="av__cell av__cell--header" data-key-id="col-tail"><div class="av__celltext">尾列</div></div>
           </div>
         </div>
-        <div class="av__table-pane av__table-pane--fixed">
+        <div class="av__table-pane av__table-pane--scrollable">
           <div class="av__row" data-id="item-1">
             <div class="av__body">
-              <div class="av__cell" data-key-id="col-fixed"><div class="av__celltext">传感器-fixed</div></div>
               <div class="av__cell" data-key-id="col-main"><div class="av__celltext">传感器-main</div></div>
               <div class="av__cell" data-key-id="col-tail"><div class="av__celltext">传感器-tail</div></div>
             </div>
           </div>
           <div class="av__row" data-id="item-2">
             <div class="av__body">
-              <div class="av__cell" data-key-id="col-fixed"><div class="av__celltext">传感器-fixed-2</div></div>
               <div class="av__cell" data-key-id="col-main"><div class="av__celltext">传感器-main-2</div></div>
               <div class="av__cell" data-key-id="col-tail"><div class="av__celltext">传感器-tail-2</div></div>
             </div>
           </div>
         </div>
-        <div class="av__table-pane av__table-pane--scrollable">
+        <div class="av__table-pane av__table-pane--fixed">
           <div class="av__row" data-id="item-1">
             <div class="av__body">
-              <div class="av__cell"><div class="av__celltext"></div></div>
               <div class="av__cell" data-key-id="col-fixed"><div class="av__celltext">传感器-fixed</div></div>
-              <div class="av__cell" data-key-id="col-main"><div class="av__celltext">传感器-main</div></div>
-              <div class="av__cell" data-key-id="col-tail"><div class="av__celltext">传感器-tail</div></div>
             </div>
           </div>
           <div class="av__row" data-id="item-2">
             <div class="av__body">
-              <div class="av__cell"><div class="av__celltext"></div></div>
               <div class="av__cell" data-key-id="col-fixed"><div class="av__celltext">传感器-fixed-2</div></div>
-              <div class="av__cell" data-key-id="col-main"><div class="av__celltext">传感器-main-2</div></div>
-              <div class="av__cell" data-key-id="col-tail"><div class="av__celltext">传感器-tail-2</div></div>
             </div>
           </div>
         </div>
