@@ -70,6 +70,8 @@ function findAttributeViewExactKeyedCellElements(blockElement: HTMLElement, matc
     const selectors = [
       `[data-av-key-id="${escapeAttributeValue(stableKeyID)}"]`,
       `[data-key-id="${escapeAttributeValue(stableKeyID)}"]`,
+      `[data-field-id="${escapeAttributeValue(stableKeyID)}"]`,
+      `[data-col-id="${escapeAttributeValue(stableKeyID)}"]`,
     ]
 
     return selectors.flatMap(selector => Array.from(rowElement.querySelectorAll<HTMLElement>(selector)))
@@ -146,6 +148,12 @@ function getAttributeViewRowCells(rowElement: HTMLElement) {
     .filter(child => !child.classList.contains('av__cell--header'))
   if (keyedCells.length > 0) {
     return getTopLevelElements(keyedCells)
+  }
+
+  const fieldCells = Array.from(body.querySelectorAll<HTMLElement>('[data-field-id], [data-col-id]'))
+    .filter(child => !child.classList.contains('av__cell--header'))
+  if (fieldCells.length > 0) {
+    return getTopLevelElements(fieldCells)
   }
 
   return []
@@ -260,17 +268,26 @@ function buildLegacyAttributeViewCellSelectors(match: SearchMatch) {
     selectors.push(
       `[data-av-item-id="${row}"][data-av-key-id="${keyId}"]`,
       `[data-item-id="${row}"][data-key-id="${keyId}"]`,
+      `[data-id="${row}"][data-field-id="${keyId}"]`,
+      `[data-id="${row}"][data-col-id="${keyId}"]`,
       `[data-row-id="${row}"][data-key-id="${keyId}"]`,
       `[data-id="${row}"][data-key-id="${keyId}"]`,
       `[data-av-item-id="${row}"] [data-av-key-id="${keyId}"]`,
       `[data-item-id="${row}"] [data-key-id="${keyId}"]`,
+      `[data-id="${row}"] [data-field-id="${keyId}"]`,
+      `[data-id="${row}"] [data-col-id="${keyId}"]`,
       `[data-row-id="${row}"] [data-key-id="${keyId}"]`,
       `[data-id="${row}"] [data-key-id="${keyId}"]`,
     )
   })
 
   if (selectors.length === 0) {
-    selectors.push(`[data-av-key-id="${keyId}"]`, `[data-key-id="${keyId}"]`)
+    selectors.push(
+      `[data-av-key-id="${keyId}"]`,
+      `[data-key-id="${keyId}"]`,
+      `[data-field-id="${keyId}"]`,
+      `[data-col-id="${keyId}"]`,
+    )
   }
 
   return selectors

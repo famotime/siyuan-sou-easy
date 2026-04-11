@@ -588,6 +588,58 @@ describe('attribute view search', () => {
     expect(result.matches).toHaveLength(0)
   })
 
+  it('uses data-field-id for gallery fields and only searches visible block content text', async () => {
+    const context = renderEditor(`
+      <div data-node-id="av-block-gallery-real-dom" data-type="NodeAttributeView" class="av" data-av-id="av-gallery-real-dom" data-render="true">
+        <div class="av__gallery-item" data-id="item-1">
+          <div class="av__gallery-fields">
+            <div class="av__gallery-field">
+              <div class="av__gallery-tip">编辑 传感器</div>
+              <div class="av__cell" data-field-id="col-block" data-dtype="block">
+                <span class="av__celltext">传感器</span>
+                <span class="b3-chip b3-chip--small" data-type="block-more">更多</span>
+              </div>
+            </div>
+            <div class="av__gallery-field">
+              <div class="av__gallery-tip">编辑 文本</div>
+              <div class="av__cell" data-field-id="col-text" data-dtype="text">
+                <span class="av__celltext">次要传感器</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `)
+
+    const result = await searchAttributeViewMatches({
+      context,
+      options: DEFAULT_OPTIONS,
+      query: '传感器',
+      startingBlockIndex: 0,
+    })
+
+    expect(result.matches).toHaveLength(2)
+    expect(result.matches.map(match => ({
+      columnIndex: match.attributeView?.columnIndex,
+      keyID: match.attributeView?.keyID,
+      previewText: match.previewText,
+      rowID: match.attributeView?.rowID,
+    }))).toEqual([
+      {
+        columnIndex: 0,
+        keyID: 'col-block',
+        previewText: '[传感器]',
+        rowID: 'item-1',
+      },
+      {
+        columnIndex: 1,
+        keyID: 'col-text',
+        previewText: '次要[传感器]',
+        rowID: 'item-1',
+      },
+    ])
+  })
+
   it('searches rendered number field content when DOM candidates are unavailable', async () => {
     kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
       { id: 'col-score', name: '评分' },

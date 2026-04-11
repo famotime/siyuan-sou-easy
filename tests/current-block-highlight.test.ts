@@ -326,6 +326,70 @@ describe('current block highlight', () => {
     expect(protyle.querySelector('[data-key-id="col-title"]')?.classList.contains('sfsr-av-cell-current')).toBe(true)
   })
 
+  it('highlights the matched gallery block field by data-field-id when no column index is available', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-wysiwyg">
+          <div data-node-id="av-block-gallery-real-dom" data-type="NodeAttributeView" class="av" data-av-id="av-gallery-real-dom" data-render="true">
+            <div class="av__gallery-item" data-id="item-1">
+              <div class="av__gallery-fields">
+                <div class="av__gallery-field">
+                  <div class="av__gallery-tip">编辑 传感器</div>
+                  <div class="av__cell" data-field-id="col-block" data-dtype="block">
+                    <span class="av__celltext">传感器</span>
+                    <span class="b3-chip b3-chip--small" data-type="block-more">更多</span>
+                  </div>
+                </div>
+                <div class="av__gallery-field">
+                  <div class="av__gallery-tip">编辑 文本</div>
+                  <div class="av__cell" data-field-id="col-text" data-dtype="text">
+                    <span class="av__celltext">次要传感器</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector('.protyle') as HTMLElement
+    const context: EditorContext = {
+      protyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    const match: SearchMatch = {
+      attributeView: {
+        avBlockId: 'av-block-gallery-real-dom',
+        avID: 'av-gallery-real-dom',
+        columnName: '',
+        itemID: 'item-1',
+        keyID: 'col-block',
+        rowID: 'item-1',
+      },
+      blockId: 'av-block-gallery-real-dom',
+      blockIndex: 0,
+      blockType: 'NodeAttributeView',
+      end: 4,
+      id: 'av:av-block-gallery-real-dom:item-1:col-block:0:4',
+      matchedText: '传感器',
+      previewText: '[传感器]',
+      replaceable: false,
+      rootId: 'root-1',
+      sourceKind: 'attribute-view',
+      start: 0,
+    }
+
+    syncSearchDecorations(context, [match], match)
+
+    const blockCell = protyle.querySelector<HTMLElement>('[data-field-id="col-block"]')
+    const textCell = protyle.querySelector<HTMLElement>('[data-field-id="col-text"]')
+
+    expect(blockCell?.classList.contains('sfsr-av-cell-current')).toBe(true)
+    expect(textCell?.classList.contains('sfsr-av-cell-current')).toBe(false)
+  })
+
   it('highlights the logical split-pane attribute view cell by global column index', () => {
     document.body.innerHTML = `
       <div class="protyle">

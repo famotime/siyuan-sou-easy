@@ -434,10 +434,12 @@ function getDomAttributeViewRowCells(rowElement: HTMLElement) {
 function resolveDomAttributeViewKeyId(cellElement: HTMLElement, columnIndex: number) {
   return cellElement.dataset.avKeyId?.trim()
     || cellElement.dataset.keyId?.trim()
+    || cellElement.dataset.fieldId?.trim()
     || cellElement.dataset.colId?.trim()
     || cellElement.dataset.columnId?.trim()
     || cellElement.querySelector<HTMLElement>('[data-av-key-id]')?.dataset.avKeyId?.trim()
     || cellElement.querySelector<HTMLElement>('[data-key-id]')?.dataset.keyId?.trim()
+    || cellElement.querySelector<HTMLElement>('[data-field-id]')?.dataset.fieldId?.trim()
     || cellElement.querySelector<HTMLElement>('[data-col-id]')?.dataset.colId?.trim()
     || cellElement.querySelector<HTMLElement>('[data-column-id]')?.dataset.columnId?.trim()
     || `__dom-col-${columnIndex}__`
@@ -457,7 +459,7 @@ function getAttributeViewDomText(element: HTMLElement) {
       const parentElement = node.parentElement
       if (
         !parentElement
-        || parentElement.closest('.protyle-attr, svg, style, script')
+        || parentElement.closest('.protyle-attr, svg, style, script, .av__gallery-tip, .av__widthdrag, .b3-chip[data-type="block-more"]')
         || !isVisibleAttributeViewElement(parentElement)
       ) {
         return NodeFilter.FILTER_REJECT
