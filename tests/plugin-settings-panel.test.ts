@@ -55,6 +55,32 @@ vi.mock('@/settings', () => ({
   saveSettings: vi.fn(),
 }))
 
+const settingsI18n = {
+  settingDebugLogDesc: 'debug',
+  settingDebugLogTitle: 'Debug',
+  settingDefaultReplaceVisibleDesc: 'default replace',
+  settingDefaultReplaceVisibleTitle: 'Default replace',
+  settingIncludeCodeBlockDesc: 'include code',
+  settingIncludeCodeBlockTitle: 'Include code',
+  settingLargeCodeBlockLineThresholdDesc: 'large code threshold',
+  settingLargeCodeBlockLineThresholdTitle: 'Large code threshold',
+  settingMinimapDesc: 'show minimap on panel',
+  settingMinimapTitle: 'Document minimap',
+  settingOptimizeLargeCodeBlocksDesc: 'optimize large code blocks',
+  settingOptimizeLargeCodeBlocksTitle: 'Optimize large code blocks',
+  settingPanelHotkeyDesc: 'panel hotkey',
+  settingPanelHotkeyTitle: 'Panel hotkey',
+  settingPreloadSelectionDesc: 'preload selection',
+  settingPreloadSelectionTitle: 'Preload selection',
+  settingRememberPositionDesc: 'remember position',
+  settingRememberPositionTitle: 'Remember position',
+  settingReplaceHotkeyDesc: 'replace hotkey',
+  settingReplaceHotkeyTitle: 'Replace hotkey',
+  settingSearchAttributeViewDesc: 'search database blocks',
+  settingSearchAttributeViewTitle: 'Search database blocks',
+  settingSaved: 'saved',
+}
+
 describe('plugin settings panel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -72,30 +98,7 @@ describe('plugin settings panel', () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
 
     const plugin = new FriendlySearchReplacePlugin()
-    plugin.i18n = {
-      settingDebugLogDesc: 'debug',
-      settingDebugLogTitle: 'Debug',
-      settingDefaultReplaceVisibleDesc: 'default replace',
-      settingDefaultReplaceVisibleTitle: 'Default replace',
-      settingIncludeCodeBlockDesc: 'include code',
-      settingIncludeCodeBlockTitle: 'Include code',
-      settingLargeCodeBlockLineThresholdDesc: 'large code threshold',
-      settingLargeCodeBlockLineThresholdTitle: 'Large code threshold',
-      settingMinimapDesc: 'show minimap on panel',
-      settingMinimapTitle: 'Document minimap',
-      settingOptimizeLargeCodeBlocksDesc: 'optimize large code blocks',
-      settingOptimizeLargeCodeBlocksTitle: 'Optimize large code blocks',
-      settingPanelHotkeyDesc: 'panel hotkey',
-      settingPanelHotkeyTitle: 'Panel hotkey',
-      settingPreloadSelectionDesc: 'preload selection',
-      settingPreloadSelectionTitle: 'Preload selection',
-      settingRememberPositionDesc: 'remember position',
-      settingRememberPositionTitle: 'Remember position',
-      settingReplaceHotkeyDesc: 'replace hotkey',
-      settingReplaceHotkeyTitle: 'Replace hotkey',
-      settingSearchAttributeViewDesc: 'search database blocks',
-      settingSearchAttributeViewTitle: 'Search database blocks',
-    }
+    plugin.i18n = settingsI18n
     ;(plugin as any).settingsData = await loadSettings()
 
     plugin.openSetting()
@@ -134,12 +137,12 @@ describe('plugin settings panel', () => {
         title: 'Include code',
       },
       {
-        description: 'optimize large code blocks',
-        title: 'Optimize large code blocks',
+        description: '\u00a0\u00a0\u00a0\u00a0optimize large code blocks',
+        title: '\u00a0\u00a0\u00a0\u00a0Optimize large code blocks',
       },
       {
-        description: 'large code threshold',
-        title: 'Large code threshold',
+        description: '\u00a0\u00a0\u00a0\u00a0large code threshold',
+        title: '\u00a0\u00a0\u00a0\u00a0Large code threshold',
       },
       {
         description: 'search database blocks',
@@ -150,6 +153,52 @@ describe('plugin settings panel', () => {
         title: 'Debug',
       },
     ])
+  })
+
+  it('disables nested code block settings until code block search is enabled', async () => {
+    const { Setting } = await import('siyuan')
+    const addItemSpy = vi.spyOn(Setting.prototype, 'addItem')
+    const { default: FriendlySearchReplacePlugin } = await import('@/index')
+
+    const plugin = new FriendlySearchReplacePlugin()
+    plugin.i18n = settingsI18n
+    ;(plugin as any).settingsData = await loadSettings()
+
+    plugin.openSetting()
+
+    const items = addItemSpy.mock.calls.map(([item]) => item)
+    const includeCodeBlockInput = items[6].createActionElement() as HTMLInputElement
+    const optimizeInput = items[7].createActionElement() as HTMLInputElement
+    const thresholdInput = items[8].createActionElement() as HTMLInputElement
+
+    expect(includeCodeBlockInput.disabled).toBe(false)
+    expect(optimizeInput.disabled).toBe(true)
+    expect(thresholdInput.disabled).toBe(true)
+  })
+
+  it('enables nested code block settings immediately after enabling code block search', async () => {
+    const { Setting } = await import('siyuan')
+    const addItemSpy = vi.spyOn(Setting.prototype, 'addItem')
+    const { default: FriendlySearchReplacePlugin } = await import('@/index')
+
+    const plugin = new FriendlySearchReplacePlugin()
+    plugin.i18n = settingsI18n
+    ;(plugin as any).settingsData = await loadSettings()
+
+    plugin.openSetting()
+
+    const items = addItemSpy.mock.calls.map(([item]) => item)
+    const includeCodeBlockInput = items[6].createActionElement() as HTMLInputElement
+    const optimizeInput = items[7].createActionElement() as HTMLInputElement
+    const thresholdInput = items[8].createActionElement() as HTMLInputElement
+
+    includeCodeBlockInput.checked = true
+    includeCodeBlockInput.dispatchEvent(new Event('change'))
+
+    await vi.waitFor(() => {
+      expect(optimizeInput.disabled).toBe(false)
+      expect(thresholdInput.disabled).toBe(false)
+    })
   })
 
   it('shows live hotkeys from the Siyuan keymap in the plugin settings inputs', async () => {
@@ -177,30 +226,7 @@ describe('plugin settings panel', () => {
     } as any
 
     const plugin = new FriendlySearchReplacePlugin()
-    plugin.i18n = {
-      settingDebugLogDesc: 'debug',
-      settingDebugLogTitle: 'Debug',
-      settingDefaultReplaceVisibleDesc: 'default replace',
-      settingDefaultReplaceVisibleTitle: 'Default replace',
-      settingIncludeCodeBlockDesc: 'include code',
-      settingIncludeCodeBlockTitle: 'Include code',
-      settingLargeCodeBlockLineThresholdDesc: 'large code threshold',
-      settingLargeCodeBlockLineThresholdTitle: 'Large code threshold',
-      settingMinimapDesc: 'show minimap on panel',
-      settingMinimapTitle: 'Document minimap',
-      settingOptimizeLargeCodeBlocksDesc: 'optimize large code blocks',
-      settingOptimizeLargeCodeBlocksTitle: 'Optimize large code blocks',
-      settingPanelHotkeyDesc: 'panel hotkey',
-      settingPanelHotkeyTitle: 'Panel hotkey',
-      settingPreloadSelectionDesc: 'preload selection',
-      settingPreloadSelectionTitle: 'Preload selection',
-      settingRememberPositionDesc: 'remember position',
-      settingRememberPositionTitle: 'Remember position',
-      settingReplaceHotkeyDesc: 'replace hotkey',
-      settingReplaceHotkeyTitle: 'Replace hotkey',
-      settingSearchAttributeViewDesc: 'search database blocks',
-      settingSearchAttributeViewTitle: 'Search database blocks',
-    }
+    plugin.i18n = settingsI18n
     ;(plugin as any).settingsData = await loadSettings()
 
     plugin.openSetting()
@@ -238,31 +264,7 @@ describe('plugin settings panel', () => {
     } as any
 
     const plugin = new FriendlySearchReplacePlugin()
-    plugin.i18n = {
-      settingDebugLogDesc: 'debug',
-      settingDebugLogTitle: 'Debug',
-      settingDefaultReplaceVisibleDesc: 'default replace',
-      settingDefaultReplaceVisibleTitle: 'Default replace',
-      settingIncludeCodeBlockDesc: 'include code',
-      settingIncludeCodeBlockTitle: 'Include code',
-      settingLargeCodeBlockLineThresholdDesc: 'large code threshold',
-      settingLargeCodeBlockLineThresholdTitle: 'Large code threshold',
-      settingMinimapDesc: 'show minimap on panel',
-      settingMinimapTitle: 'Document minimap',
-      settingOptimizeLargeCodeBlocksDesc: 'optimize large code blocks',
-      settingOptimizeLargeCodeBlocksTitle: 'Optimize large code blocks',
-      settingPanelHotkeyDesc: 'panel hotkey',
-      settingPanelHotkeyTitle: 'Panel hotkey',
-      settingPreloadSelectionDesc: 'preload selection',
-      settingPreloadSelectionTitle: 'Preload selection',
-      settingRememberPositionDesc: 'remember position',
-      settingRememberPositionTitle: 'Remember position',
-      settingReplaceHotkeyDesc: 'replace hotkey',
-      settingReplaceHotkeyTitle: 'Replace hotkey',
-      settingSearchAttributeViewDesc: 'search database blocks',
-      settingSearchAttributeViewTitle: 'Search database blocks',
-      settingSaved: 'saved',
-    }
+    plugin.i18n = settingsI18n
     plugin.commands = [
       {
         customHotkey: 'Ctrl+Alt+P',

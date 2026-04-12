@@ -8,6 +8,8 @@ import {
 } from './settings-panel'
 import type { PluginSettings } from '@/settings'
 
+const NESTED_SETTING_INDENT = '\u00a0\u00a0\u00a0\u00a0'
+
 export function registerSearchReplaceSettings({
   createCheckbox,
   createHotkeyInput,
@@ -29,6 +31,24 @@ export function registerSearchReplaceSettings({
   setting: Setting
   settings: PluginSettings
 }) {
+  let includeCodeBlockEnabled = settings.includeCodeBlock
+  const includeCodeBlockDependentInputs: HTMLInputElement[] = []
+
+  const syncIncludeCodeBlockDependentInputs = () => {
+    const disabled = !includeCodeBlockEnabled
+    includeCodeBlockDependentInputs.forEach((input) => {
+      input.disabled = disabled
+    })
+  }
+
+  const registerIncludeCodeBlockDependentInput = (input: HTMLInputElement) => {
+    includeCodeBlockDependentInputs.push(input)
+    syncIncludeCodeBlockDependentInputs()
+    return input
+  }
+
+  const formatNestedSettingText = (text: string) => `${NESTED_SETTING_INDENT}${text}`
+
   HOTKEY_SETTING_DEFINITIONS.forEach(({ descriptionKey, settingKey, titleKey }) => {
     setting.addItem({
       title: i18n[titleKey],
@@ -40,12 +60,27 @@ export function registerSearchReplaceSettings({
   })
 
   BOOLEAN_SETTING_DEFINITIONS.forEach(({ descriptionKey, settingKey, titleKey }) => {
+    const isIncludeCodeBlockSetting = settingKey === 'includeCodeBlock'
+    const isNestedCodeBlockSetting = settingKey === 'optimizeLargeCodeBlocks'
     setting.addItem({
-      title: i18n[titleKey],
-      description: i18n[descriptionKey],
-      createActionElement: () => createCheckbox(settings[settingKey], async (checked) => {
-        await onBooleanChange(settingKey, checked)
-      }),
+      title: isNestedCodeBlockSetting ? formatNestedSettingText(i18n[titleKey]) : i18n[titleKey],
+      description: isNestedCodeBlockSetting ? formatNestedSettingText(i18n[descriptionKey]) : i18n[descriptionKey],
+      createActionElement: () => {
+        const input = createCheckbox(settings[settingKey], async (checked) => {
+          await onBooleanChange(settingKey, checked)
+          if (!isIncludeCodeBlockSetting) {
+            return
+          }
+
+          includeCodeBlockEnabled = checked
+          syncIncludeCodeBlockDependentInputs()
+        })
+        if (!isNestedCodeBlockSetting) {
+          return input
+        }
+
+        return registerIncludeCodeBlockDependentInput(input)
+      },
     })
 
     if (settingKey !== 'optimizeLargeCodeBlocks') {
@@ -54,11 +89,14 @@ export function registerSearchReplaceSettings({
 
     NUMBER_SETTING_DEFINITIONS.forEach(({ descriptionKey, settingKey, titleKey }) => {
       setting.addItem({
-        title: i18n[titleKey],
-        description: i18n[descriptionKey],
-        createActionElement: () => createNumberInput(settings[settingKey], async (value) => {
-          return await onNumberChange(settingKey, value)
-        }),
+        title: formatNestedSettingText(i18n[titleKey]),
+        description: formatNestedSettingText(i18n[descriptionKey]),
+        createActionElement: () => {
+          const input = createNumberInput(settings[settingKey], async (value) => {
+            return await onNumberChange(settingKey, value)
+          })
+          return registerIncludeCodeBlockDependentInput(input)
+        },
       })
     })
   })
