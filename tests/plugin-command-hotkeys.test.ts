@@ -28,6 +28,7 @@ const loadSettings = vi.fn().mockResolvedValue({
 })
 
 const onEditorContextChanged = vi.fn()
+const closePanel = vi.fn()
 const openPanel = vi.fn()
 const createEditorContextFromProtyleLike = vi.fn((protyle) => ({
   protyle: protyle.element,
@@ -43,6 +44,7 @@ vi.mock('@/main', () => ({
 
 vi.mock('@/features/search-replace/store', () => ({
   applyPluginSettings: vi.fn(),
+  closePanel,
   onEditorContextChanged,
   openPanel,
   searchReplaceState: storeState.searchReplaceState,
@@ -223,5 +225,52 @@ describe('plugin command hotkeys', () => {
     }))
 
     expect(openPanel).toHaveBeenCalledWith(true, true)
+  })
+
+  it('keeps the panel open when the active mode hotkey is pressed again', async () => {
+    const { default: FriendlySearchReplacePlugin } = await import('@/index')
+
+    const plugin = new FriendlySearchReplacePlugin()
+    plugin.i18n = {
+      addTopBarIcon: 'Friendly Search Replace',
+    }
+
+    await plugin.onload()
+    openPanel.mockClear()
+    storeState.searchReplaceState.visible = true
+    storeState.searchReplaceState.replaceVisible = false
+
+    document.body.dispatchEvent(new KeyboardEvent('keydown', {
+      altKey: true,
+      bubbles: true,
+      cancelable: true,
+      code: 'KeyG',
+      ctrlKey: true,
+      key: 'g',
+      shiftKey: true,
+    }))
+
+    expect(openPanel).toHaveBeenCalledWith(true, false)
+  })
+
+  it('closes the panel from Escape even when focus stays outside the panel', async () => {
+    const { default: FriendlySearchReplacePlugin } = await import('@/index')
+
+    const plugin = new FriendlySearchReplacePlugin()
+    plugin.i18n = {
+      addTopBarIcon: 'Friendly Search Replace',
+    }
+
+    await plugin.onload()
+    closePanel.mockClear()
+    storeState.searchReplaceState.visible = true
+
+    document.body.dispatchEvent(new KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'Escape',
+    }))
+
+    expect(closePanel).toHaveBeenCalledTimes(1)
   })
 })

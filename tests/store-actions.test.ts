@@ -154,6 +154,34 @@ describe('search store actions', () => {
     expect(searchReplaceState.query).toBe('')
   })
 
+  it('replaces the current query with the latest selection when reopening an already visible panel', () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: true,
+    })
+    searchReplaceState.visible = true
+    searchReplaceState.query = 'keep-me'
+    editorMocks.getCurrentSelectionText.mockReturnValue('  newer keyword  ')
+
+    openPanel(true)
+
+    expect(searchReplaceState.query).toBe('newer keyword')
+  })
+
+  it('keeps the current query when reopening an already visible panel without any selection', () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: true,
+    })
+    searchReplaceState.visible = true
+    searchReplaceState.query = 'keep-me'
+    editorMocks.getCurrentSelectionText.mockReturnValue('   ')
+
+    openPanel(true)
+
+    expect(searchReplaceState.query).toBe('keep-me')
+  })
+
   it('clears busy state, error, and decorations when closing the panel', () => {
     searchReplaceState.visible = true
     searchReplaceState.busy = true

@@ -50,8 +50,10 @@ import {
 import { registerSearchReplaceSettings } from '@/features/search-replace/plugin-settings-ui'
 import {
   applyPluginSettings,
+  closePanel,
   onEditorContextChanged,
   openPanel,
+  searchReplaceState,
 } from '@/features/search-replace/store'
 import { UI_STATE_STORAGE } from '@/features/search-replace/store/ui-state'
 import { createEditorContextFromProtyleLike } from '@/features/search-replace/editor'
@@ -113,6 +115,13 @@ export default class FriendlySearchReplacePlugin extends Plugin {
 
   private readonly handleDocumentKeydown = (event: KeyboardEvent) => {
     if (event.defaultPrevented || event.isComposing) {
+      return
+    }
+
+    if (event.key === 'Escape' && searchReplaceState.visible) {
+      event.preventDefault()
+      event.stopPropagation()
+      closePanel()
       return
     }
 

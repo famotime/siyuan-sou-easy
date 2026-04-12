@@ -6,7 +6,6 @@ import {
 import {
   onEditorContextChanged,
   openPanel,
-  searchReplaceState,
 } from './store'
 
 export type EditorProtyleLike = IProtyle
@@ -19,7 +18,7 @@ export function openSearchReplacePanelFromCommand(
     onEditorContextChanged(createEditorContextFromProtyleLike(protyle))
   }
 
-  toggleSearchReplacePanel(replaceVisible)
+  openSearchReplacePanel(replaceVisible)
 }
 
 export function openSearchReplacePanelFromKeyboardEvent(
@@ -33,17 +32,11 @@ export function openSearchReplacePanelFromKeyboardEvent(
     onEditorContextChanged(context)
   }
 
-  toggleSearchReplacePanel(replaceVisible)
+  openSearchReplacePanel(replaceVisible)
 }
 
-export function toggleSearchReplacePanel(replaceVisible?: boolean) {
-  if (!searchReplaceState.visible) {
-    openPanel(true, replaceVisible)
-    return
-  }
-
-  const shouldClose = replaceVisible === searchReplaceState.replaceVisible
-  openPanel(!shouldClose, replaceVisible)
+export function openSearchReplacePanel(replaceVisible?: boolean) {
+  openPanel(true, replaceVisible)
 }
 
 export function isHotkeyCaptureTarget(target: Element | null, attributeName: string) {

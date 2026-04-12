@@ -54,24 +54,24 @@ describe('plugin panel launch helpers', () => {
     expect(openPanel).toHaveBeenCalledWith(true, false)
   })
 
-  it('closes the panel when the same mode is requested again', async () => {
-    const { toggleSearchReplacePanel } = await import('@/features/search-replace/plugin-panel-launch')
+  it('keeps the panel open when the same mode is requested again', async () => {
+    const { openSearchReplacePanel } = await import('@/features/search-replace/plugin-panel-launch')
 
     storeState.visible = true
     storeState.replaceVisible = false
 
-    toggleSearchReplacePanel(false)
+    openSearchReplacePanel(false)
 
-    expect(openPanel).toHaveBeenCalledWith(false, false)
+    expect(openPanel).toHaveBeenCalledWith(true, false)
   })
 
   it('switches panel modes without closing when the requested mode differs', async () => {
-    const { toggleSearchReplacePanel } = await import('@/features/search-replace/plugin-panel-launch')
+    const { openSearchReplacePanel } = await import('@/features/search-replace/plugin-panel-launch')
 
     storeState.visible = true
     storeState.replaceVisible = false
 
-    toggleSearchReplacePanel(true)
+    openSearchReplacePanel(true)
 
     expect(openPanel).toHaveBeenCalledWith(true, true)
   })
