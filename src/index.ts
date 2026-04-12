@@ -46,6 +46,7 @@ import {
   createPanelCommands,
   resolveHotkeySettingsFromRuntime,
   syncPanelCommandHotkeys,
+  updatePanelCommandKeymap,
 } from '@/features/search-replace/plugin-command-config'
 import { registerSearchReplaceSettings } from '@/features/search-replace/plugin-settings-ui'
 import {
@@ -57,6 +58,7 @@ import {
 } from '@/features/search-replace/store'
 import { UI_STATE_STORAGE } from '@/features/search-replace/store/ui-state'
 import { createEditorContextFromProtyleLike } from '@/features/search-replace/editor'
+import { setKeymap } from '@/features/search-replace/kernel'
 import {
   destroy,
   init,
@@ -284,6 +286,12 @@ export default class FriendlySearchReplacePlugin extends Plugin {
       return false
     }
 
+    try {
+      await this.syncHotkeySettingToKeymap(settingKey, normalizedHotkey)
+    } catch {
+      return false
+    }
+
     await this.applySettings({
       ...this.settingsData,
       [settingKey]: normalizedHotkey,
@@ -328,6 +336,21 @@ export default class FriendlySearchReplacePlugin extends Plugin {
 
   private createCheckbox(checked: boolean, onChange: (checked: boolean) => Promise<void>) {
     return createCheckboxElement(checked, onChange)
+  }
+
+  private async syncHotkeySettingToKeymap(settingKey: HotkeySettingKey, hotkey: string) {
+    const siyuanConfig = (window as any).siyuan?.config
+    const nextKeymap = updatePanelCommandKeymap({
+      hotkey,
+      keymap: siyuanConfig?.keymap,
+      settingKey,
+    })
+    if (!nextKeymap) {
+      return
+    }
+
+    await setKeymap(nextKeymap)
+    siyuanConfig.keymap = nextKeymap
   }
 
   private async updateNumberSetting(settingKey: NumberSettingKey, value: number) {

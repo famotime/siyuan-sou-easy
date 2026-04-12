@@ -1,4 +1,5 @@
 import type { IProtyle } from 'siyuan'
+import PluginInfoString from '@/../plugin.json'
 import type { HotkeySettingKey } from './settings-panel'
 import {
   DEFAULT_SETTINGS,
@@ -51,6 +52,8 @@ const PANEL_COMMAND_DEFINITIONS: PanelCommandDefinition[] = [
   },
 ]
 
+const { name: pluginName = 'siyuan-sou-easy' } = PluginInfoString as { name?: string }
+
 export function createPanelCommands({
   callbacks,
   settings,
@@ -101,6 +104,36 @@ export function getPanelCommandLangKey(settingKey: HotkeySettingKey): PanelComma
 
 export function isPanelCommandKeymapSource(source: HotkeySource, settingKey: HotkeySettingKey) {
   return source.label.split('.').at(-1) === getPanelCommandLangKey(settingKey)
+}
+
+export function updatePanelCommandKeymap({
+  hotkey,
+  keymap,
+  settingKey,
+}: {
+  hotkey: string
+  keymap: unknown
+  settingKey: HotkeySettingKey
+}) {
+  if (!isRecord(keymap)) {
+    return null
+  }
+
+  const nextKeymap = cloneKeymap(keymap)
+  const pluginKeymap = getOrCreateRecord(nextKeymap, 'plugin')
+  const pluginCommandKeymap = getOrCreateRecord(pluginKeymap, pluginName)
+  const commandLangKey = getPanelCommandLangKey(settingKey)
+  const existingLeaf = pluginCommandKeymap[commandLangKey]
+  const nextLeaf = isRecord(existingLeaf) ? { ...existingLeaf } : {}
+  const definition = getPanelCommandDefinition(settingKey)
+
+  nextLeaf.custom = hotkey
+  if (typeof nextLeaf.default !== 'string' || !nextLeaf.default.trim()) {
+    nextLeaf.default = DEFAULT_SETTINGS[definition.defaultHotkey]
+  }
+
+  pluginCommandKeymap[commandLangKey] = nextLeaf
+  return nextKeymap
 }
 
 export function resolveHotkeySettingsFromRuntime({
@@ -157,4 +190,27 @@ function resolvePanelCommandHotkey({
 
 function getPanelCommandDefinition(settingKey: HotkeySettingKey) {
   return PANEL_COMMAND_DEFINITIONS.find(definition => definition.settingKey === settingKey)!
+}
+
+function cloneKeymap(keymap: Record<string, unknown>) {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(keymap) as Record<string, unknown>
+  }
+
+  return JSON.parse(JSON.stringify(keymap)) as Record<string, unknown>
+}
+
+function getOrCreateRecord(target: Record<string, unknown>, key: string) {
+  const value = target[key]
+  if (isRecord(value)) {
+    return value
+  }
+
+  const nextValue: Record<string, unknown> = {}
+  target[key] = nextValue
+  return nextValue
+}
+
+function isRecord(value: unknown): value is Record<string, any> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 }

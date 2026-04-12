@@ -84,7 +84,7 @@ describe('hotkey setting input', () => {
       key: 'k',
       shiftKey: true,
     }))
-    await Promise.resolve()
+    await new Promise(resolve => setTimeout(resolve, 0))
 
     expect(applySettingsSpy).toHaveBeenCalledWith(expect.objectContaining({
       panelHotkey: 'Ctrl+Shift+K',

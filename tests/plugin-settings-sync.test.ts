@@ -146,4 +146,53 @@ describe('plugin settings sync', () => {
 
     expect(siyuan.showMessage).toHaveBeenCalledWith('Saved', 2500, 'info')
   })
+
+  it('syncs updated hotkeys back to the Siyuan keymap when changed from plugin settings', async () => {
+    const { default: FriendlySearchReplacePlugin } = await import('@/index')
+    const siyuan = await import('siyuan')
+
+    window.siyuan = {
+      config: {
+        keymap: {
+          plugin: {
+            'siyuan-sou-easy': {
+              togglePanel: {
+                custom: 'Ctrl+Shift+F',
+                default: 'Ctrl+Shift+F',
+              },
+              toggleReplacePanel: {
+                custom: 'Ctrl+Shift+H',
+                default: 'Ctrl+Shift+H',
+              },
+            },
+          },
+        },
+      },
+    } as any
+
+    const plugin = new FriendlySearchReplacePlugin()
+    plugin.i18n = {
+      settingSaved: 'Saved',
+    }
+    plugin.commands = [
+      {
+        customHotkey: 'Ctrl+Shift+F',
+        hotkey: 'Ctrl+Shift+F',
+        langKey: 'togglePanel',
+      },
+      {
+        customHotkey: 'Ctrl+Shift+H',
+        hotkey: 'Ctrl+Shift+H',
+        langKey: 'toggleReplacePanel',
+      },
+    ] as any
+
+    const accepted = await (plugin as any).updateHotkeySetting('panelHotkey', 'Ctrl+Alt+F')
+
+    expect(accepted).toBe(true)
+    expect(window.siyuan.config.keymap.plugin['siyuan-sou-easy'].togglePanel.custom).toBe('Ctrl+Alt+F')
+    expect(siyuan.fetchSyncPost).toHaveBeenCalledWith('/api/setting/setKeymap', {
+      data: window.siyuan.config.keymap,
+    })
+  })
 })

@@ -71,3 +71,9 @@ export async function getAttributeViewKeysByAvID(avID: string) {
     avID,
   })
 }
+
+export async function setKeymap(keymap: unknown) {
+  return requestApi('/api/setting/setKeymap', {
+    data: keymap,
+  })
+}
