@@ -167,4 +167,61 @@ describe('plugin command hotkeys', () => {
     expect(createEditorContextFromElement).toHaveBeenCalledWith(null)
     expect(openPanel).toHaveBeenCalledWith(true, false)
   })
+
+  it('uses the updated command hotkey after plugin settings change even if keymap is stale', async () => {
+    const { default: FriendlySearchReplacePlugin } = await import('@/index')
+
+    window.siyuan = {
+      config: {
+        keymap: {
+          plugin: {
+            'siyuan-sou-easy': {
+              togglePanel: {
+                custom: 'Ctrl+Alt+Shift+G',
+                default: 'Ctrl+F11',
+              },
+              toggleReplacePanel: {
+                custom: 'Ctrl+Alt+Shift+H',
+                default: 'Ctrl+F12',
+              },
+            },
+          },
+        },
+      },
+    } as any
+
+    const plugin = new FriendlySearchReplacePlugin()
+    plugin.i18n = {
+      addTopBarIcon: 'Friendly Search Replace',
+      settingSaved: 'Saved',
+    }
+
+    await plugin.onload()
+    openPanel.mockClear()
+    createEditorContextFromElement.mockClear()
+
+    await (plugin as any).applySettings({
+      debugLog: false,
+      defaultReplaceVisible: false,
+      includeCodeBlock: false,
+      minimapVisible: false,
+      panelHotkey: 'Ctrl+Alt+Shift+P',
+      preserveCase: false,
+      preloadSelection: true,
+      rememberPanelPosition: true,
+      replacePanelHotkey: 'Ctrl+Alt+Shift+R',
+    }, false)
+
+    document.body.dispatchEvent(new KeyboardEvent('keydown', {
+      altKey: true,
+      bubbles: true,
+      cancelable: true,
+      code: 'KeyR',
+      ctrlKey: true,
+      key: 'r',
+      shiftKey: true,
+    }))
+
+    expect(openPanel).toHaveBeenCalledWith(true, true)
+  })
 })

@@ -59,6 +59,11 @@ describe('plugin settings panel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.resetModules()
+    window.siyuan = {
+      config: {
+        keymap: {},
+      },
+    } as any
   })
 
   it('registers all hotkey and checkbox settings in the plugin settings panel', async () => {
@@ -145,5 +150,140 @@ describe('plugin settings panel', () => {
         title: 'Debug',
       },
     ])
+  })
+
+  it('shows live hotkeys from the Siyuan keymap in the plugin settings inputs', async () => {
+    const { Setting } = await import('siyuan')
+    const addItemSpy = vi.spyOn(Setting.prototype, 'addItem')
+    const { default: FriendlySearchReplacePlugin } = await import('@/index')
+
+    window.siyuan = {
+      config: {
+        keymap: {
+          plugin: {
+            'siyuan-sou-easy': {
+              togglePanel: {
+                custom: 'Ctrl+Alt+F',
+                default: 'Ctrl+F11',
+              },
+              toggleReplacePanel: {
+                custom: 'Ctrl+H',
+                default: 'Ctrl+F12',
+              },
+            },
+          },
+        },
+      },
+    } as any
+
+    const plugin = new FriendlySearchReplacePlugin()
+    plugin.i18n = {
+      settingDebugLogDesc: 'debug',
+      settingDebugLogTitle: 'Debug',
+      settingDefaultReplaceVisibleDesc: 'default replace',
+      settingDefaultReplaceVisibleTitle: 'Default replace',
+      settingIncludeCodeBlockDesc: 'include code',
+      settingIncludeCodeBlockTitle: 'Include code',
+      settingLargeCodeBlockLineThresholdDesc: 'large code threshold',
+      settingLargeCodeBlockLineThresholdTitle: 'Large code threshold',
+      settingMinimapDesc: 'show minimap on panel',
+      settingMinimapTitle: 'Document minimap',
+      settingOptimizeLargeCodeBlocksDesc: 'optimize large code blocks',
+      settingOptimizeLargeCodeBlocksTitle: 'Optimize large code blocks',
+      settingPanelHotkeyDesc: 'panel hotkey',
+      settingPanelHotkeyTitle: 'Panel hotkey',
+      settingPreloadSelectionDesc: 'preload selection',
+      settingPreloadSelectionTitle: 'Preload selection',
+      settingRememberPositionDesc: 'remember position',
+      settingRememberPositionTitle: 'Remember position',
+      settingReplaceHotkeyDesc: 'replace hotkey',
+      settingReplaceHotkeyTitle: 'Replace hotkey',
+      settingSearchAttributeViewDesc: 'search database blocks',
+      settingSearchAttributeViewTitle: 'Search database blocks',
+    }
+    ;(plugin as any).settingsData = await loadSettings()
+
+    plugin.openSetting()
+
+    const items = addItemSpy.mock.calls.map(([item]) => item)
+    const panelInput = items[0].createActionElement() as HTMLInputElement
+    const replaceInput = items[1].createActionElement() as HTMLInputElement
+
+    expect(panelInput.value).toBe('Ctrl+Alt+F')
+    expect(replaceInput.value).toBe('Ctrl+H')
+  })
+
+  it('shows the updated plugin setting hotkey instead of a stale keymap value', async () => {
+    const { Setting } = await import('siyuan')
+    const addItemSpy = vi.spyOn(Setting.prototype, 'addItem')
+    const { default: FriendlySearchReplacePlugin } = await import('@/index')
+
+    window.siyuan = {
+      config: {
+        keymap: {
+          plugin: {
+            'siyuan-sou-easy': {
+              togglePanel: {
+                custom: 'Ctrl+F11',
+                default: 'Ctrl+F11',
+              },
+              toggleReplacePanel: {
+                custom: 'Ctrl+F12',
+                default: 'Ctrl+F12',
+              },
+            },
+          },
+        },
+      },
+    } as any
+
+    const plugin = new FriendlySearchReplacePlugin()
+    plugin.i18n = {
+      settingDebugLogDesc: 'debug',
+      settingDebugLogTitle: 'Debug',
+      settingDefaultReplaceVisibleDesc: 'default replace',
+      settingDefaultReplaceVisibleTitle: 'Default replace',
+      settingIncludeCodeBlockDesc: 'include code',
+      settingIncludeCodeBlockTitle: 'Include code',
+      settingLargeCodeBlockLineThresholdDesc: 'large code threshold',
+      settingLargeCodeBlockLineThresholdTitle: 'Large code threshold',
+      settingMinimapDesc: 'show minimap on panel',
+      settingMinimapTitle: 'Document minimap',
+      settingOptimizeLargeCodeBlocksDesc: 'optimize large code blocks',
+      settingOptimizeLargeCodeBlocksTitle: 'Optimize large code blocks',
+      settingPanelHotkeyDesc: 'panel hotkey',
+      settingPanelHotkeyTitle: 'Panel hotkey',
+      settingPreloadSelectionDesc: 'preload selection',
+      settingPreloadSelectionTitle: 'Preload selection',
+      settingRememberPositionDesc: 'remember position',
+      settingRememberPositionTitle: 'Remember position',
+      settingReplaceHotkeyDesc: 'replace hotkey',
+      settingReplaceHotkeyTitle: 'Replace hotkey',
+      settingSearchAttributeViewDesc: 'search database blocks',
+      settingSearchAttributeViewTitle: 'Search database blocks',
+      settingSaved: 'saved',
+    }
+    plugin.commands = [
+      {
+        customHotkey: 'Ctrl+Alt+P',
+        hotkey: 'Ctrl+F11',
+        langKey: 'togglePanel',
+      },
+      {
+        customHotkey: 'Ctrl+Alt+R',
+        hotkey: 'Ctrl+F12',
+        langKey: 'toggleReplacePanel',
+      },
+    ] as any
+    ;(plugin as any).settingsData = await loadSettings()
+
+    plugin.openSetting()
+
+    const items = addItemSpy.mock.calls.map(([item]) => item)
+    const panelInput = items[0].createActionElement() as HTMLInputElement
+    const replaceInput = items[1].createActionElement() as HTMLInputElement
+
+    expect(panelInput.value).toBe('Ctrl+Alt+P')
+    expect(replaceInput.value).toBe('Ctrl+Alt+R')
   })
 })

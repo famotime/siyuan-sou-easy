@@ -1,11 +1,10 @@
 import type { HotkeySource } from '@/hotkeys'
 import type { HotkeySettingKey } from './settings-panel'
-
-interface CommandHotkeyShape {
-  customHotkey?: string
-  hotkey?: string
-  langKey?: string
-}
+import {
+  getPanelCommandLangKey,
+  isPanelCommandKeymapSource,
+  type CommandHotkeyShape,
+} from './plugin-command-config'
 
 interface SettingsHotkeyShape {
   panelHotkey: string
@@ -13,9 +12,7 @@ interface SettingsHotkeyShape {
 }
 
 export function getIgnoredCommandLangKeys(settingKey: HotkeySettingKey) {
-  return settingKey === 'panelHotkey'
-    ? ['togglePanel']
-    : ['toggleReplacePanel']
+  return [getPanelCommandLangKey(settingKey)]
 }
 
 export function buildIgnoredHotkeys({
@@ -46,7 +43,7 @@ export function buildKnownHotkeySources({
   keymapSources: HotkeySource[]
   settingKey: HotkeySettingKey
 }) {
-  const ignoredLangKey = settingKey === 'panelHotkey' ? 'togglePanel' : 'toggleReplacePanel'
+  const ignoredLangKey = getPanelCommandLangKey(settingKey)
   const commandSources = commands
     .filter(command => command.langKey !== ignoredLangKey)
     .map(command => ({
@@ -55,5 +52,8 @@ export function buildKnownHotkeySources({
     }))
     .filter(command => Boolean(command.hotkey)) as HotkeySource[]
 
-  return [...commandSources, ...keymapSources]
+  return [
+    ...commandSources,
+    ...keymapSources.filter(source => !isPanelCommandKeymapSource(source, settingKey)),
+  ]
 }

@@ -129,4 +129,34 @@ describe('hotkey setting input', () => {
     expect(siyuan.showMessage).toHaveBeenCalled()
     expect(input.value).toBe('Ctrl+Shift+F')
   })
+
+  it('accepts a hotkey that is already assigned to the same plugin command in Siyuan keymap', async () => {
+    const { default: FriendlySearchReplacePlugin } = await import('@/index')
+
+    window.siyuan = {
+      config: {
+        keymap: {
+          plugin: {
+            'siyuan-sou-easy': {
+              toggleReplacePanel: {
+                custom: 'Ctrl+H',
+                default: 'Ctrl+Shift+H',
+              },
+            },
+          },
+        },
+      },
+    } as any
+
+    const plugin = new FriendlySearchReplacePlugin()
+    const applySettingsSpy = vi.spyOn(plugin as any, 'applySettings').mockResolvedValue(undefined)
+    ;(plugin as any).settingsData = await loadSettings()
+
+    const accepted = await (plugin as any).updateHotkeySetting('replacePanelHotkey', 'Ctrl+H')
+
+    expect(accepted).toBe(true)
+    expect(applySettingsSpy).toHaveBeenCalledWith(expect.objectContaining({
+      replacePanelHotkey: 'Ctrl+H',
+    }))
+  })
 })

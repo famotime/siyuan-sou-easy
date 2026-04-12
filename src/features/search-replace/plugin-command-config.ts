@@ -4,14 +4,25 @@ import {
   DEFAULT_SETTINGS,
   type PluginSettings,
 } from '@/settings'
+import {
+  normalizeHotkey,
+  type HotkeySource,
+} from '@/hotkeys'
 
 type CommandCallback = () => void
 type EditorCommandCallback = (protyle: IProtyle) => void
+type PanelCommandLangKey = 'togglePanel' | 'toggleReplacePanel'
+
+export interface CommandHotkeyShape {
+  customHotkey?: string
+  hotkey?: string
+  langKey?: string
+}
 
 interface PanelCommandDefinition {
   defaultHotkey: keyof PluginSettings
   editorCallback: keyof PanelCommandCallbacks
-  langKey: 'togglePanel' | 'toggleReplacePanel'
+  langKey: PanelCommandLangKey
   openCallback: keyof PanelCommandCallbacks
   settingKey: HotkeySettingKey
 }
@@ -82,4 +93,68 @@ export function syncPanelCommandHotkeys({
     command.hotkey = toRegisteredHotkey(DEFAULT_SETTINGS[definition.defaultHotkey])
     command.customHotkey = toRegisteredHotkey(settings[definition.settingKey])
   })
+}
+
+export function getPanelCommandLangKey(settingKey: HotkeySettingKey): PanelCommandLangKey {
+  return getPanelCommandDefinition(settingKey).langKey
+}
+
+export function isPanelCommandKeymapSource(source: HotkeySource, settingKey: HotkeySettingKey) {
+  return source.label.split('.').at(-1) === getPanelCommandLangKey(settingKey)
+}
+
+export function resolveHotkeySettingsFromRuntime({
+  commands,
+  keymapSources,
+  settings,
+}: {
+  commands: CommandHotkeyShape[]
+  keymapSources: HotkeySource[]
+  settings: PluginSettings
+}) {
+  return {
+    ...settings,
+    panelHotkey: resolvePanelCommandHotkey({
+      commands,
+      keymapSources,
+      settingKey: 'panelHotkey',
+      settings,
+    }),
+    replacePanelHotkey: resolvePanelCommandHotkey({
+      commands,
+      keymapSources,
+      settingKey: 'replacePanelHotkey',
+      settings,
+    }),
+  }
+}
+
+function resolvePanelCommandHotkey({
+  commands,
+  keymapSources,
+  settingKey,
+  settings,
+}: {
+  commands: CommandHotkeyShape[]
+  keymapSources: HotkeySource[]
+  settingKey: HotkeySettingKey
+  settings: PluginSettings
+}) {
+  const command = commands.find(candidate => candidate.langKey === getPanelCommandLangKey(settingKey))
+  const normalizedCommandHotkey = normalizeHotkey(command?.customHotkey)
+  if (normalizedCommandHotkey) {
+    return normalizedCommandHotkey
+  }
+
+  const keymapHotkey = keymapSources.find(source => isPanelCommandKeymapSource(source, settingKey))?.hotkey
+  const normalizedKeymapHotkey = normalizeHotkey(keymapHotkey)
+  if (normalizedKeymapHotkey) {
+    return normalizedKeymapHotkey
+  }
+
+  return settings[settingKey]
+}
+
+function getPanelCommandDefinition(settingKey: HotkeySettingKey) {
+  return PANEL_COMMAND_DEFINITIONS.find(definition => definition.settingKey === settingKey)!
 }

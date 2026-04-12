@@ -44,6 +44,7 @@ import {
 } from '@/features/search-replace/settings-panel'
 import {
   createPanelCommands,
+  resolveHotkeySettingsFromRuntime,
   syncPanelCommandHotkeys,
 } from '@/features/search-replace/plugin-command-config'
 import { registerSearchReplaceSettings } from '@/features/search-replace/plugin-settings-ui'
@@ -130,14 +131,16 @@ export default class FriendlySearchReplacePlugin extends Plugin {
       return
     }
 
-    if (normalizedHotkey === this.settingsData.panelHotkey) {
+    const runtimeHotkeySettings = this.getRuntimeHotkeySettings()
+
+    if (normalizedHotkey === runtimeHotkeySettings.panelHotkey) {
       event.preventDefault()
       event.stopPropagation()
       openSearchReplacePanelFromKeyboardEvent(event, false)
       return
     }
 
-    if (normalizedHotkey === this.settingsData.replacePanelHotkey) {
+    if (normalizedHotkey === runtimeHotkeySettings.replacePanelHotkey) {
       event.preventDefault()
       event.stopPropagation()
       openSearchReplacePanelFromKeyboardEvent(event, true)
@@ -218,7 +221,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
         return await this.updateNumberSetting(settingKey, value)
       },
       setting,
-      settings: this.settingsData,
+      settings: this.getRuntimeHotkeySettings(),
     })
 
     setting.open(this.name)
@@ -284,20 +287,33 @@ export default class FriendlySearchReplacePlugin extends Plugin {
   }
 
   private findHotkeySettingConflict(settingKey: HotkeySettingKey, hotkey: string) {
+    const runtimeHotkeySettings = this.getRuntimeHotkeySettings()
     const ignoredHotkeys = buildIgnoredHotkeys({
       commands: this.commands,
       settingKey,
-      settingsData: this.settingsData,
+      settingsData: runtimeHotkeySettings,
     })
     return findHotkeyConflict(hotkey, this.getKnownHotkeySources(settingKey), ignoredHotkeys)
   }
 
   private getKnownHotkeySources(settingKey: HotkeySettingKey): HotkeySource[] {
-    const keymapSources = collectKeymapHotkeys((window as any).siyuan?.config?.keymap)
+    const keymapSources = this.getKeymapHotkeySources()
     return buildKnownHotkeySources({
       commands: this.commands,
       keymapSources,
       settingKey,
+    })
+  }
+
+  private getKeymapHotkeySources() {
+    return collectKeymapHotkeys((window as any).siyuan?.config?.keymap)
+  }
+
+  private getRuntimeHotkeySettings() {
+    return resolveHotkeySettingsFromRuntime({
+      commands: this.commands,
+      keymapSources: this.getKeymapHotkeySources(),
+      settings: this.settingsData,
     })
   }
 
