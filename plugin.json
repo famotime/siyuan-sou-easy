@@ -14,12 +14,12 @@
     "browser-desktop"
   ],
   "displayName": {
-    "default": "Friendly Search Replace",
+    "default": "Search like VScode",
     "zh_CN": "搜 easy"
   },
   "description": {
     "default": "VS Code style find-and-replace for the current SiYuan document.",
-    "zh_CN": "为思源当前文档提供更接近 VS Code 的逐条查找与替换体验。"
+    "zh_CN": "为思源笔记提供接近 VS Code 的搜索体验，所见即所得，逐个搜索，逐个替换，so easy！"
   },
   "readme": {
     "default": "README.md",
@@ -31,6 +31,6 @@
   "keywords": [
     "search",
     "replace",
-    "editor"
+    "VS Code"
   ]
 }
