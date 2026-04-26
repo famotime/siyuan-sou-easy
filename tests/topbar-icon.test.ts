@@ -72,12 +72,13 @@ describe('plugin top bar icon', () => {
     }))
   })
 
-  it('uses the bracket replace symbol design', async () => {
+  it('uses the provided magnifier plus T glyph design', async () => {
     const { SEARCH_REPLACE_TOP_BAR_ICON } = await import('@/icons')
 
-    expect(SEARCH_REPLACE_TOP_BAR_ICON).not.toContain('<circle')
-    expect(SEARCH_REPLACE_TOP_BAR_ICON).toContain('d="M7 5.5H4.75V18.5H7"')
-    expect(SEARCH_REPLACE_TOP_BAR_ICON).toContain('d="M17 5.5H19.25V18.5H17"')
-    expect(SEARCH_REPLACE_TOP_BAR_ICON).toContain('d="M13.25 10L15.5 12L13.25 14"')
+    expect(SEARCH_REPLACE_TOP_BAR_ICON).toContain('viewBox="0 0 48 48"')
+    expect(SEARCH_REPLACE_TOP_BAR_ICON).toContain('<circle cx="22.8345" cy="22.8345" r="17"')
+    expect(SEARCH_REPLACE_TOP_BAR_ICON).toContain('d="M35 35L41 41"')
+    expect(SEARCH_REPLACE_TOP_BAR_ICON).toContain('d="M23 17V31"')
+    expect(SEARCH_REPLACE_TOP_BAR_ICON).toContain('d="M18 17H23H28"')
   })
 })
