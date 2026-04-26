@@ -20,6 +20,7 @@ const loadSettings = vi.fn().mockResolvedValue({
   preserveCase: false,
   rememberPanelPosition: true,
   replacePanelHotkey: 'Ctrl+F12',
+  searchHighlightColor: '#ffc400',
   searchAttributeView: false,
 })
 
@@ -35,6 +36,7 @@ vi.mock('@/features/search-replace/store', () => ({
 }))
 
 vi.mock('@/settings', () => ({
+  DEFAULT_SEARCH_HIGHLIGHT_COLOR: '#ffc400',
   DEFAULT_SETTINGS: {
     debugLog: false,
     defaultReplaceVisible: false,
@@ -47,9 +49,11 @@ vi.mock('@/settings', () => ({
     preserveCase: false,
     rememberPanelPosition: true,
     replacePanelHotkey: 'Ctrl+F12',
+    searchHighlightColor: '#ffc400',
     searchAttributeView: false,
   },
   SETTINGS_STORAGE: 'settings.json',
+  isSupportedSearchHighlightColor: vi.fn((value: string) => typeof value === 'string' && value.trim().length > 0),
   loadSettings,
   normalizeSettings: vi.fn(value => value),
   saveSettings: vi.fn(),
@@ -72,6 +76,9 @@ const settingsI18n = {
   settingPanelHotkeyTitle: 'Panel hotkey',
   settingPreloadSelectionDesc: 'preload selection',
   settingPreloadSelectionTitle: 'Preload selection',
+  settingSearchHighlightColorDesc: 'configure search highlight color',
+  settingSearchHighlightColorReset: 'Reset',
+  settingSearchHighlightColorTitle: 'Search highlight color',
   settingRememberPositionDesc: 'remember position',
   settingRememberPositionTitle: 'Remember position',
   settingReplaceHotkeyDesc: 'replace hotkey',
@@ -103,7 +110,7 @@ describe('plugin settings panel', () => {
 
     plugin.openSetting()
 
-    expect(addItemSpy).toHaveBeenCalledTimes(11)
+    expect(addItemSpy).toHaveBeenCalledTimes(12)
     expect(addItemSpy.mock.calls.map(([item]) => ({
       description: item.description,
       title: item.title,
@@ -151,6 +158,10 @@ describe('plugin settings panel', () => {
       {
         description: 'debug',
         title: 'Debug',
+      },
+      {
+        description: 'configure search highlight color',
+        title: 'Search highlight color',
       },
     ])
   })
@@ -287,5 +298,31 @@ describe('plugin settings panel', () => {
 
     expect(panelInput.value).toBe('Ctrl+Alt+P')
     expect(replaceInput.value).toBe('Ctrl+Alt+R')
+  })
+
+  it('registers a combined text input, color picker, and reset button for highlight color', async () => {
+    const { Setting } = await import('siyuan')
+    const addItemSpy = vi.spyOn(Setting.prototype, 'addItem')
+    const { default: FriendlySearchReplacePlugin } = await import('@/index')
+
+    const plugin = new FriendlySearchReplacePlugin()
+    plugin.i18n = settingsI18n
+    ;(plugin as any).settingsData = await loadSettings()
+
+    plugin.openSetting()
+
+    const items = addItemSpy.mock.calls.map(([item]) => item)
+    const colorControl = items[11].createActionElement() as HTMLDivElement
+    const textInput = colorControl.querySelector('input[type="text"]')
+    const colorInput = colorControl.querySelector('input[type="color"]')
+    const resetButton = colorControl.querySelector('button')
+
+    expect(textInput?.value).toBe('#ffc400')
+    expect(colorInput?.value).toBe('#ffc400')
+    expect(resetButton?.textContent).toBe('Reset')
+    expect(colorControl.style.flexWrap).toBe('wrap')
+    expect(colorControl.style.width).toBe('')
+    expect(textInput?.style.flex).toBe('1 1 160px')
+    expect(textInput?.style.minWidth).toBe('0px')
   })
 })

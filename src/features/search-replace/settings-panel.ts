@@ -1,6 +1,7 @@
 import type { PluginSettings } from '@/settings'
 
 export type HotkeySettingKey = 'panelHotkey' | 'replacePanelHotkey'
+export type ColorSettingKey = 'searchHighlightColor'
 
 type BooleanSettingKey =
   | 'debugLog'
@@ -81,5 +82,13 @@ export const NUMBER_SETTING_DEFINITIONS: ReadonlyArray<SettingDefinition<NumberS
     descriptionKey: 'settingLargeCodeBlockLineThresholdDesc',
     settingKey: 'largeCodeBlockLineThreshold',
     titleKey: 'settingLargeCodeBlockLineThresholdTitle',
+  },
+]
+
+export const COLOR_SETTING_DEFINITIONS: ReadonlyArray<SettingDefinition<ColorSettingKey>> = [
+  {
+    descriptionKey: 'settingSearchHighlightColorDesc',
+    settingKey: 'searchHighlightColor',
+    titleKey: 'settingSearchHighlightColorTitle',
   },
 ]

@@ -5,6 +5,84 @@ import {
 
 export const HOTKEY_CAPTURE_INPUT_ATTRIBUTE = 'data-friendly-search-hotkey-input'
 
+export function createColorSettingElement(
+  value: string,
+  defaultValue: string,
+  resetLabel: string,
+  onChange: (value: string) => Promise<boolean>,
+) {
+  const wrapper = document.createElement('div')
+  wrapper.className = 'fn__flex'
+  wrapper.style.alignItems = 'center'
+  wrapper.style.flexWrap = 'wrap'
+  wrapper.style.gap = '8px'
+
+  const textInput = document.createElement('input')
+  textInput.className = 'b3-text-field'
+  textInput.type = 'text'
+  textInput.autocomplete = 'off'
+  textInput.spellcheck = false
+  textInput.style.flex = '1 1 160px'
+  textInput.style.minWidth = '0'
+
+  const colorInput = document.createElement('input')
+  colorInput.type = 'color'
+  colorInput.className = 'b3-text-field'
+  colorInput.style.flex = '0 0 44px'
+  colorInput.style.width = '44px'
+  colorInput.style.minWidth = '44px'
+  colorInput.style.padding = '2px'
+
+  const resetButton = document.createElement('button')
+  resetButton.className = 'b3-button b3-button--outline'
+  resetButton.type = 'button'
+  resetButton.textContent = resetLabel
+  resetButton.style.flex = '0 0 auto'
+
+  let currentValue = value
+
+  const syncInputs = (nextValue: string) => {
+    textInput.value = nextValue
+    colorInput.value = toColorInputValue(nextValue, defaultValue)
+  }
+
+  const commitValue = async (nextValue: string) => {
+    const accepted = await onChange(nextValue)
+    if (accepted) {
+      currentValue = nextValue
+      syncInputs(currentValue)
+      return
+    }
+
+    syncInputs(currentValue)
+  }
+
+  syncInputs(currentValue)
+
+  textInput.addEventListener('change', async () => {
+    await commitValue(textInput.value.trim())
+  })
+  textInput.addEventListener('blur', () => {
+    if (!textInput.value.trim()) {
+      syncInputs(currentValue)
+    }
+  })
+
+  colorInput.addEventListener('input', () => {
+    textInput.value = colorInput.value
+  })
+  colorInput.addEventListener('change', async () => {
+    await commitValue(colorInput.value)
+  })
+
+  resetButton.addEventListener('click', async () => {
+    await commitValue(defaultValue)
+  })
+
+  wrapper.append(textInput, colorInput, resetButton)
+  return wrapper
+}
+
 export function createHotkeyInputElement(
   value: string,
   onChange: (value: string) => Promise<boolean>,
@@ -112,4 +190,22 @@ function normalizeNumberValue(value: number) {
 
   const normalized = Math.floor(value)
   return normalized > 0 ? normalized : 1
+}
+
+function toColorInputValue(value: string, fallback: string) {
+  return normalizeHexColor(value) || normalizeHexColor(fallback) || '#000000'
+}
+
+function normalizeHexColor(value: string) {
+  const normalized = value.trim().toLowerCase()
+  if (/^#[\da-f]{6}$/.test(normalized)) {
+    return normalized
+  }
+
+  if (/^#[\da-f]{3}$/.test(normalized)) {
+    const [, r, g, b] = normalized
+    return `#${r}${r}${g}${g}${b}${b}`
+  }
+
+  return null
 }

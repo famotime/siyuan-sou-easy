@@ -20,6 +20,7 @@ describe('normalizeSettings', () => {
       minimapVisible: true,
       optimizeLargeCodeBlocks: true,
       preserveCase: true,
+      searchHighlightColor: '#ff8800',
       searchAttributeView: true,
     })
 
@@ -30,6 +31,7 @@ describe('normalizeSettings', () => {
       minimapVisible: true,
       optimizeLargeCodeBlocks: true,
       preserveCase: true,
+      searchHighlightColor: '#ff8800',
       searchAttributeView: true,
     })
   })
@@ -44,6 +46,7 @@ describe('normalizeSettings', () => {
       minimapVisible: DEFAULT_SETTINGS.minimapVisible,
       optimizeLargeCodeBlocks: DEFAULT_SETTINGS.optimizeLargeCodeBlocks,
       preserveCase: DEFAULT_SETTINGS.preserveCase,
+      searchHighlightColor: DEFAULT_SETTINGS.searchHighlightColor,
       searchAttributeView: DEFAULT_SETTINGS.searchAttributeView,
     })
   })
@@ -56,6 +59,16 @@ describe('normalizeSettings', () => {
     expect(normalizeSettings({
       largeCodeBlockLineThreshold: Number.NaN,
     }).largeCodeBlockLineThreshold).toBe(DEFAULT_SETTINGS.largeCodeBlockLineThreshold)
+  })
+
+  it('falls back to the default highlight color when the stored value is invalid', () => {
+    expect(normalizeSettings({
+      searchHighlightColor: '',
+    }).searchHighlightColor).toBe(DEFAULT_SETTINGS.searchHighlightColor)
+
+    expect(normalizeSettings({
+      searchHighlightColor: 'definitely-not-a-color',
+    }).searchHighlightColor).toBe(DEFAULT_SETTINGS.searchHighlightColor)
   })
 })
 

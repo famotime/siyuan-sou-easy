@@ -79,6 +79,7 @@ export function applyPluginSettings(settings: PluginSettings) {
   searchReplaceState.minimapVisible = settings.minimapVisible
   searchReplaceState.options.includeCodeBlock = settings.includeCodeBlock
   searchReplaceState.options.searchAttributeView = settings.searchAttributeView
+  applySearchHighlightColor(settings.searchHighlightColor)
   setDebugLoggingEnabled(settings.debugLog)
   debugLog('settings-updated', settings)
 
@@ -86,6 +87,14 @@ export function applyPluginSettings(settings: PluginSettings) {
     searchReplaceState.panelPosition = null
     void persistUiState(null)
   }
+}
+
+function applySearchHighlightColor(color: string) {
+  if (typeof document === 'undefined') {
+    return
+  }
+
+  document.documentElement.style.setProperty('--sfsr-highlight-color', color)
 }
 
 export function setPanelPosition(position: PanelPosition | null, persist = true) {

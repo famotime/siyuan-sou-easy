@@ -11,16 +11,17 @@ describe('search highlight styling', () => {
   it('makes the current match visually stronger than other matches', () => {
     const stylesheet = readFileSync(resolve(__dirname, '../src/index.scss'), 'utf-8')
 
+    expect(stylesheet).toContain('--sfsr-highlight-color: #ffc400;')
     expect(stylesheet).toContain('.protyle-wysiwyg .sfsr-block-current {')
-    expect(stylesheet).toContain('background: rgba(255, 214, 102, 0.12);')
-    expect(stylesheet).toContain('inset 4px 0 0 rgba(214, 168, 0, 0.96);')
+    expect(stylesheet).toContain('background: color-mix(in srgb, var(--sfsr-highlight-color) 12%, transparent);')
+    expect(stylesheet).toContain('inset 4px 0 0 color-mix(in srgb, var(--sfsr-highlight-color) 84%, black 16%);')
 
     expect(stylesheet).toContain('::highlight(sfsr-match) {')
-    expect(stylesheet).toContain('background: rgba(255, 196, 0, 0.22);')
+    expect(stylesheet).toContain('background: color-mix(in srgb, var(--sfsr-highlight-color) 22%, transparent);')
 
     expect(stylesheet).toContain('::highlight(sfsr-current-match) {')
-    expect(stylesheet).toContain('background: rgba(232, 176, 0, 0.42);')
-    expect(stylesheet).toContain('text-decoration-color: rgba(176, 122, 0, 0.96);')
+    expect(stylesheet).toContain('background: color-mix(in srgb, var(--sfsr-highlight-color) 42%, transparent);')
+    expect(stylesheet).toContain('text-decoration-color: color-mix(in srgb, var(--sfsr-highlight-color) 68%, black 32%);')
     expect(stylesheet).toContain('text-decoration-thickness: 3px;')
     expect(stylesheet).toContain('text-decoration-skip-ink: none;')
     expect(stylesheet).toContain('.protyle-wysiwyg .sfsr-av-cell-match {')

@@ -26,6 +26,7 @@ import { detectPluginEnvironment } from '@/features/search-replace/plugin-enviro
 import {
   HOTKEY_CAPTURE_INPUT_ATTRIBUTE,
   createCheckboxElement,
+  createColorSettingElement,
   createHotkeyInputElement,
   createNumberInputElement,
 } from '@/features/search-replace/plugin-setting-elements'
@@ -39,6 +40,7 @@ import {
   openSearchReplacePanelFromKeyboardEvent,
 } from '@/features/search-replace/plugin-panel-launch'
 import {
+  type ColorSettingKey,
   type HotkeySettingKey,
   type NumberSettingKey,
 } from '@/features/search-replace/settings-panel'
@@ -64,8 +66,10 @@ import {
   init,
 } from '@/main'
 import {
+  DEFAULT_SEARCH_HIGHLIGHT_COLOR,
   DEFAULT_SETTINGS,
   SETTINGS_STORAGE,
+  isSupportedSearchHighlightColor,
   type PluginSettings,
   loadSettings,
   normalizeSettings,
@@ -216,6 +220,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
 
     registerSearchReplaceSettings({
       createCheckbox: this.createCheckbox.bind(this),
+      createColorSetting: this.createColorSetting.bind(this),
       createHotkeyInput: this.createHotkeyInput.bind(this),
       createNumberInput: this.createNumberInput.bind(this),
       i18n: this.i18n,
@@ -224,6 +229,9 @@ export default class FriendlySearchReplacePlugin extends Plugin {
           ...this.settingsData,
           [settingKey]: checked,
         })
+      },
+      onColorChange: async (settingKey, value) => {
+        return await this.updateColorSetting(settingKey, value)
       },
       onHotkeyChange: async (settingKey, value) => {
         return await this.updateHotkeySetting(settingKey, value)
@@ -338,6 +346,19 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     return createCheckboxElement(checked, onChange)
   }
 
+  private async updateColorSetting(settingKey: ColorSettingKey, value: string) {
+    const normalizedValue = value.trim()
+    if (!isSupportedSearchHighlightColor(normalizedValue)) {
+      return false
+    }
+
+    await this.applySettings({
+      ...this.settingsData,
+      [settingKey]: normalizedValue,
+    })
+    return true
+  }
+
   private async syncHotkeySettingToKeymap(settingKey: HotkeySettingKey, hotkey: string) {
     const siyuanConfig = (window as any).siyuan?.config
     const nextKeymap = updatePanelCommandKeymap({
@@ -363,5 +384,14 @@ export default class FriendlySearchReplacePlugin extends Plugin {
 
   private createNumberInput(value: number, onChange: (value: number) => Promise<boolean>) {
     return createNumberInputElement(value, onChange)
+  }
+
+  private createColorSetting(value: string, onChange: (value: string) => Promise<boolean>) {
+    return createColorSettingElement(
+      value,
+      DEFAULT_SEARCH_HIGHLIGHT_COLOR,
+      this.i18n.settingSearchHighlightColorReset,
+      onChange,
+    )
   }
 }

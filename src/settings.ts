@@ -13,9 +13,12 @@ export interface PluginSettings {
   optimizeLargeCodeBlocks: boolean
   largeCodeBlockLineThreshold: number
   searchAttributeView: boolean
+  searchHighlightColor: string
   debugLog: boolean
   preserveCase: boolean
 }
+
+export const DEFAULT_SEARCH_HIGHLIGHT_COLOR = '#ffc400'
 
 export const DEFAULT_SETTINGS: PluginSettings = {
   panelHotkey: 'Ctrl+F11',
@@ -28,11 +31,25 @@ export const DEFAULT_SETTINGS: PluginSettings = {
   optimizeLargeCodeBlocks: true,
   largeCodeBlockLineThreshold: 1000,
   searchAttributeView: false,
+  searchHighlightColor: DEFAULT_SEARCH_HIGHLIGHT_COLOR,
   debugLog: false,
   preserveCase: false,
 }
 
 export const SETTINGS_STORAGE = 'settings.json'
+
+export function isSupportedSearchHighlightColor(value: string) {
+  const normalized = value.trim()
+  if (!normalized) {
+    return false
+  }
+
+  if (/^#(?:[\da-fA-F]{3}|[\da-fA-F]{6})$/.test(normalized)) {
+    return true
+  }
+
+  return canResolveCssColor(normalized)
+}
 
 export async function loadSettings(plugin: Plugin): Promise<PluginSettings> {
   try {
@@ -73,6 +90,7 @@ export function normalizeSettings(settings?: Partial<PluginSettings> | null): Pl
     searchAttributeView: typeof settings?.searchAttributeView === 'boolean'
       ? settings.searchAttributeView
       : DEFAULT_SETTINGS.searchAttributeView,
+    searchHighlightColor: normalizeSearchHighlightColor(settings?.searchHighlightColor),
     debugLog: typeof settings?.debugLog === 'boolean'
       ? settings.debugLog
       : DEFAULT_SETTINGS.debugLog,
@@ -110,4 +128,36 @@ function normalizeLargeCodeBlockLineThreshold(value: number | undefined) {
 
   const normalized = Math.floor(value)
   return normalized > 0 ? normalized : DEFAULT_SETTINGS.largeCodeBlockLineThreshold
+}
+
+function normalizeSearchHighlightColor(value: string | undefined) {
+  if (typeof value !== 'string') {
+    return DEFAULT_SETTINGS.searchHighlightColor
+  }
+
+  const normalized = value.trim()
+  if (!isSupportedSearchHighlightColor(normalized)) {
+    return DEFAULT_SETTINGS.searchHighlightColor
+  }
+
+  if (/^#(?:[\da-fA-F]{3}|[\da-fA-F]{6})$/.test(normalized)) {
+    return normalized.toLowerCase()
+  }
+
+  return normalized
+}
+
+function canResolveCssColor(value: string) {
+  if (typeof CSS !== 'undefined' && typeof CSS.supports === 'function') {
+    return CSS.supports('color', value)
+  }
+
+  if (typeof document === 'undefined') {
+    return false
+  }
+
+  const sample = document.createElement('span')
+  sample.style.color = ''
+  sample.style.color = value
+  return sample.style.color !== ''
 }

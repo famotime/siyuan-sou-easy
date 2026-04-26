@@ -1,31 +1,37 @@
 import type { Setting } from 'siyuan'
 import {
   BOOLEAN_SETTING_DEFINITIONS,
+  COLOR_SETTING_DEFINITIONS,
   HOTKEY_SETTING_DEFINITIONS,
   NUMBER_SETTING_DEFINITIONS,
+  type ColorSettingKey,
   type HotkeySettingKey,
   type NumberSettingKey,
 } from './settings-panel'
-import type { PluginSettings } from '@/settings'
+import { DEFAULT_SEARCH_HIGHLIGHT_COLOR, type PluginSettings } from '@/settings'
 
 const NESTED_SETTING_INDENT = '\u00a0\u00a0\u00a0\u00a0'
 
 export function registerSearchReplaceSettings({
   createCheckbox,
+  createColorSetting,
   createHotkeyInput,
   createNumberInput,
   i18n,
   onBooleanChange,
+  onColorChange,
   onHotkeyChange,
   onNumberChange,
   setting,
   settings,
 }: {
   createCheckbox: (checked: boolean, onChange: (checked: boolean) => Promise<void>) => HTMLInputElement
+  createColorSetting: (value: string, onChange: (value: string) => Promise<boolean>) => HTMLElement
   createHotkeyInput: (value: string, onChange: (value: string) => Promise<boolean>) => HTMLInputElement
   createNumberInput: (value: number, onChange: (value: number) => Promise<boolean>) => HTMLInputElement
   i18n: Record<string, string>
   onBooleanChange: <TKey extends BooleanSettingKey>(settingKey: TKey, checked: boolean) => Promise<void>
+  onColorChange: (settingKey: ColorSettingKey, value: string) => Promise<boolean>
   onHotkeyChange: (settingKey: HotkeySettingKey, value: string) => Promise<boolean>
   onNumberChange: (settingKey: NumberSettingKey, value: number) => Promise<boolean>
   setting: Setting
@@ -98,6 +104,16 @@ export function registerSearchReplaceSettings({
           return registerIncludeCodeBlockDependentInput(input)
         },
       })
+    })
+  })
+
+  COLOR_SETTING_DEFINITIONS.forEach(({ descriptionKey, settingKey, titleKey }) => {
+    setting.addItem({
+      title: i18n[titleKey],
+      description: i18n[descriptionKey],
+      createActionElement: () => createColorSetting(settings[settingKey], async (value) => {
+        return await onColorChange(settingKey, value || DEFAULT_SEARCH_HIGHLIGHT_COLOR)
+      }),
     })
   })
 }
