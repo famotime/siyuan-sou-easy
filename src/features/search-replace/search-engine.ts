@@ -75,8 +75,12 @@ export function findMatches(
         end,
         matchedText,
         previewText: buildPreview(block.text, start, end),
-        replaceable: isRangeReplaceable(block.element, start, end),
+        replaceable: typeof block.replaceable === 'boolean'
+          ? block.replaceable
+          : isRangeReplaceable(block.element, start, end),
+        sourceKind: block.sourceKind === 'canvas' ? 'canvas' : block.sourceKind,
         table: resolveTableMatchMetadata(block, start, end),
+        canvas: block.canvas,
       })
 
       match = pattern.exec(block.text)

@@ -187,4 +187,57 @@ describe('findMatches', () => {
     expect(result.matches).toHaveLength(1)
     expect((result.matches[0] as any).collapsedAncestorIds).toEqual(['list-item-1'])
   })
+
+  it('preserves canvas metadata and explicit replaceability', () => {
+    const result = findMatches([
+      {
+        ...createBlock('Alpha Alpha', 0),
+        blockId: 'canvas:node:t1:text',
+        blockType: 'CanvasTextNode',
+        canvas: {
+          field: 'text',
+          nodeId: 't1',
+          targetId: 'node:t1:text',
+          targetType: 'node',
+        },
+        replaceable: true,
+        sourceKind: 'canvas',
+      } as SearchableBlock,
+      {
+        ...createBlock('Alpha doc', 1),
+        blockId: 'canvas:node:f1:note',
+        blockType: 'CanvasNoteNode',
+        canvas: {
+          field: 'note',
+          nodeId: 'f1',
+          targetId: 'node:f1:note',
+          targetType: 'node',
+        },
+        replaceable: false,
+        sourceKind: 'canvas',
+      } as SearchableBlock,
+    ], 'Alpha', defaultOptions)
+
+    expect(result.matches.map(match => ({
+      canvas: match.canvas,
+      replaceable: match.replaceable,
+      sourceKind: match.sourceKind,
+    }))).toEqual([
+      {
+        canvas: { field: 'text', nodeId: 't1', targetId: 'node:t1:text', targetType: 'node' },
+        replaceable: true,
+        sourceKind: 'canvas',
+      },
+      {
+        canvas: { field: 'text', nodeId: 't1', targetId: 'node:t1:text', targetType: 'node' },
+        replaceable: true,
+        sourceKind: 'canvas',
+      },
+      {
+        canvas: { field: 'note', nodeId: 'f1', targetId: 'node:f1:note', targetType: 'node' },
+        replaceable: false,
+        sourceKind: 'canvas',
+      },
+    ])
+  })
 })

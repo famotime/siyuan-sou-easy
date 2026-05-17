@@ -1,8 +1,17 @@
 import type { IProtyle } from 'siyuan'
+import {
+  findCanvasSearchContextByRootId,
+  getActiveCanvasSearchContext,
+} from '../canvas/context'
 import { debugElement, debugLog } from '../debug'
 import type { EditorContext } from '../types'
 
 export function getActiveEditorContext(): EditorContext | null {
+  const canvasContext = getActiveCanvasSearchContext()
+  if (canvasContext) {
+    return canvasContext
+  }
+
   const selection = window.getSelection()
   const anchorElement = selection?.anchorNode instanceof Element
     ? selection.anchorNode
@@ -77,6 +86,11 @@ export function findEditorContextByRootId(rootId: string, titleHint = '') {
   const normalizedRootId = rootId.trim()
   if (!normalizedRootId) {
     return null
+  }
+
+  const canvasContext = findCanvasSearchContextByRootId(normalizedRootId)
+  if (canvasContext) {
+    return canvasContext
   }
 
   const visibleContexts = collectVisibleEditorContexts()

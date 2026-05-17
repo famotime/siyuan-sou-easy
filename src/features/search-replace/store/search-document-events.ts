@@ -30,6 +30,8 @@ export function createSearchDocumentEventController({
   let selectionRevealTimer = 0
   let liveRefreshObserver: MutationObserver | null = null
   let liveRefreshTarget: HTMLElement | null = null
+  let canvasLiveRefreshUnsubscribe: (() => void) | null = null
+  let canvasLiveRefreshHost: EditorContext['canvas']['host'] | null = null
   let documentListenersBound = false
 
   function bindDocumentListeners() {
@@ -63,6 +65,12 @@ export function createSearchDocumentEventController({
   }
 
   function syncLiveRefreshObserver(context: EditorContext | null) {
+    if (context?.sourceKind === 'canvas') {
+      syncCanvasLiveRefresh(context)
+      return
+    }
+
+    disconnectCanvasLiveRefresh()
     const nextTarget = resolveLiveRefreshTarget(context)
     if (liveRefreshTarget === nextTarget) {
       return
@@ -115,6 +123,38 @@ export function createSearchDocumentEventController({
     liveRefreshObserver?.disconnect()
     liveRefreshObserver = null
     liveRefreshTarget = null
+    disconnectCanvasLiveRefresh()
+  }
+
+  function syncCanvasLiveRefresh(context: EditorContext) {
+    disconnectDomLiveRefreshObserver()
+    const host = context.canvas?.host ?? null
+    if (!host || canvasLiveRefreshHost === host) {
+      return
+    }
+
+    disconnectCanvasLiveRefresh()
+    canvasLiveRefreshHost = host
+    canvasLiveRefreshUnsubscribe = host.subscribe(() => {
+      if (!state.visible || state.busy || !state.query.trim()) {
+        return
+      }
+
+      debugLog('canvas-changed')
+      scheduleRefresh(80)
+    })
+  }
+
+  function disconnectDomLiveRefreshObserver() {
+    liveRefreshObserver?.disconnect()
+    liveRefreshObserver = null
+    liveRefreshTarget = null
+  }
+
+  function disconnectCanvasLiveRefresh() {
+    canvasLiveRefreshUnsubscribe?.()
+    canvasLiveRefreshUnsubscribe = null
+    canvasLiveRefreshHost = null
   }
 
   function resolveLiveRefreshTarget(context: EditorContext | null) {

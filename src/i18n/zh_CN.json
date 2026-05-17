@@ -47,6 +47,7 @@
   "currentDocumentLabel": "当前文档",
   "replaceCurrentUnsupported": "当前命中跨越复杂格式，暂不支持直接替换",
   "replaceAttributeViewUnsupported": "数据库结果仅支持搜索与高亮，不支持替换",
+  "replaceCanvasNoteUnsupported": "Canvas 笔记节点仅支持搜索与高亮，不支持替换",
   "replaceCurrentDone": "已替换当前命中",
   "replaceAllConfirm": "确定替换当前文档内的 {count} 处命中吗？",
   "replaceAllResult": "替换完成：{replacedCount} 处，跳过 {skippedCount} 处",

@@ -1,4 +1,5 @@
 import { collectSearchableBlocks } from '../editor'
+import { resolveCanvasBlocksForSearch } from '../canvas/search-blocks'
 import { debugLog } from '../debug'
 import { getDocumentContent } from '../kernel'
 import type {
@@ -9,6 +10,10 @@ import type {
 import { resolveDocumentSnapshot } from './document-snapshot'
 
 export async function resolveBlocksForSearch(context: EditorContext, options: SearchOptions) {
+  if (context.sourceKind === 'canvas') {
+    return resolveCanvasBlocksForSearch(context)
+  }
+
   const liveBlocks = collectSearchableBlocks(context, options)
   if (options.selectionOnly) {
     return {

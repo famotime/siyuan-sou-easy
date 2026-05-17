@@ -1,6 +1,12 @@
 import { showMessage } from 'siyuan'
 import { debugLog } from '../debug'
-import { hasAttributeViewMatches, isAttributeViewMatch } from '../match-utils'
+import { replaceCanvasMatchGroups } from '../canvas/replacement'
+import {
+  hasAttributeViewMatches,
+  hasCanvasMatches,
+  isAttributeViewMatch,
+  isCanvasMatch,
+} from '../match-utils'
 import type {
   EditorContext,
   SearchMatch,
@@ -56,6 +62,29 @@ export async function replaceCurrentMatch({
   }
   if (isAttributeViewMatch(match)) {
     showMessage(t('replaceAttributeViewUnsupported'), 4000, 'error')
+    return
+  }
+  if (isCanvasMatch(match)) {
+    if (!match.replaceable) {
+      showMessage(t('replaceCanvasNoteUnsupported'), 4000, 'error')
+      return
+    }
+
+    try {
+      state.busy = true
+      const result = await replaceCanvasMatchGroups({
+        getReplacementText: () => state.replacement,
+        matches: [match],
+        preserveCase: state.preserveCase,
+      })
+      await refreshMatches()
+      if (state.matches.length > 0) {
+        revealCurrentMatch(undefined, 'if-needed')
+      }
+      showMessage(t('replaceAllResult', result), 3000, 'info')
+    } finally {
+      state.busy = false
+    }
     return
   }
 
@@ -128,6 +157,26 @@ export async function replaceAllMatches({
   }
   if (hasAttributeViewMatches(state.matches)) {
     showMessage(t('replaceAttributeViewUnsupported'), 4000, 'error')
+    return
+  }
+  if (hasCanvasMatches(state.matches)) {
+    const confirmed = window.confirm(t('replaceAllConfirm', { count: state.matches.length }))
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      state.busy = true
+      const result = await replaceCanvasMatchGroups({
+        getReplacementText: () => state.replacement,
+        matches: state.matches,
+        preserveCase: state.preserveCase,
+      })
+      await refreshMatches()
+      showMessage(t('replaceAllResult', result), 4000, 'info')
+    } finally {
+      state.busy = false
+    }
     return
   }
 

@@ -134,7 +134,7 @@ export function createSearchController({
     }
 
     applyResolvedContext(context)
-    state.documentReadonly = await resolveDocumentReadonly(context.rootId)
+    state.documentReadonly = await resolveDocumentReadonly(context)
     if (revision !== latestRefreshRevision) {
       return
     }
@@ -165,12 +165,17 @@ export function createSearchController({
 
       const result = findMatches(blocks, state.query, state.options, selectionScope)
       const minimapBlocks = blocks.map(block => ({
+        canvas: block.canvas
+          ? {
+              targetId: block.canvas.targetId,
+            }
+          : undefined,
         blockId: block.blockId,
         blockIndex: block.blockIndex,
         blockType: block.blockType,
       }))
       let matches = result.matches
-      if (!result.error) {
+      if (!result.error && context.sourceKind !== 'canvas') {
         const attributeViewSearch = await searchAttributeViewMatches({
           context,
           documentContent,
@@ -231,9 +236,13 @@ export function createSearchController({
     return resolveCachedSelectionScope(context, getCurrentSelectionScope)
   }
 
-  async function resolveDocumentReadonly(rootId: string) {
+  async function resolveDocumentReadonly(context: EditorContext) {
+    if (context.sourceKind === 'canvas') {
+      return Boolean(context.canvas?.readonly)
+    }
+
     try {
-      const attrs = await getBlockAttrs(rootId)
+      const attrs = await getBlockAttrs(context.rootId)
       return isReadonlyBlockAttrs(attrs)
     } catch {
       return false

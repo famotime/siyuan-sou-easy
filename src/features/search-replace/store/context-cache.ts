@@ -14,13 +14,19 @@ let lastSelectionScope: SelectionScope = new Map()
 let lastSelectionScopeRootId = ''
 
 export function resolveEditorContext(resolver: EditorContextResolver) {
+  const activeContext = resolver.getActiveEditorContext()
+  if (isUsableEditorContext(activeContext) && activeContext.sourceKind === 'canvas') {
+    lastEditorContext = activeContext
+    lastHintedEditorContext = null
+    return activeContext
+  }
+
   const hintedContext = resolveHintedEditorContext(resolver)
   if (hintedContext) {
     lastEditorContext = hintedContext
     return hintedContext
   }
 
-  const activeContext = resolver.getActiveEditorContext()
   if (isUsableEditorContext(activeContext)) {
     lastEditorContext = activeContext
     return activeContext

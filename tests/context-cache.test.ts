@@ -49,6 +49,21 @@ describe('editor context cache', () => {
 
     expect(resolved?.protyle).toBe(visibleContext.protyle)
   })
+
+  it('prefers the active canvas context over a stale hinted protyle context', () => {
+    const staleProtyleContext = createContext('root-1', 'Doc 1', 'protyle')
+    const canvasContext = createContext('canvas:/data/a.canvas', 'a.canvas', 'siyuan-canvas__tab')
+    canvasContext.sourceKind = 'canvas'
+
+    rememberHintedEditorContext(staleProtyleContext)
+
+    const resolved = resolveEditorContext({
+      findEditorContextByRootId: vi.fn(() => staleProtyleContext),
+      getActiveEditorContext: vi.fn(() => canvasContext),
+    })
+
+    expect(resolved).toBe(canvasContext)
+  })
 })
 
 function createContext(rootId: string, title: string, className: string): EditorContext {

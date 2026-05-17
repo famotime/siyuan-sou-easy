@@ -1,4 +1,9 @@
 import type { IProtyle } from 'siyuan'
+import type {
+  CanvasSearchHost,
+  CanvasSearchTargetField,
+  CanvasSearchTargetType,
+} from './canvas/types'
 
 export interface TextOffsetRange {
   start: number
@@ -20,7 +25,13 @@ export interface EditorContext {
   protyle: HTMLElement
   protyleRef?: IProtyle | null
   rootId: string
+  sourceKind?: 'canvas' | 'protyle'
   title: string
+  canvas?: {
+    filePath: string
+    host: CanvasSearchHost
+    readonly?: boolean
+  }
 }
 
 export interface TableCellSearchMetadata {
@@ -57,13 +68,26 @@ export interface SearchableBlock {
   blockTextLength?: number
   blockLineCount?: number
   element: HTMLElement
+  replaceable?: boolean
+  sourceKind?: 'block' | 'canvas'
   table?: TableSearchMetadata
+  canvas?: {
+    field?: CanvasSearchTargetField
+    filePath?: string
+    host?: CanvasSearchHost
+    nodeId?: string
+    targetId: string
+    targetType?: CanvasSearchTargetType
+  }
 }
 
 export interface SearchableBlockSummary {
   blockId: string
   blockIndex: number
   blockType: string
+  canvas?: {
+    targetId: string
+  }
 }
 
 export interface SearchMatch {
@@ -80,7 +104,15 @@ export interface SearchMatch {
   replaceable: boolean
   blockTextLength?: number
   blockLineCount?: number
-  sourceKind?: 'block' | 'attribute-view'
+  sourceKind?: 'block' | 'attribute-view' | 'canvas'
+  canvas?: {
+    field?: CanvasSearchTargetField
+    filePath?: string
+    host?: CanvasSearchHost
+    nodeId?: string
+    targetId: string
+    targetType?: CanvasSearchTargetType
+  }
   table?: TableMatchMetadata
   attributeView?: {
     avBlockId: string

@@ -221,6 +221,114 @@ describe('search store editor context fallback', () => {
     expect(searchReplaceState.matches).toHaveLength(2)
   })
 
+  it('searches canvas targets when the active editor context is a canvas host', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+    })
+    const actualSearchEngine = await vi.importActual<typeof import('@/features/search-replace/search-engine')>(
+      '@/features/search-replace/search-engine',
+    )
+    const canvasRoot = document.createElement('div')
+    canvasRoot.className = 'siyuan-canvas__tab'
+    document.body.appendChild(canvasRoot)
+    const host = {
+      getContext: () => ({
+        filePath: '/data/storage/canvas/学习观 1-6.canvas',
+        id: 'canvas:/data/storage/canvas/学习观 1-6.canvas',
+        readonly: false,
+        title: '学习观 1-6.canvas',
+      }),
+      getSnapshot: vi.fn(async () => ({
+        revision: 'r1',
+        targets: [{
+          field: 'text',
+          id: 'node:64045209d21177d3:text',
+          nodeId: '64045209d21177d3',
+          replaceable: true,
+          text: '## 如何应用\n\n- 分而治之\n- 二阶知识',
+          title: '如何应用',
+          type: 'node',
+        }],
+      })),
+      reveal: vi.fn(async () => true),
+      replaceTextRanges: vi.fn(),
+      root: canvasRoot,
+      subscribe: vi.fn(() => vi.fn()),
+      syncDecorations: vi.fn(),
+      version: 1,
+    }
+    editorMocks.state.context = {
+      canvas: {
+        filePath: '/data/storage/canvas/学习观 1-6.canvas',
+        host,
+      },
+      protyle: canvasRoot,
+      rootId: 'canvas:/data/storage/canvas/学习观 1-6.canvas',
+      sourceKind: 'canvas',
+      title: '学习观 1-6.canvas',
+    } as any
+    searchEngineMocks.findMatches.mockImplementation(actualSearchEngine.findMatches)
+    searchReplaceState.query = '分而治之'
+
+    openPanel(true)
+    await flushRefresh()
+
+    expect(kernelMocks.getBlockAttrs).not.toHaveBeenCalled()
+    expect(host.getSnapshot).toHaveBeenCalledTimes(1)
+    expect(searchReplaceState.currentRootId).toBe('canvas:/data/storage/canvas/学习观 1-6.canvas')
+    expect(searchReplaceState.searchableBlockCount).toBe(1)
+    expect(searchReplaceState.matches).toHaveLength(1)
+    expect(searchReplaceState.matches[0]).toMatchObject({
+      blockId: 'canvas:node:64045209d21177d3:text',
+      matchedText: '分而治之',
+      sourceKind: 'canvas',
+    })
+  })
+
+  it('uses the canvas host readonly flag without querying block attrs', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+    })
+    const canvasRoot = document.createElement('div')
+    document.body.appendChild(canvasRoot)
+    const host = {
+      getContext: () => ({
+        filePath: '/data/storage/canvas/readonly.canvas',
+        id: 'canvas:/data/storage/canvas/readonly.canvas',
+        readonly: true,
+        title: 'readonly.canvas',
+      }),
+      getSnapshot: vi.fn(async () => ({
+        revision: 'r1',
+        targets: [],
+      })),
+      root: canvasRoot,
+      subscribe: vi.fn(() => vi.fn()),
+      syncDecorations: vi.fn(),
+      version: 1,
+    }
+    editorMocks.state.context = {
+      canvas: {
+        filePath: '/data/storage/canvas/readonly.canvas',
+        host,
+        readonly: true,
+      },
+      protyle: canvasRoot,
+      rootId: 'canvas:/data/storage/canvas/readonly.canvas',
+      sourceKind: 'canvas',
+      title: 'readonly.canvas',
+    } as any
+    searchReplaceState.query = 'anything'
+
+    openPanel(true)
+    await flushRefresh()
+
+    expect(kernelMocks.getBlockAttrs).not.toHaveBeenCalled()
+    expect(searchReplaceState.documentReadonly).toBe(true)
+  })
+
   it('marks the current document readonly when root attrs include sy-readonly', async () => {
     kernelMocks.getBlockAttrs.mockResolvedValue({
       'custom-sy-readonly': 'true',

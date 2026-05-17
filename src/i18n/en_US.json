@@ -47,6 +47,7 @@
   "currentDocumentLabel": "Current document",
   "replaceCurrentUnsupported": "The current match spans complex formatting and cannot be replaced directly yet.",
   "replaceAttributeViewUnsupported": "Database results support search, highlight, and navigation only. Replacement is not supported.",
+  "replaceCanvasNoteUnsupported": "Canvas note nodes support search, highlight, and navigation only. Replacement is not supported.",
   "replaceCurrentDone": "Current match replaced",
   "replaceAllConfirm": "Replace {count} matches in the current document?",
   "replaceAllResult": "Replacement complete: {replacedCount} replaced, {skippedCount} skipped",

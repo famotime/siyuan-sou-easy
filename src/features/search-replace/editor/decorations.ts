@@ -24,6 +24,12 @@ import {
   resolveTableRowElementFromCell,
 } from './table-dom'
 import { debugElement, debugLog, debugRect } from '../debug'
+import {
+  clearCanvasSearchDecorations,
+  isCanvasMatchVisible,
+  scrollCanvasMatchIntoView,
+  syncCanvasSearchDecorations,
+} from '../canvas/decorations'
 import type {
   EditorContext,
   SearchDecorationOptions,
@@ -72,6 +78,15 @@ export function syncSearchDecorations(
   currentMatch: SearchMatch | null,
   options: SearchDecorationOptions = {},
 ) {
+  if (context.sourceKind === 'canvas') {
+    syncCanvasSearchDecorations({
+      context,
+      currentMatch,
+      matches,
+    })
+    return
+  }
+
   clearSearchDecorations(context)
 
   const textHighlightState = applyMatchTextHighlights(context, matches, options)
@@ -104,6 +119,11 @@ export function syncSearchDecorations(
 }
 
 export function clearSearchDecorations(context?: EditorContext | null) {
+  if (context?.sourceKind === 'canvas') {
+    clearCanvasSearchDecorations(context)
+    return
+  }
+
   clearTextHighlights()
 
   const root = context?.protyle ?? document
@@ -126,6 +146,10 @@ export function scrollMatchIntoView(
   match: SearchMatch | null,
   mode: 'always' | 'if-needed' = 'always',
 ): ScrollMatchResult {
+  if (context.sourceKind === 'canvas') {
+    return scrollCanvasMatchIntoView(context, match)
+  }
+
   if (!match) {
     return 'idle'
   }
@@ -212,6 +236,10 @@ export function scrollMatchIntoView(
 }
 
 export function isMatchVisible(context: EditorContext, match: SearchMatch | null) {
+  if (context.sourceKind === 'canvas') {
+    return isCanvasMatchVisible(context, match)
+  }
+
   if (!match) {
     return false
   }

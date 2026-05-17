@@ -15,6 +15,7 @@ import {
 
 describe('editor context detection', () => {
   afterEach(() => {
+    delete (globalThis as any).__siyuanCanvasSearchHosts
     document.body.innerHTML = ''
     document.title = ''
     window.getSelection()?.removeAllRanges()
@@ -154,5 +155,63 @@ describe('editor context detection', () => {
 
     expect(context?.protyle).toBe(visibleProtyle)
     expect(context?.rootId).toBe('20251208094107-ztk4cwm')
+  })
+
+  it('detects the active canvas search host from the global registry', () => {
+    const root = document.createElement('div')
+    root.className = 'siyuan-canvas__tab'
+    document.body.appendChild(root)
+    ;(globalThis as any).__siyuanCanvasSearchHosts = new Set([{
+      getContext: () => ({
+        filePath: '/data/storage/canvas/a.canvas',
+        id: 'canvas:/data/storage/canvas/a.canvas',
+        readonly: false,
+        title: 'a.canvas',
+      }),
+      root,
+      version: 1,
+    }])
+
+    const context = getActiveEditorContext()
+
+    expect(context?.sourceKind).toBe('canvas')
+    expect(context?.rootId).toBe('canvas:/data/storage/canvas/a.canvas')
+    expect(context?.title).toBe('a.canvas')
+  })
+
+  it('detects a canvas search host whose root comes from another DOM realm', () => {
+    const root = {
+      classList: {
+        contains: vi.fn(() => false),
+      },
+      closest: vi.fn(() => null),
+      getBoundingClientRect: vi.fn(() => ({
+        bottom: 500,
+        height: 300,
+        left: 0,
+        right: 600,
+        toJSON: () => ({}),
+        top: 200,
+        width: 600,
+        x: 0,
+        y: 200,
+      })),
+      isConnected: true,
+    }
+    ;(globalThis as any).__siyuanCanvasSearchHosts = new Set([{
+      getContext: () => ({
+        filePath: '/data/storage/canvas/a.canvas',
+        id: 'canvas:/data/storage/canvas/a.canvas',
+        readonly: false,
+        title: 'a.canvas',
+      }),
+      root,
+      version: 1,
+    }])
+
+    const context = getActiveEditorContext()
+
+    expect(context?.sourceKind).toBe('canvas')
+    expect(context?.rootId).toBe('canvas:/data/storage/canvas/a.canvas')
   })
 })
