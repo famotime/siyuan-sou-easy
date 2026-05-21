@@ -183,7 +183,11 @@ import {
   watch,
 } from 'vue'
 import { t } from '@/i18n/runtime'
-import { hasAttributeViewMatches, isAttributeViewMatch } from '@/features/search-replace/match-utils'
+import {
+  hasAttributeViewMatches,
+  hasUnsupportedCanvasReplacementMatches,
+  isAttributeViewMatch,
+} from '@/features/search-replace/match-utils'
 import {
   captureCurrentSelectionScope,
   closePanel,
@@ -290,7 +294,13 @@ const counterText = computed(() => {
 
 const replaceInputDisabled = computed(() => state.documentReadonly)
 const canReplaceCurrent = computed(() => !state.documentReadonly && Boolean(currentMatch.value?.replaceable) && !state.busy)
-const canReplaceAll = computed(() => !state.documentReadonly && Boolean(state.matches.length) && !hasAttributeViewMatches(state.matches) && !state.busy)
+const canReplaceAll = computed(() =>
+  !state.documentReadonly
+  && Boolean(state.matches.length)
+  && !hasAttributeViewMatches(state.matches)
+  && !hasUnsupportedCanvasReplacementMatches(state.matches)
+  && !state.busy,
+)
 const {
   clearMinimap,
   minimapRef,

@@ -120,6 +120,10 @@ describe('plugin settings panel', () => {
         title: 'Panel hotkey',
       },
       {
+        description: 'configure search highlight color',
+        title: 'Search highlight color',
+      },
+      {
         description: 'replace hotkey',
         title: 'Replace hotkey',
       },
@@ -158,10 +162,6 @@ describe('plugin settings panel', () => {
       {
         description: 'debug',
         title: 'Debug',
-      },
-      {
-        description: 'configure search highlight color',
-        title: 'Search highlight color',
       },
     ])
   })

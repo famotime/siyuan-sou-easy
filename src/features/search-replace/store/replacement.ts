@@ -4,6 +4,7 @@ import { replaceCanvasMatchGroups } from '../canvas/replacement'
 import {
   hasAttributeViewMatches,
   hasCanvasMatches,
+  hasUnsupportedCanvasReplacementMatches,
   isAttributeViewMatch,
   isCanvasMatch,
 } from '../match-utils'
@@ -157,6 +158,10 @@ export async function replaceAllMatches({
   }
   if (hasAttributeViewMatches(state.matches)) {
     showMessage(t('replaceAttributeViewUnsupported'), 4000, 'error')
+    return
+  }
+  if (hasUnsupportedCanvasReplacementMatches(state.matches)) {
+    showMessage(t('replaceCanvasNoteUnsupported'), 4000, 'error')
     return
   }
   if (hasCanvasMatches(state.matches)) {

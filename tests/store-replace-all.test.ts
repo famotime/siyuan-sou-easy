@@ -384,6 +384,43 @@ describe('search store replaceAll', () => {
     expect(searchEngineMocks.findMatches).not.toHaveBeenCalled()
     expect(siyuan.showMessage).toHaveBeenCalled()
   })
+
+  it('does not replace anything when canvas note-file matches are search-only', async () => {
+    searchReplaceState.visible = true
+    searchReplaceState.query = 'Alpha'
+    searchReplaceState.replacement = 'Beta'
+    searchReplaceState.matches = [{
+      blockId: 'canvas:node:f1:note',
+      blockIndex: 0,
+      blockType: 'CanvasNoteNode',
+      canvas: {
+        field: 'note',
+        nodeId: 'f1',
+        targetId: 'node:f1:note',
+        targetType: 'node',
+      },
+      end: 5,
+      id: 'canvas:node:f1:note:0:5',
+      matchedText: 'Alpha',
+      previewText: '[Alpha]',
+      replaceable: false,
+      rootId: 'canvas:/data/a.canvas',
+      sourceKind: 'canvas',
+      start: 0,
+    }]
+
+    await replaceAll()
+
+    expect(window.confirm).not.toHaveBeenCalled()
+    expect(editorMocks.getBlockElement).not.toHaveBeenCalled()
+    expect(kernelMocks.updateDomBlock).not.toHaveBeenCalled()
+    expect(searchEngineMocks.findMatches).not.toHaveBeenCalled()
+    expect(siyuan.showMessage).toHaveBeenCalledWith(
+      'Canvas 笔记节点仅支持搜索与高亮，不支持替换',
+      4000,
+      'error',
+    )
+  })
 })
 
 function resetState() {
