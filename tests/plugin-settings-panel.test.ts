@@ -116,12 +116,12 @@ describe('plugin settings panel', () => {
       title: item.title,
     }))).toEqual([
       {
-        description: 'panel hotkey',
-        title: 'Panel hotkey',
-      },
-      {
         description: 'configure search highlight color',
         title: 'Search highlight color',
+      },
+      {
+        description: 'panel hotkey',
+        title: 'Panel hotkey',
       },
       {
         description: 'replace hotkey',
@@ -178,9 +178,9 @@ describe('plugin settings panel', () => {
     plugin.openSetting()
 
     const items = addItemSpy.mock.calls.map(([item]) => item)
-    const includeCodeBlockInput = items[6].createActionElement() as HTMLInputElement
-    const optimizeInput = items[7].createActionElement() as HTMLInputElement
-    const thresholdInput = items[8].createActionElement() as HTMLInputElement
+    const includeCodeBlockInput = items[7].createActionElement() as HTMLInputElement
+    const optimizeInput = items[8].createActionElement() as HTMLInputElement
+    const thresholdInput = items[9].createActionElement() as HTMLInputElement
 
     expect(includeCodeBlockInput.disabled).toBe(false)
     expect(optimizeInput.disabled).toBe(true)
@@ -199,9 +199,9 @@ describe('plugin settings panel', () => {
     plugin.openSetting()
 
     const items = addItemSpy.mock.calls.map(([item]) => item)
-    const includeCodeBlockInput = items[6].createActionElement() as HTMLInputElement
-    const optimizeInput = items[7].createActionElement() as HTMLInputElement
-    const thresholdInput = items[8].createActionElement() as HTMLInputElement
+    const includeCodeBlockInput = items[7].createActionElement() as HTMLInputElement
+    const optimizeInput = items[8].createActionElement() as HTMLInputElement
+    const thresholdInput = items[9].createActionElement() as HTMLInputElement
 
     includeCodeBlockInput.checked = true
     includeCodeBlockInput.dispatchEvent(new Event('change'))
@@ -243,8 +243,8 @@ describe('plugin settings panel', () => {
     plugin.openSetting()
 
     const items = addItemSpy.mock.calls.map(([item]) => item)
-    const panelInput = items[0].createActionElement() as HTMLInputElement
-    const replaceInput = items[1].createActionElement() as HTMLInputElement
+    const panelInput = items[1].createActionElement() as HTMLInputElement
+    const replaceInput = items[2].createActionElement() as HTMLInputElement
 
     expect(panelInput.value).toBe('Ctrl+Alt+F')
     expect(replaceInput.value).toBe('Ctrl+H')
@@ -293,8 +293,8 @@ describe('plugin settings panel', () => {
     plugin.openSetting()
 
     const items = addItemSpy.mock.calls.map(([item]) => item)
-    const panelInput = items[0].createActionElement() as HTMLInputElement
-    const replaceInput = items[1].createActionElement() as HTMLInputElement
+    const panelInput = items[1].createActionElement() as HTMLInputElement
+    const replaceInput = items[2].createActionElement() as HTMLInputElement
 
     expect(panelInput.value).toBe('Ctrl+Alt+P')
     expect(replaceInput.value).toBe('Ctrl+Alt+R')
@@ -312,7 +312,7 @@ describe('plugin settings panel', () => {
     plugin.openSetting()
 
     const items = addItemSpy.mock.calls.map(([item]) => item)
-    const colorControl = items[11].createActionElement() as HTMLDivElement
+    const colorControl = items[0].createActionElement() as HTMLDivElement
     const textInput = colorControl.querySelector('input[type="text"]')
     const colorInput = colorControl.querySelector('input[type="color"]')
     const resetButton = colorControl.querySelector('button')

@@ -55,27 +55,23 @@ export function registerSearchReplaceSettings({
 
   const formatNestedSettingText = (text: string) => `${NESTED_SETTING_INDENT}${text}`
 
-  HOTKEY_SETTING_DEFINITIONS.forEach(({ descriptionKey, settingKey, titleKey }, index) => {
+  COLOR_SETTING_DEFINITIONS.forEach(({ descriptionKey, settingKey, titleKey }) => {
+    setting.addItem({
+      title: i18n[titleKey],
+      description: i18n[descriptionKey],
+      createActionElement: () => createColorSetting(settings[settingKey], async (value) => {
+        return await onColorChange(settingKey, value || DEFAULT_SEARCH_HIGHLIGHT_COLOR)
+      }),
+    })
+  })
+
+  HOTKEY_SETTING_DEFINITIONS.forEach(({ descriptionKey, settingKey, titleKey }) => {
     setting.addItem({
       title: i18n[titleKey],
       description: i18n[descriptionKey],
       createActionElement: () => createHotkeyInput(settings[settingKey], async (value) => {
         return await onHotkeyChange(settingKey, value)
       }),
-    })
-
-    if (index !== 0) {
-      return
-    }
-
-    COLOR_SETTING_DEFINITIONS.forEach(({ descriptionKey: colorDescriptionKey, settingKey: colorSettingKey, titleKey: colorTitleKey }) => {
-      setting.addItem({
-        title: i18n[colorTitleKey],
-        description: i18n[colorDescriptionKey],
-        createActionElement: () => createColorSetting(settings[colorSettingKey], async (value) => {
-          return await onColorChange(colorSettingKey, value || DEFAULT_SEARCH_HIGHLIGHT_COLOR)
-        }),
-      })
     })
   })
 
@@ -120,7 +116,6 @@ export function registerSearchReplaceSettings({
       })
     })
   })
-
 }
 
 type BooleanSettingKey = Extract<keyof PluginSettings, 'debugLog' | 'defaultReplaceVisible' | 'includeCodeBlock' | 'minimapVisible' | 'optimizeLargeCodeBlocks' | 'preloadSelection' | 'rememberPanelPosition' | 'searchAttributeView'>
