@@ -10,6 +10,9 @@ import {
 
 const onEditorContextChanged = vi.fn()
 const openPanel = vi.fn()
+const openTerminalPanel = vi.fn()
+const getActiveTerminalSearchSurface = vi.fn(() => null)
+const isTerminalSearchTarget = vi.fn(() => false)
 const storeState = {
   replaceVisible: false,
   visible: false,
@@ -24,7 +27,13 @@ const createEditorContextFromProtyleLike = vi.fn((protyle) => ({
 vi.mock('@/features/search-replace/store', () => ({
   onEditorContextChanged,
   openPanel,
+  openTerminalPanel,
   searchReplaceState: storeState,
+}))
+
+vi.mock('@/features/search-replace/terminal/registry', () => ({
+  getActiveTerminalSearchSurface,
+  isTerminalSearchTarget,
 }))
 
 vi.mock('@/features/search-replace/editor', () => ({
@@ -37,6 +46,8 @@ describe('plugin panel launch helpers', () => {
     vi.clearAllMocks()
     storeState.visible = false
     storeState.replaceVisible = false
+    getActiveTerminalSearchSurface.mockReturnValue(null)
+    isTerminalSearchTarget.mockReturnValue(false)
   })
 
   it('opens the panel from a command and forwards the current editor context', async () => {
@@ -74,5 +85,18 @@ describe('plugin panel launch helpers', () => {
     openSearchReplacePanel(true)
 
     expect(openPanel).toHaveBeenCalledWith(true, true)
+  })
+
+  it('opens terminal mode when the keyboard event starts from a terminal target', async () => {
+    const { openSearchReplacePanelFromKeyboardEvent } = await import('@/features/search-replace/plugin-panel-launch')
+    const target = document.createElement('button')
+    const surface = { id: 'terminal-1' }
+    isTerminalSearchTarget.mockReturnValue(true)
+    getActiveTerminalSearchSurface.mockReturnValue(surface)
+
+    openSearchReplacePanelFromKeyboardEvent({ target } as unknown as KeyboardEvent, true)
+
+    expect(openTerminalPanel).toHaveBeenCalledWith(surface, true)
+    expect(openPanel).not.toHaveBeenCalled()
   })
 })

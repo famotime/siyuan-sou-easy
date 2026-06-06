@@ -6,7 +6,12 @@ import {
 import {
   onEditorContextChanged,
   openPanel,
+  openTerminalPanel,
 } from './store'
+import {
+  getActiveTerminalSearchSurface,
+  isTerminalSearchTarget,
+} from './terminal/registry'
 
 export type EditorProtyleLike = IProtyle
 
@@ -26,6 +31,14 @@ export function openSearchReplacePanelFromKeyboardEvent(
   replaceVisible?: boolean,
 ) {
   const target = event.target instanceof Element ? event.target : null
+  if (isTerminalSearchTarget(target)) {
+    const surface = getActiveTerminalSearchSurface()
+    if (surface) {
+      openTerminalPanel(surface, replaceVisible)
+      return
+    }
+  }
+
   const protyle = target?.closest('.protyle')
   const context = createEditorContextFromElement(protyle instanceof HTMLElement ? protyle : null)
   if (context) {

@@ -69,7 +69,7 @@ export interface SearchableBlock {
   blockLineCount?: number
   element: HTMLElement
   replaceable?: boolean
-  sourceKind?: 'block' | 'canvas'
+  sourceKind?: 'block' | 'canvas' | 'terminal'
   table?: TableSearchMetadata
   canvas?: {
     field?: CanvasSearchTargetField
@@ -104,7 +104,7 @@ export interface SearchMatch {
   replaceable: boolean
   blockTextLength?: number
   blockLineCount?: number
-  sourceKind?: 'block' | 'attribute-view' | 'canvas'
+  sourceKind?: 'block' | 'attribute-view' | 'canvas' | 'terminal'
   canvas?: {
     field?: CanvasSearchTargetField
     filePath?: string

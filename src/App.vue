@@ -240,6 +240,7 @@ const regexHelpExamples = computed(() => [
   },
 ])
 const showRegexHelp = computed(() => state.options.useRegex)
+const isTerminalMode = computed(() => state.sourceMode === 'terminal')
 const isPendingNavigation = computed(() => Boolean(state.navigationHint) && !state.error)
 const isSearching = computed(() => Boolean(state.searching) && !state.error)
 const hasPendingStatus = computed(() => isPendingNavigation.value || isSearching.value)
@@ -270,6 +271,10 @@ const secondaryStatusText = computed(() => {
     return ''
   }
 
+  if (isTerminalMode.value && state.replaceVisible) {
+    return t('replaceTerminalUnsupported')
+  }
+
   if (currentMatch.value && isAttributeViewMatch(currentMatch.value)) {
     return t('replaceAttributeViewUnsupported')
   }
@@ -292,10 +297,16 @@ const counterText = computed(() => {
   return t('matchCounter', { current, total })
 })
 
-const replaceInputDisabled = computed(() => state.documentReadonly)
-const canReplaceCurrent = computed(() => !state.documentReadonly && Boolean(currentMatch.value?.replaceable) && !state.busy)
+const replaceInputDisabled = computed(() => state.documentReadonly || isTerminalMode.value)
+const canReplaceCurrent = computed(() =>
+  !isTerminalMode.value
+  && !state.documentReadonly
+  && Boolean(currentMatch.value?.replaceable)
+  && !state.busy,
+)
 const canReplaceAll = computed(() =>
-  !state.documentReadonly
+  !isTerminalMode.value
+  && !state.documentReadonly
   && Boolean(state.matches.length)
   && !hasAttributeViewMatches(state.matches)
   && !hasUnsupportedCanvasReplacementMatches(state.matches)

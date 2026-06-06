@@ -32,6 +32,8 @@ export interface SearchReplaceState {
   currentRootId: string
   currentTitle: string
   documentReadonly: boolean
+  sourceMode: 'editor' | 'terminal'
+  terminalSurfaceId?: string
   navigationHint: string
   minimapBlocks: SearchableBlockSummary[]
   searchableBlockCount: number
@@ -56,6 +58,8 @@ function createInitialSearchReplaceState(): SearchReplaceState {
     currentRootId: '',
     currentTitle: '',
     documentReadonly: false,
+    sourceMode: 'editor',
+    terminalSurfaceId: undefined,
     navigationHint: '',
     minimapBlocks: [],
     searchableBlockCount: 0,
