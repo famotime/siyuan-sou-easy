@@ -22,6 +22,8 @@ export const openTab = vi.fn(async () => ({}))
 
 export const showMessage = vi.fn()
 
+export const getAllEditor = vi.fn(() => [])
+
 export const adaptHotkey = vi.fn((hotkey: string) => {
   const tokens = hotkey.split('+').map(token => token.trim()).filter(Boolean)
   const modifierMap: Record<string, string> = {

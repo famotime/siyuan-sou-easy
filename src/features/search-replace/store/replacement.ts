@@ -1,4 +1,4 @@
-import { showMessage } from 'siyuan'
+import { showMessage, type IOperation } from 'siyuan'
 import { debugLog } from '../debug'
 import { replaceCanvasMatchGroups } from '../canvas/replacement'
 import {
@@ -121,7 +121,34 @@ export async function replaceCurrentMatch({
 
   try {
     state.busy = true
-    await updateDomBlock(match.blockId, outcome.clone.outerHTML)
+    const canUseTransaction = context.protyleRef && !context.protyleRef.disabled
+    if (canUseTransaction) {
+      const doOperations: IOperation[] = [{
+        action: 'update',
+        id: match.blockId,
+        data: outcome.clone.outerHTML,
+      }]
+      const undoOperations: IOperation[] = [{
+        action: 'update',
+        id: match.blockId,
+        data: blockElement.outerHTML,
+      }]
+      try {
+        const protyleInstance = context.protyleRef!.getInstance?.()
+        if (protyleInstance) {
+          protyleInstance.transaction(doOperations, undoOperations)
+        } else {
+          console.warn('[search-replace] protyle instance not found, fallback to updateDomBlock')
+          await updateDomBlock(match.blockId, outcome.clone.outerHTML)
+        }
+      } catch (e) {
+        console.warn('[search-replace] protyle transaction failed, fallback to updateDomBlock', e)
+        await updateDomBlock(match.blockId, outcome.clone.outerHTML)
+      }
+    } else {
+      await updateDomBlock(match.blockId, outcome.clone.outerHTML)
+    }
+
     invalidateDocumentSnapshot(match.rootId)
     if (state.options.selectionOnly) {
       clearSelectionScope(match.rootId)
@@ -221,6 +248,10 @@ export async function replaceAllMatches({
       ? await getBlockDoms(missingBlockIds)
       : {}
 
+    const canUseTransaction = context.protyleRef && !context.protyleRef.disabled
+    const doOperations: IOperation[] = []
+    const undoOperations: IOperation[] = []
+
     for (const [blockId, matches] of groupedMatches) {
       const blockElement = getBlockElement(context, blockId)
         ?? createBlockElementFromDom(fallbackDoms[blockId] ?? '')
@@ -237,9 +268,29 @@ export async function replaceAllMatches({
         continue
       }
 
-      await updateDomBlock(blockId, outcome.clone.outerHTML)
+      if (canUseTransaction) {
+        doOperations.push({ action: 'update', id: blockId, data: outcome.clone.outerHTML })
+        undoOperations.push({ action: 'update', id: blockId, data: blockElement.outerHTML })
+      } else {
+        await updateDomBlock(blockId, outcome.clone.outerHTML)
+      }
+
       replacedCount += outcome.appliedCount
       skippedCount += Math.max(0, matches.length - outcome.appliedCount)
+    }
+
+    if (canUseTransaction && doOperations.length > 0) {
+      try {
+        const protyleInstance = context.protyleRef!.getInstance?.()
+        if (protyleInstance) {
+          protyleInstance.transaction(doOperations, undoOperations)
+        } else {
+          console.warn('[search-replace] protyle instance not found for batch replacement')
+        }
+      } catch (e) {
+        console.warn('[search-replace] protyle transaction failed', e)
+        // Fallback for batch replacement might be risky, simply let it pass
+      }
     }
 
     if (replacedCount > 0) {

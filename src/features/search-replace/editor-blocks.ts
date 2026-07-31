@@ -8,6 +8,13 @@ import type {
   SearchableBlock,
 } from './types'
 
+const ATTRIBUTE_VIEW_TYPE = 'NodeAttributeView'
+const MATH_BLOCK_TYPE = 'NodeMathBlock'
+const HTML_BLOCK_TYPE = 'NodeHTMLBlock'
+const WIDGET_TYPE = 'NodeWidget'
+const CODE_BLOCK_TYPE = 'NodeCodeBlock'
+const MERMAID_SUBTYPE = 'mermaid'
+
 export function collectSearchableBlocks(context: EditorContext, options: SearchOptions): SearchableBlock[] {
   const blockElements = Array.from(
     context.protyle.querySelectorAll<HTMLElement>('.protyle-wysiwyg [data-node-id][data-type]'),
@@ -35,6 +42,7 @@ export function collectSearchableBlocks(context: EditorContext, options: SearchO
       blockIndex,
       text,
       element,
+      replaceable: isBlockReplaceable(element, blockType),
     })
   })
 
@@ -78,6 +86,25 @@ function isSupportedBlockType(blockType: string, options: SearchOptions) {
   }
 
   return options.includeCodeBlock && blockType === CODE_NODE_TYPE
+}
+
+export function isBlockReplaceable(element: HTMLElement, blockType: string) {
+  if (
+    blockType === ATTRIBUTE_VIEW_TYPE
+    || blockType === MATH_BLOCK_TYPE
+    || blockType === HTML_BLOCK_TYPE
+    || blockType === WIDGET_TYPE
+  ) {
+    return false
+  }
+
+  if (blockType === CODE_BLOCK_TYPE || element.classList.contains('code-block')) {
+    if (element.getAttribute('data-subtype') === MERMAID_SUBTYPE) {
+      return false
+    }
+  }
+
+  return true
 }
 
 function getEditableRoots(blockElement: HTMLElement) {

@@ -1,4 +1,4 @@
-import type { IProtyle } from 'siyuan'
+import { getAllEditor, type IProtyle, type Protyle } from 'siyuan'
 import {
   findCanvasSearchContextByRootId,
   getActiveCanvasSearchContext,
@@ -70,9 +70,23 @@ export function createEditorContextFromElement(
     return null
   }
 
+  let resolvedProtyleRef = protyleRef
+  if (!resolvedProtyleRef) {
+    const editors = getAllEditor()
+    const matched = editors.find((editor) => {
+      const el = editor?.protyle?.element
+      return el === protyle || (el instanceof Element && (
+        el.contains(protyle) || protyle.contains(el)
+      ))
+    })
+    if (matched?.protyle) {
+      resolvedProtyleRef = matched.protyle
+    }
+  }
+
   return {
     protyle,
-    protyleRef: protyleRef?.element === protyle ? protyleRef : null,
+    protyleRef: resolvedProtyleRef?.element === protyle ? resolvedProtyleRef : (resolvedProtyleRef ?? null),
     rootId,
     title: titleHint.trim() || getEditorTitle(protyle),
   }
