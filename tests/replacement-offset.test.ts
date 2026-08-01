@@ -23,9 +23,9 @@ describe('applyReplacementsToClone', () => {
     const outcome = applyReplacementsToClone(
       block,
       [
-        { end: 3, matchedText: 'foo', start: 0 },
-        { end: 7, matchedText: 'foo', start: 4 },
-        { end: 11, matchedText: 'foo', start: 8 },
+        { end: 3, matchedText: 'foo', start: 0, occ: 0 },
+        { end: 7, matchedText: 'foo', start: 4, occ: 0, occ: 1 },
+        { end: 11, matchedText: 'foo', start: 8, occ: 0, occ: 2 },
       ],
       'bar',
     )
@@ -40,9 +40,9 @@ describe('applyReplacementsToClone', () => {
     const outcome = applyReplacementsToClone(
       block,
       [
-        { end: 3, matchedText: 'FOO', start: 0 },
-        { end: 7, matchedText: 'Foo', start: 4 },
-        { end: 11, matchedText: 'foo', start: 8 },
+        { end: 3, matchedText: 'FOO', start: 0, occ: 0 },
+        { end: 7, matchedText: 'Foo', start: 4, occ: 0 },
+        { end: 11, matchedText: 'foo', start: 8, occ: 0 },
       ],
       'bar',
       { preserveCase: true },
@@ -57,7 +57,7 @@ describe('applyReplacementsToClone', () => {
     const block = createBlockFromHtml('<div contenteditable="true">fo<strong>o</strong></div>')
     const outcome = applyReplacementsToClone(
       block,
-      [{ end: 3, matchedText: 'foo', start: 0 }],
+      [{ end: 3, matchedText: 'foo', start: 0, occ: 0 }],
       'bar',
     )
 
@@ -85,7 +85,7 @@ describe('applyReplacementsToClone', () => {
     const block = getBlockElement(context, 'heading-1')
     const outcome = applyReplacementsToClone(
       block as HTMLElement,
-      [{ end: 4, matchedText: '安装', start: 2 }],
+      [{ end: 4, matchedText: '安装', start: 2, occ: 0 }],
       '部署',
     )
 

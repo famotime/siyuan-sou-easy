@@ -9,24 +9,21 @@ describe('canvas replacement', () => {
       getReplacementText: () => 'Beta',
       matches: [
         {
-          start: 0,
-          end: 5,
+          start: 0, occ: 0, end: 5, occ: 0,
           matchedText: 'Alpha',
           canvas: { targetId: 'node:t1:text', host: { replaceTextRanges } },
           replaceable: true,
           sourceKind: 'canvas',
         },
         {
-          start: 6,
-          end: 11,
+          start: 6, occ: 0, end: 11, occ: 0,
           matchedText: 'Alpha',
           canvas: { targetId: 'node:t1:text', host: { replaceTextRanges } },
           replaceable: true,
           sourceKind: 'canvas',
         },
         {
-          start: 0,
-          end: 5,
+          start: 0, occ: 0, end: 5, occ: 0,
           matchedText: 'Alpha',
           canvas: { targetId: 'node:f1:note', host: { replaceTextRanges } },
           replaceable: false,

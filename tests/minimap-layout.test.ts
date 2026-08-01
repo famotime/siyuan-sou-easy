@@ -78,7 +78,7 @@ describe('minimap layout helpers', () => {
       previewText: '[foo]',
       replaceable: true,
       rootId: 'root-1',
-      start: 0,
+      start: 0, occ: 0,
     }, 6)
 
     expect(block.variant).toBe('heading')

@@ -44,7 +44,7 @@ describe('current block highlight', () => {
       previewText: '[飞书]配置飞书',
       replaceable: true,
       rootId: 'root-1',
-      start: 0,
+      start: 0, occ: 0,
     }
 
     ;(globalThis as typeof globalThis & { Highlight?: new (...ranges: Range[]) => unknown }).Highlight = class {
@@ -88,7 +88,7 @@ describe('current block highlight', () => {
       previewText: '本馆创编[学生]国学丛书',
       replaceable: false,
       rootId: 'root-1',
-      start: 6,
+      start: 6, occ: 0,
     }
 
     const highlights = new Map<string, { ranges: Range[] }>()
@@ -139,7 +139,7 @@ describe('current block highlight', () => {
       previewText: '[问题]标题',
       replaceable: true,
       rootId: 'root-1',
-      start: 0,
+      start: 0, occ: 0,
     }
 
     syncSearchDecorations(context, [match], match)
@@ -196,7 +196,7 @@ describe('current block highlight', () => {
       replaceable: false,
       rootId: 'root-1',
       sourceKind: 'attribute-view',
-      start: 0,
+      start: 0, occ: 0,
     }
 
     const highlights = new Map<string, { ranges: Range[] }>()
@@ -262,7 +262,7 @@ describe('current block highlight', () => {
       replaceable: false,
       rootId: 'root-1',
       sourceKind: 'attribute-view',
-      start: 0,
+      start: 0, occ: 0,
     }
 
     syncSearchDecorations(context, [match], match)
@@ -316,7 +316,7 @@ describe('current block highlight', () => {
       replaceable: false,
       rootId: 'root-1',
       sourceKind: 'attribute-view',
-      start: 4,
+      start: 4, occ: 0,
     }
 
     syncSearchDecorations(context, [match], match)
@@ -378,7 +378,7 @@ describe('current block highlight', () => {
       replaceable: false,
       rootId: 'root-1',
       sourceKind: 'attribute-view',
-      start: 0,
+      start: 0, occ: 0,
     }
 
     syncSearchDecorations(context, [match], match)
@@ -448,7 +448,7 @@ describe('current block highlight', () => {
       replaceable: false,
       rootId: 'root-1',
       sourceKind: 'attribute-view',
-      start: 0,
+      start: 0, occ: 0,
     }
 
     syncSearchDecorations(context, [match], match)
@@ -504,7 +504,7 @@ describe('current block highlight', () => {
       replaceable: false,
       rootId: 'root-1',
       sourceKind: 'attribute-view',
-      start: 0,
+      start: 0, occ: 0,
     }
 
     syncSearchDecorations(context, [match], match)
@@ -550,7 +550,7 @@ describe('current block highlight', () => {
       previewText: 'Cell AlphaCell [Beta]',
       replaceable: true,
       rootId: 'root-1',
-      start: 15,
+      start: 15, occ: 0,
     }
 
     syncSearchDecorations(context, [match], match)
@@ -604,7 +604,7 @@ describe('current block highlight', () => {
       previewText: '...ChatGPT2、[Codex]...',
       replaceable: true,
       rootId: 'root-1',
-      start: 18,
+      start: 18, occ: 0,
       table: {
         cellEnd: 23,
         cellId: '',

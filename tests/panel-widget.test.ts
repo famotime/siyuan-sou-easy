@@ -197,7 +197,7 @@ describe('search panel replace toggle', () => {
       replaceable: false,
       rootId: 'root-1',
       sourceKind: 'attribute-view',
-      start: 0,
+      start: 0, occ: 0,
     }] as any
     openPanel(true, true)
     await nextTick()
@@ -225,7 +225,7 @@ describe('search panel replace toggle', () => {
       previewText: '[foo] bar',
       replaceable: true,
       rootId: 'root-1',
-      start: 0,
+      start: 0, occ: 0,
     }] as any
     openPanel(true, true)
     await nextTick()
@@ -284,7 +284,7 @@ describe('search panel replace toggle', () => {
       previewText: '前文 [foo] 后文',
       replaceable: true,
       rootId: 'root-1',
-      start: 0,
+      start: 0, occ: 0,
     }] as any
     searchReplaceState.navigationHint = '正在定位命中内容，等待编辑器继续加载...'
     openPanel(true)

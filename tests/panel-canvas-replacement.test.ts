@@ -82,7 +82,7 @@ describe('search panel canvas replacement controls', () => {
       replaceable: false,
       rootId: 'canvas:/data/a.canvas',
       sourceKind: 'canvas',
-      start: 0,
+      start: 0, occ: 0,
     }]
 
     openPanel(true, true)

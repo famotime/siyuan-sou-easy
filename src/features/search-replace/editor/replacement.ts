@@ -11,7 +11,7 @@ import type {
 
 export function applyReplacementsToClone(
   blockElement: HTMLElement,
-  replacements: Array<Pick<SearchMatch, 'start' | 'end' | 'matchedText'>>,
+  replacements: Array<Pick<SearchMatch, 'start' | 'occ' | 'matchedText'>>,
   replacementText: string,
   options?: { preserveCase?: boolean },
 ): ReplacementOutcome {
@@ -19,11 +19,11 @@ export function applyReplacementsToClone(
   clone.classList.remove(MATCH_CLASS)
   clone.classList.remove(CURRENT_MATCH_CLASS)
 
-  const sortedReplacements = [...replacements].sort((left, right) => right.start - left.start)
+  const sortedReplacements = [...replacements].sort((left, right) => right.occ - left.occ)
   let appliedCount = 0
 
   sortedReplacements.forEach((replacement) => {
-    const location = locateRangeInSingleTextNode(clone, replacement.start, replacement.end)
+    const location = locateRangeInSingleTextNode(clone, replacement.matchedText, replacement.occ)
     if (!location) {
       return
     }
@@ -60,6 +60,6 @@ export function applyReplacementsToClone(
   }
 }
 
-export function isRangeReplaceable(blockElement: HTMLElement, start: number, end: number) {
-  return Boolean(locateRangeInSingleTextNode(blockElement, start, end))
+export function isRangeReplaceable(blockElement: HTMLElement, matchedText: string, occ: number) {
+  return Boolean(locateRangeInSingleTextNode(blockElement, matchedText, occ))
 }

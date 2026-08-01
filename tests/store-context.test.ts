@@ -78,7 +78,7 @@ const searchEngineMocks = vi.hoisted(() => ({
         previewText: '[foo] bar foo',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-1',
@@ -90,7 +90,7 @@ const searchEngineMocks = vi.hoisted(() => ({
         previewText: 'foo bar [foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 8,
+        start: 8, occ: 0,
       },
     ],
   })),
@@ -175,7 +175,7 @@ describe('search store editor context fallback', () => {
           previewText: '[foo] bar foo',
           replaceable: true,
           rootId: 'root-1',
-          start: 0,
+          start: 0, occ: 0,
         },
         {
           blockId: 'block-1',
@@ -187,7 +187,7 @@ describe('search store editor context fallback', () => {
           previewText: 'foo bar [foo]',
           replaceable: true,
           rootId: 'root-1',
-          start: 8,
+          start: 8, occ: 0,
         },
       ],
     }))
@@ -466,7 +466,7 @@ describe('search store editor context fallback', () => {
           previewText: '[foo]',
           replaceable: true,
           rootId: 'root-1',
-          start: 0,
+          start: 0, occ: 0,
         }]
         : [{
           blockId: 'block-1',
@@ -478,7 +478,7 @@ describe('search store editor context fallback', () => {
           previewText: '[fo]o',
           replaceable: true,
           rootId: 'root-1',
-          start: 0,
+          start: 0, occ: 0,
         }],
     }))
 
@@ -585,7 +585,7 @@ describe('search store editor context fallback', () => {
           previewText: '[问题]问题',
           replaceable: true,
           rootId: currentContext.rootId,
-          start: 0,
+          start: 0, occ: 0,
         }]
         : [],
     }))
@@ -640,7 +640,7 @@ describe('search store editor context fallback', () => {
     ;(searchReplaceState.options as any).selectionOnly = true
 
     const selectionScope = new Map([
-      ['block-1', [{ start: 4, end: 11 }]],
+      ['block-1', [{ start: 4, occ: 0, end: 11, occ: 0 }]],
     ])
     editorMocks.getCurrentSelectionScope.mockReturnValue(selectionScope)
 
@@ -810,7 +810,7 @@ describe('search store editor context fallback', () => {
         previewText: 'live [foo]',
         replaceable: true,
         rootId: block.rootId,
-        start: 5,
+        start: 5, occ: 0,
       })),
     }))
 
@@ -891,7 +891,7 @@ describe('search store editor context fallback', () => {
             previewText: '[热辣滚烫]',
             replaceable: true,
             rootId: firstBlock.rootId,
-            start: 0,
+            start: 0, occ: 0,
           }],
         }
       }
@@ -1039,7 +1039,7 @@ describe('search store editor context fallback', () => {
             previewText: '[年会]',
             replaceable: true,
             rootId: matchedBlock.rootId,
-            start: 0,
+            start: 0, occ: 0,
           }],
         }
       }
@@ -1152,7 +1152,7 @@ describe('search store editor context fallback', () => {
           previewText: '[贾玲]',
           replaceable: true,
           rootId: matchedBlock.rootId,
-          start: 0,
+          start: 0, occ: 0,
         }],
       }
     })
@@ -1234,7 +1234,7 @@ describe('search store editor context fallback', () => {
           previewText: '[导演]',
           replaceable: true,
           rootId: matchedBlock.rootId,
-          start: 0,
+          start: 0, occ: 0,
         }],
       }
     })
@@ -1309,7 +1309,7 @@ describe('search store editor context fallback', () => {
           previewText: '[人员]',
           replaceable: true,
           rootId: firstBlock.rootId,
-          start: 0,
+          start: 0, occ: 0,
         }],
       }
     })
@@ -1407,7 +1407,7 @@ describe('search store editor context fallback', () => {
           previewText: '[2024-02-10]',
           replaceable: true,
           rootId: matchedBlock.rootId,
-          start: 0,
+          start: 0, occ: 0,
         }],
       }
     })
@@ -1502,7 +1502,7 @@ describe('search store editor context fallback', () => {
           previewText: '[poster.png]',
           replaceable: true,
           rootId: matchedBlock.rootId,
-          start: 0,
+          start: 0, occ: 0,
         }],
       }
     })
@@ -1649,7 +1649,7 @@ describe('search store editor context fallback', () => {
           previewText: '[贾玲]',
           replaceable: true,
           rootId: firstBlock.rootId,
-          start: 0,
+          start: 0, occ: 0,
         }],
       }
     })
@@ -1835,7 +1835,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-8',
@@ -1847,7 +1847,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 0
@@ -1933,7 +1933,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-8',
@@ -1945,7 +1945,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 0
@@ -2086,7 +2086,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-8',
@@ -2098,7 +2098,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 0
@@ -2227,7 +2227,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-7',
@@ -2239,7 +2239,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 0
@@ -2389,7 +2389,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-80',
@@ -2401,7 +2401,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 0
@@ -2569,7 +2569,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-80',
@@ -2581,7 +2581,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 0
@@ -2702,7 +2702,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-80',
@@ -2714,7 +2714,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 0
@@ -2867,7 +2867,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-80',
@@ -2879,7 +2879,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 0
@@ -3035,7 +3035,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-40',
@@ -3047,7 +3047,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 0
@@ -3173,7 +3173,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-40',
@@ -3185,7 +3185,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 0
@@ -3267,7 +3267,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-80',
@@ -3279,7 +3279,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 0
@@ -3375,7 +3375,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-80',
@@ -3387,7 +3387,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 0
@@ -3488,7 +3488,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-8',
@@ -3500,7 +3500,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 0
@@ -3600,7 +3600,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-2',
@@ -3613,7 +3613,7 @@ describe('search store editor context fallback', () => {
         previewText: '[飞书]开放平台',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       } as any,
     ]
     searchReplaceState.currentIndex = 0
@@ -3722,7 +3722,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-6',
@@ -3734,7 +3734,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 1
@@ -3890,7 +3890,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-80',
@@ -3902,7 +3902,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 0
@@ -4025,7 +4025,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-80',
@@ -4037,7 +4037,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 0
@@ -4143,7 +4143,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-40',
@@ -4155,7 +4155,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 1
@@ -4272,7 +4272,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-80',
@@ -4284,7 +4284,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 0
@@ -4369,7 +4369,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-8',
@@ -4381,7 +4381,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 0
@@ -4508,7 +4508,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-564',
@@ -4520,7 +4520,7 @@ describe('search store editor context fallback', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 0
@@ -4635,7 +4635,7 @@ describe('search store editor context fallback', () => {
       previewText: '[foo] bar foo',
       replaceable: true,
       rootId: 'root-1',
-      start: 0,
+      start: 0, occ: 0,
     }]
     searchReplaceState.currentIndex = 0
 
@@ -4690,7 +4690,7 @@ describe('search store editor context fallback', () => {
       replaceable: false,
       rootId: 'root-1',
       sourceKind: 'attribute-view',
-      start: 0,
+      start: 0, occ: 0,
     }]
     searchReplaceState.currentIndex = 0
 
@@ -4708,7 +4708,7 @@ describe('search store editor context fallback', () => {
     })
 
     const selectionScope = new Map([
-      ['block-1', [{ start: 0, end: 3 }]],
+      ['block-1', [{ start: 0, occ: 0, end: 3, occ: 0 }]],
     ])
 
     editorMocks.getCurrentSelectionScope
@@ -4735,7 +4735,7 @@ describe('search store editor context fallback', () => {
             previewText: '[foo] bar foo',
             replaceable: true,
             rootId: 'root-1',
-            start: 0,
+            start: 0, occ: 0,
           }]
           : [],
       }
@@ -4772,7 +4772,7 @@ describe('search store editor context fallback', () => {
     })
 
     const selectionScope = new Map([
-      ['block-1', [{ start: 0, end: 3 }]],
+      ['block-1', [{ start: 0, occ: 0, end: 3, occ: 0 }]],
     ])
 
     editorMocks.getCurrentSelectionScope
@@ -4799,7 +4799,7 @@ describe('search store editor context fallback', () => {
             previewText: '[foo] bar foo',
             replaceable: true,
             rootId: 'root-1',
-            start: 0,
+            start: 0, occ: 0,
           }]
           : [],
       }
@@ -4828,7 +4828,7 @@ describe('search store editor context fallback', () => {
     })
 
     const selectionScope = new Map([
-      ['block-1', [{ start: 0, end: 3 }]],
+      ['block-1', [{ start: 0, occ: 0, end: 3, occ: 0 }]],
     ])
 
     editorMocks.getCurrentSelectionScope
@@ -4855,7 +4855,7 @@ describe('search store editor context fallback', () => {
             previewText: '[foo] bar foo',
             replaceable: true,
             rootId: 'root-1',
-            start: 0,
+            start: 0, occ: 0,
           }]
           : [],
       }

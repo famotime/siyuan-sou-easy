@@ -48,6 +48,7 @@ describe('range location', () => {
       replaceable: false,
       rootId: 'root-1',
       start: 6,
+      occ: 0,
     }
 
     const range = locateTextRange(context, match)
@@ -84,6 +85,7 @@ describe('range location', () => {
       replaceable: true,
       rootId: 'root-1',
       start: 31,
+      occ: 1,
     }
 
     const range = locateTextRange(context, match)

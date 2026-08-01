@@ -121,7 +121,7 @@ describe('search store live refresh', () => {
         previewText: '[foo] bar',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       }],
     }))
 
@@ -166,7 +166,7 @@ describe('search store live refresh', () => {
           previewText: '[foo] bar',
           replaceable: true,
           rootId: 'root-1',
-          start: 0,
+          start: 0, occ: 0,
         }],
       }))
 
@@ -216,7 +216,7 @@ describe('search store live refresh', () => {
           previewText: '三、全书白[文]四十七万余字',
           replaceable: true,
           rootId: 'root-1',
-          start: 2,
+          start: 2, occ: 0,
         },
         {
           blockId: 'block-1',
@@ -228,7 +228,7 @@ describe('search store live refresh', () => {
           previewText: '合计白[文]连注译约为',
           replaceable: true,
           rootId: 'root-1',
-          start: 10,
+          start: 10, occ: 0,
         },
       ],
     }))
@@ -248,7 +248,7 @@ describe('search store live refresh', () => {
     searchReplaceState.options.selectionOnly = true
 
     const selectionScope = new Map([
-      ['block-1', [{ start: 0, end: 3 }]],
+      ['block-1', [{ start: 0, occ: 0, end: 3, occ: 0 }]],
     ])
 
     editorMocks.getCurrentSelectionScope
@@ -275,7 +275,7 @@ describe('search store live refresh', () => {
             previewText: '[foo] bar',
             replaceable: true,
             rootId: 'root-1',
-            start: 0,
+            start: 0, occ: 0,
           }]
           : [],
       }

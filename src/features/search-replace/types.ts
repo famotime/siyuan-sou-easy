@@ -99,6 +99,7 @@ export interface SearchMatch {
   collapsedAncestorIds?: string[]
   start: number
   end: number
+  occ: number
   matchedText: string
   previewText: string
   replaceable: boolean

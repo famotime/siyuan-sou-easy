@@ -143,16 +143,19 @@ describe('findMatches', () => {
       blockId: match.blockId,
       start: match.start,
       end: match.end,
+      occ: match.occ,
     }))).toEqual([
       {
         blockId: 'block-0',
         start: 8,
         end: 11,
+        occ: 1,
       },
       {
         blockId: 'block-1',
         start: 0,
         end: 3,
+        occ: 0,
       },
     ])
   })

@@ -21,13 +21,6 @@ export function locateTextRange(context: EditorContext, match: SearchMatch) {
     return locateAttributeViewTextRange(context, match)
   }
 
-  if (match.blockType === 'NodeTable') {
-    const tableRange = locateTableTextRange(context, match)
-    if (tableRange) {
-      return tableRange
-    }
-  }
-
   const blockElement = getBlockElement(context, match.blockId)
   if (!blockElement) {
     return null
@@ -38,39 +31,38 @@ export function locateTextRange(context: EditorContext, match: SearchMatch) {
     return null
   }
 
-  const directRange = createRangeFromOffsets(textNodes, match.start, match.end)
-  if (directRange?.toString() === match.matchedText) {
-    return directRange
-  }
-
-  return locateTextRangeInTextNodes(textNodes, match.matchedText, match.start)
+  return locateTextRangeInTextNodes(textNodes, match.matchedText, match.occ)
 }
 
-export function locateRangeInSingleTextNode(blockElement: HTMLElement, start: number, end: number): TextRangeLocation | null {
-  const textNodes = getOwnedTextNodes(blockElement)
-  let cursor = 0
-
-  for (const textNode of textNodes) {
-    const text = textNode.nodeValue ?? ''
-    const nextCursor = cursor + text.length
-    const insideCurrentNode = start >= cursor && end <= nextCursor
-    if (insideCurrentNode) {
-      return {
-        node: textNode,
-        startOffset: start - cursor,
-        endOffset: end - cursor,
-      }
-    }
-    cursor = nextCursor
+export function locateRangeInSingleTextNode(blockElement: HTMLElement, matchedText: string, occ: number): TextRangeLocation | null {
+  const allTextNodes = getSearchTextNodes(blockElement)
+  const range = locateTextRangeInTextNodes(allTextNodes, matchedText, occ)
+  if (!range) {
+    return null
   }
 
-  return null
+  if (range.startContainer !== range.endContainer) {
+    return null
+  }
+
+  const ownedNodes = new Set(getOwnedTextNodes(blockElement))
+  if (!ownedNodes.has(range.startContainer as Text)) {
+
+
+    return null
+  }
+
+  return {
+    node: range.startContainer as Text,
+    startOffset: range.startOffset,
+    endOffset: range.endOffset,
+  }
 }
 
 function locateAttributeViewTextRange(context: EditorContext, match: SearchMatch) {
   const cells = findAttributeViewCellElements(context, match)
   for (const cell of cells) {
-    const range = locateTextRangeInContainer(cell, match.matchedText, match.start)
+    const range = locateTextRangeInContainer(cell, match.matchedText, match.occ)
     if (range) {
       return range
     }
@@ -119,12 +111,12 @@ function locateTextPoint(textNodes: Text[], targetOffset: number): TextPoint | n
   return null
 }
 
-function locateTextRangeInContainer(container: HTMLElement, matchedText: string, preferredStart: number) {
+function locateTextRangeInContainer(container: HTMLElement, matchedText: string, occ: number) {
   const textNodes = collectDescendantTextNodes(container)
-  return locateTextRangeInTextNodes(textNodes, matchedText, preferredStart)
+  return locateTextRangeInTextNodes(textNodes, matchedText, occ)
 }
 
-function locateTextRangeInTextNodes(textNodes: Text[], matchedText: string, preferredStart: number) {
+function locateTextRangeInTextNodes(textNodes: Text[], matchedText: string, occ: number) {
   if (!textNodes.length || !matchedText) {
     return null
   }
@@ -132,7 +124,7 @@ function locateTextRangeInTextNodes(textNodes: Text[], matchedText: string, pref
   const combinedText = textNodes
     .map(node => node.nodeValue ?? '')
     .join('')
-  const start = resolveMatchStart(combinedText, matchedText, preferredStart)
+  const start = resolveMatchStart(combinedText, matchedText, occ)
   if (start < 0) {
     return null
   }
@@ -179,40 +171,23 @@ function collectDescendantTextNodes(container: HTMLElement) {
   return textNodes
 }
 
-function resolveMatchStart(text: string, matchedText: string, preferredStart: number) {
+function resolveMatchStart(text: string, matchedText: string, occ: number) {
   if (!matchedText || !text.includes(matchedText)) {
     return -1
   }
 
-  if (preferredStart >= 0 && text.slice(preferredStart, preferredStart + matchedText.length) === matchedText) {
-    return preferredStart
-  }
-
-  const indexes: number[] = []
-  let fromIndex = 0
-  while (fromIndex <= text.length - matchedText.length) {
-    const index = text.indexOf(matchedText, fromIndex)
-    if (index < 0) {
-      break
+  let currentOcc = 0
+  let idx = text.indexOf(matchedText)
+  
+  while (idx !== -1) {
+    if (currentOcc === occ) {
+      return idx
     }
-
-    indexes.push(index)
-    fromIndex = index + matchedText.length
+    currentOcc++
+    idx = text.indexOf(matchedText, idx + matchedText.length)
   }
 
-  if (!indexes.length) {
-    return -1
-  }
-
-  if (indexes.length === 1) {
-    return indexes[0]
-  }
-
-  return indexes.reduce((bestIndex, currentIndex) => {
-    return Math.abs(currentIndex - preferredStart) < Math.abs(bestIndex - preferredStart)
-      ? currentIndex
-      : bestIndex
-  })
+  return -1
 }
 
 function findTableCellElement(context: EditorContext, match: SearchMatch) {

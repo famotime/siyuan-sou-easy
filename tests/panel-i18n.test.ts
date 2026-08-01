@@ -88,7 +88,7 @@ describe('search panel i18n', () => {
       previewText: 'foo [bar]',
       replaceable: false,
       rootId: 'root-1',
-      start: 0,
+      start: 0, occ: 0,
     }]
     searchReplaceState.navigationHint = 'Locating the current match. Content is still loading and the panel will scroll to it automatically.'
     searchReplaceState.options.useRegex = true

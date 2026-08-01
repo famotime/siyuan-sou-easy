@@ -79,7 +79,7 @@ describe('search input ime handling', () => {
         previewText: '[foo] bar',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-1',
@@ -91,7 +91,7 @@ describe('search input ime handling', () => {
         previewText: 'bar [foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 7,
+        start: 7, occ: 0,
       },
     ] as any
     searchReplaceState.currentIndex = 1

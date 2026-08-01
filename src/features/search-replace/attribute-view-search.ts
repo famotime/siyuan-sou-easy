@@ -151,7 +151,7 @@ function buildAttributeViewMatches({
         visualIndex,
       },
       blockId: candidate.avBlockId,
-      id: `av:${candidate.avBlockId}:${candidate.targetKind}:${candidate.itemID ?? candidate.rowID ?? ''}:${candidate.keyID}:${match.start}:${match.end}`,
+      id: `av:${candidate.avBlockId}:${candidate.targetKind}:${candidate.itemID ?? candidate.rowID ?? ''}:${candidate.keyID}:${match.matchedText}:${match.occ}`,
       previewText: buildAttributeViewPreviewText(candidate, preview),
       replaceable: false,
       sourceKind: 'attribute-view' as const,

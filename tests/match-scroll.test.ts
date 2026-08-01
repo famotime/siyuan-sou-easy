@@ -234,7 +234,7 @@ describe('match scrolling', () => {
       previewText: 'Alpha Beta [Gamma] Delta',
       replaceable: true,
       rootId: 'root-1',
-      start: 11,
+      start: 11, occ: 0,
     }, 'if-needed')
 
     expect(result).toBe('scrolled')
@@ -326,7 +326,7 @@ describe('match scrolling', () => {
       previewText: 'const beta = 2; const [gamma] = 3;',
       replaceable: true,
       rootId: 'root-1',
-      start: 45,
+      start: 45, occ: 0,
     }, 'if-needed')
 
     expect(result).toBe('scrolled')
@@ -409,7 +409,7 @@ describe('match scrolling', () => {
       previewText: 'Cell AlphaCell [Beta]',
       replaceable: true,
       rootId: 'root-1',
-      start: 15,
+      start: 15, occ: 0,
     }, 'if-needed')
 
     expect(result).toBe('scrolled')
@@ -482,7 +482,7 @@ describe('match scrolling', () => {
       previewText: 'Cell AlphaCell [Beta]',
       replaceable: true,
       rootId: 'root-1',
-      start: 15,
+      start: 15, occ: 0,
     }, 'if-needed')
 
     expect(result).toBe('scrolled')
@@ -579,7 +579,7 @@ describe('match scrolling', () => {
       previewText: 'Cell AlphaCell [Beta]',
       replaceable: true,
       rootId: 'root-1',
-      start: 15,
+      start: 15, occ: 0,
     }, 'if-needed')
 
     expect(result).toBe('scrolled')
@@ -692,7 +692,7 @@ describe('match scrolling', () => {
       previewText: 'Cell AlphaCell [Beta]',
       replaceable: true,
       rootId: 'root-1',
-      start: 100,
+      start: 100, occ: 0,
       table: {
         cellEnd: 19,
         cellId: 'cell-2',
@@ -799,7 +799,7 @@ describe('match scrolling', () => {
       previewText: 'Cell AlphaCell [Beta]',
       replaceable: true,
       rootId: 'root-1',
-      start: 100,
+      start: 100, occ: 0,
       table: {
         cellEnd: 19,
         cellId: 'cell-2',
@@ -934,7 +934,7 @@ describe('match scrolling', () => {
       previewText: '...[Codex]...',
       replaceable: true,
       rootId: 'root-1',
-      start: 495,
+      start: 495, occ: 0,
       table: {
         cellEnd: 63,
         cellId: '',
@@ -1017,7 +1017,7 @@ function createMatch(): SearchMatch {
     previewText: '[foo] bar',
     replaceable: true,
     rootId: 'root-1',
-    start: 0,
+    start: 0, occ: 0,
   }
 }
 

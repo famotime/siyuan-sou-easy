@@ -128,7 +128,7 @@ describe('search panel minimap', () => {
         previewText: '[First] block',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-2',
@@ -140,7 +140,7 @@ describe('search panel minimap', () => {
         previewText: '[Second] block',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 1
@@ -183,7 +183,7 @@ describe('search panel minimap', () => {
         previewText: '[First] block',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-9',
@@ -195,7 +195,7 @@ describe('search panel minimap', () => {
         previewText: '[Ninth] block',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 1

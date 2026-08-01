@@ -62,8 +62,15 @@ export function findMatches(
         continue
       }
 
+      let occ = 0
+      let idx = block.text.indexOf(matchedText)
+      while (idx !== -1 && idx < start) {
+        occ++
+        idx = block.text.indexOf(matchedText, idx + matchedText.length)
+      }
+
       matches.push({
-        id: `${block.blockId}:${start}:${end}`,
+        id: `${block.blockId}:${matchedText}:${occ}`,
         blockId: block.blockId,
         rootId: block.rootId,
         blockType: block.blockType,
@@ -73,11 +80,12 @@ export function findMatches(
         collapsedAncestorIds: block.collapsedAncestorIds ?? [],
         start,
         end,
+        occ,
         matchedText,
         previewText: buildPreview(block.text, start, end),
         replaceable: typeof block.replaceable === 'boolean'
           ? block.replaceable
-          : isRangeReplaceable(block.element, start, end),
+          : isRangeReplaceable(block.element, matchedText, occ),
         sourceKind: block.sourceKind === 'canvas' ? 'canvas' : block.sourceKind,
         table: resolveTableMatchMetadata(block, start, end),
         canvas: block.canvas,

@@ -58,7 +58,7 @@ describe('search decoration optimization', () => {
         id: 'block-1:0:5',
         matchedText: 'Alpha',
         previewText: '[Alpha] Beta Gamma',
-        start: 0,
+        start: 0, occ: 0,
       }),
       createMatch({
         blockId: 'block-1',
@@ -66,7 +66,7 @@ describe('search decoration optimization', () => {
         id: 'block-1:6:10',
         matchedText: 'Beta',
         previewText: 'Alpha [Beta] Gamma',
-        start: 6,
+        start: 6, occ: 0,
       }),
     ]
 
@@ -120,7 +120,7 @@ describe('search decoration optimization', () => {
         id: 'code-1:36:41',
         matchedText: 'alpha',
         previewText: '..."items": ["[alpha]", ...',
-        start: 36,
+        start: 36, occ: 0,
       }),
       createMatch({
         blockId: 'code-1',
@@ -131,7 +131,7 @@ describe('search decoration optimization', () => {
         id: 'code-1:56:61',
         matchedText: 'alpha',
         previewText: '... "beta", "[alpha]" ]...',
-        start: 56,
+        start: 56, occ: 0,
       }),
     ]
 
@@ -169,7 +169,7 @@ function createMatch(overrides: Partial<SearchMatch>): SearchMatch {
     previewText: '',
     replaceable: true,
     rootId: 'root-1',
-    start: 0,
+    start: 0, occ: 0,
     ...overrides,
   }
 }

@@ -145,7 +145,7 @@ describe('search store replaceAll', () => {
         previewText: '[foo] foo',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-1',
@@ -157,7 +157,7 @@ describe('search store replaceAll', () => {
         previewText: 'foo [foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 4,
+        start: 4, occ: 0,
       },
       {
         blockId: 'block-2',
@@ -169,7 +169,7 @@ describe('search store replaceAll', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-ignored',
@@ -181,7 +181,7 @@ describe('search store replaceAll', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-other',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
 
@@ -234,7 +234,7 @@ describe('search store replaceAll', () => {
       previewText: '[foo]',
       replaceable: true,
       rootId: 'root-1',
-      start: 0,
+      start: 0, occ: 0,
     }]
 
     await replaceAll()
@@ -259,7 +259,7 @@ describe('search store replaceAll', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
       {
         blockId: 'block-2',
@@ -271,7 +271,7 @@ describe('search store replaceAll', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0,
+        start: 0, occ: 0,
       },
     ]
 
@@ -328,7 +328,7 @@ describe('search store replaceAll', () => {
       previewText: '[FOO]',
       replaceable: true,
       rootId: 'root-1',
-      start: 0,
+      start: 0, occ: 0,
     }]
 
     editorMocks.getBlockElement.mockReturnValue({
@@ -373,7 +373,7 @@ describe('search store replaceAll', () => {
       replaceable: false,
       rootId: 'root-1',
       sourceKind: 'attribute-view',
-      start: 0,
+      start: 0, occ: 0,
     }]
 
     await replaceAll()
@@ -406,7 +406,7 @@ describe('search store replaceAll', () => {
       replaceable: false,
       rootId: 'canvas:/data/a.canvas',
       sourceKind: 'canvas',
-      start: 0,
+      start: 0, occ: 0,
     }]
 
     await replaceAll()
