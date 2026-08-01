@@ -1,45 +1,51 @@
 <template>
   <div class="sfsr-row sfsr-row--secondary">
-    <input
-      ref="replaceInputRef"
-      :value="props.replacement"
-      class="b3-text-field sfsr-input"
-      :disabled="props.replaceInputDisabled"
-      :placeholder="t('replacePlaceholder')"
-      @compositionstart="props.onReplaceCompositionStart"
-      @compositionend="props.onReplaceCompositionEnd"
-      @input="props.onReplaceInput"
-      @keydown.enter.prevent="props.onReplaceCurrent"
-    />
-    <button
-      :class="optionButtonClass(props.preserveCase)"
-      class="sfsr-button"
-      :title="t('settingPreserveCaseTitle')"
-      @click="props.onTogglePreserveCase"
-    >
-      Aa*
-    </button>
-    <SyButton
-      class="sfsr-action"
-      :disabled="!props.canReplaceCurrent"
-      @click="props.onReplaceCurrent"
-    >
-      {{ t('replaceAction') }}
-    </SyButton>
-    <SyButton
-      class="sfsr-action"
-      :disabled="!props.hasMatches"
-      @click="props.onSkipCurrent"
-    >
-      {{ t('skipAction') }}
-    </SyButton>
-    <SyButton
-      class="sfsr-action"
-      :disabled="!props.canReplaceAll"
-      @click="props.onReplaceAll"
-    >
-      {{ t('replaceAllAction') }}
-    </SyButton>
+    <div class="sfsr-field">
+      <input
+        ref="replaceInputRef"
+        :value="props.replacement"
+        class="b3-text-field sfsr-input"
+        :disabled="props.replaceInputDisabled"
+        :placeholder="t('replacePlaceholder')"
+        @compositionstart="props.onReplaceCompositionStart"
+        @compositionend="props.onReplaceCompositionEnd"
+        @input="props.onReplaceInput"
+        @keydown.enter.prevent="props.onReplaceCurrent"
+      />
+      <div class="sfsr-field__toggles">
+        <button
+          :class="optionButtonClass(props.preserveCase)"
+          class="sfsr-button"
+          :title="t('settingPreserveCaseTitle')"
+          @click="props.onTogglePreserveCase"
+        >
+          Aa*
+        </button>
+      </div>
+    </div>
+    <div class="sfsr-row__trailing sfsr-row__trailing--replace">
+      <SyButton
+        class="sfsr-action"
+        :disabled="!props.canReplaceCurrent"
+        @click="props.onReplaceCurrent"
+      >
+        {{ t('replaceAction') }}
+      </SyButton>
+      <SyButton
+        class="sfsr-action"
+        :disabled="!props.hasMatches"
+        @click="props.onSkipCurrent"
+      >
+        {{ t('skipAction') }}
+      </SyButton>
+      <SyButton
+        class="sfsr-action"
+        :disabled="!props.canReplaceAll"
+        @click="props.onReplaceAll"
+      >
+        {{ t('replaceAllAction') }}
+      </SyButton>
+    </div>
   </div>
 </template>
 

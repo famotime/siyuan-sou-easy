@@ -1,127 +1,133 @@
 <template>
   <div class="sfsr-row">
-    <input
-      ref="findInputRef"
-      :value="props.query"
-      class="b3-text-field sfsr-input"
-      :placeholder="t('findPlaceholder')"
-      @compositionstart="props.onFindCompositionStart"
-      @compositionend="props.onFindCompositionEnd"
-      @input="props.onFindInput"
-      @keydown.enter.prevent="props.onFindEnter"
-    />
+    <div class="sfsr-field">
+      <input
+        ref="findInputRef"
+        :value="props.query"
+        class="b3-text-field sfsr-input"
+        :placeholder="t('findPlaceholder')"
+        @compositionstart="props.onFindCompositionStart"
+        @compositionend="props.onFindCompositionEnd"
+        @input="props.onFindInput"
+        @keydown.enter.prevent="props.onFindEnter"
+      />
 
-    <button
-      :class="optionButtonClass(props.matchCase)"
-      class="sfsr-button"
-      :title="t('matchCase')"
-      @click="props.onToggleOption('matchCase')"
-    >
-      Aa
-    </button>
-    <button
-      :class="optionButtonClass(props.wholeWord)"
-      class="sfsr-button sfsr-icon-button sfsr-icon-button--wide sfsr-icon-button--compact"
-      :title="t('wholeWord')"
-      @click="props.onToggleOption('wholeWord')"
-    >
-      <svg
-        aria-hidden="true"
-        class="sfsr-toolbar-icon sfsr-toolbar-icon--whole-word sfsr-toolbar-icon--whole-word-wide"
-        viewBox="0 0 22 18"
+      <div class="sfsr-field__toggles">
+        <button
+          :class="optionButtonClass(props.matchCase)"
+          class="sfsr-button"
+          :title="t('matchCase')"
+          @click="props.onToggleOption('matchCase')"
+        >
+          Aa
+        </button>
+        <button
+          :class="optionButtonClass(props.wholeWord)"
+          class="sfsr-button sfsr-icon-button sfsr-icon-button--wide sfsr-icon-button--compact"
+          :title="t('wholeWord')"
+          @click="props.onToggleOption('wholeWord')"
+        >
+          <svg
+            aria-hidden="true"
+            class="sfsr-toolbar-icon sfsr-toolbar-icon--whole-word sfsr-toolbar-icon--whole-word-wide"
+            viewBox="0 0 22 18"
+          >
+            <path
+              class="sfsr-toolbar-icon-boundary"
+              d="M2.6 3.2V14.8M2.6 3.2H4.9M2.6 14.8H4.9"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.35"
+            />
+            <path
+              class="sfsr-toolbar-icon-boundary"
+              d="M19.4 3.2V14.8M17.1 3.2H19.4M17.1 14.8H19.4"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.35"
+            />
+            <text
+              class="sfsr-toolbar-icon-word"
+              x="11"
+              y="10.35"
+              text-anchor="middle"
+            >ab</text>
+            <path
+              d="M7.25 13.2H14.75"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-width="1.15"
+            />
+          </svg>
+        </button>
+        <button
+          :class="optionButtonClass(props.useRegex)"
+          class="sfsr-button"
+          :title="t('useRegex')"
+          @click="props.onToggleOption('useRegex')"
+        >
+          .*
+        </button>
+      </div>
+    </div>
+
+    <div class="sfsr-row__trailing">
+      <div class="sfsr-count">{{ props.counterText }}</div>
+
+      <button
+        class="sfsr-button"
+        :title="t('previousMatch')"
+        @click="props.onGoPrev"
       >
-        <path
-          class="sfsr-toolbar-icon-boundary"
-          d="M2.6 3.2V14.8M2.6 3.2H4.9M2.6 14.8H4.9"
+        ↑
+      </button>
+      <button
+        class="sfsr-button"
+        :title="t('nextMatch')"
+        @click="props.onGoNext"
+      >
+        ↓
+      </button>
+      <button
+        :class="optionButtonClass(props.selectionOnly)"
+        class="sfsr-button sfsr-icon-button"
+        :aria-label="t('selectionOnly')"
+        :title="t('selectionOnly')"
+        @pointerdown.prevent.stop="props.onSelectionOnlyPointerDown"
+        @click.stop="props.onSelectionOnlyClick"
+      >
+        <svg
+          aria-hidden="true"
+          class="sfsr-toolbar-icon"
+          viewBox="0 0 16 16"
           fill="none"
           stroke="currentColor"
           stroke-linecap="round"
           stroke-linejoin="round"
-          stroke-width="1.35"
-        />
-        <path
-          class="sfsr-toolbar-icon-boundary"
-          d="M19.4 3.2V14.8M17.1 3.2H19.4M17.1 14.8H19.4"
-          fill="none"
-          stroke="currentColor"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="1.35"
-        />
-        <text
-          class="sfsr-toolbar-icon-word"
-          x="11"
-          y="10.35"
-          text-anchor="middle"
-        >ab</text>
-        <path
-          d="M7.25 13.2H14.75"
-          fill="none"
-          stroke="currentColor"
-          stroke-linecap="round"
-          stroke-width="1.15"
-        />
-      </svg>
-    </button>
-    <button
-      :class="optionButtonClass(props.useRegex)"
-      class="sfsr-button"
-      :title="t('useRegex')"
-      @click="props.onToggleOption('useRegex')"
-    >
-      .*
-    </button>
-    <button
-      :class="optionButtonClass(props.selectionOnly)"
-      class="sfsr-button sfsr-icon-button"
-      :aria-label="t('selectionOnly')"
-      :title="t('selectionOnly')"
-      @pointerdown.prevent.stop="props.onSelectionOnlyPointerDown"
-      @click.stop="props.onSelectionOnlyClick"
-    >
-      <svg
-        aria-hidden="true"
-        class="sfsr-toolbar-icon"
-        viewBox="0 0 16 16"
-        fill="none"
-        stroke="currentColor"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="1.4"
+          stroke-width="1.4"
+        >
+          <path d="M4 2.75H2.75V5" />
+          <path d="M12 2.75H13.25V5" />
+          <path d="M4 13.25H2.75V11" />
+          <path d="M12 13.25H13.25V11" />
+          <path d="M5.25 6H10.75" />
+          <path d="M5.25 8H10.75" />
+          <path d="M5.25 10H8.75" />
+        </svg>
+      </button>
+      <button
+        class="sfsr-button"
+        :title="t('closePanel')"
+        @click="props.onClose"
       >
-        <path d="M4 2.75H2.75V5" />
-        <path d="M12 2.75H13.25V5" />
-        <path d="M4 13.25H2.75V11" />
-        <path d="M12 13.25H13.25V11" />
-        <path d="M5.25 6H10.75" />
-        <path d="M5.25 8H10.75" />
-        <path d="M5.25 10H8.75" />
-      </svg>
-    </button>
-
-    <div class="sfsr-count">{{ props.counterText }}</div>
-
-    <button
-      class="sfsr-button"
-      :title="t('previousMatch')"
-      @click="props.onGoPrev"
-    >
-      ↑
-    </button>
-    <button
-      class="sfsr-button"
-      :title="t('nextMatch')"
-      @click="props.onGoNext"
-    >
-      ↓
-    </button>
-    <button
-      class="sfsr-button"
-      :title="t('closePanel')"
-      @click="props.onClose"
-    >
-      ×
-    </button>
+        ×
+      </button>
+    </div>
   </div>
 </template>
 
