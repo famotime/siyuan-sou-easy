@@ -3,12 +3,14 @@
     v-if="state.visible"
     ref="panelRef"
     class="sfsr-panel"
+    :class="{ 'sfsr-panel--mobile': isMobile }"
     :style="panelStyle"
     @pointerdown="onPanelPointerDown"
     @dblclick="onPanelDoubleClick"
     @keydown.esc.stop.prevent="closePanel"
   >
     <div
+      v-if="!isMobile"
       class="sfsr-resize-handle"
       aria-hidden="true"
       @dblclick.stop
@@ -39,6 +41,7 @@
           ref="searchToolbarRef"
           :current-index="currentMatchIndex"
           :total-matches="totalMatches"
+          :is-mobile="isMobile"
           :match-case="state.options.matchCase"
           :on-close="closePanel"
           :on-find-composition-end="onFindCompositionEnd"
@@ -63,6 +66,7 @@
           :can-replace-all="canReplaceAll"
           :can-replace-current="canReplaceCurrent"
           :has-matches="Boolean(state.matches.length)"
+          :is-mobile="isMobile"
           :on-extract-all="extractAll"
           :on-replace-all="replaceAll"
           :on-replace-composition-end="onReplaceCompositionEnd"
@@ -77,7 +81,7 @@
         />
 
         <RegexHelpPanel
-          v-if="showRegexHelp"
+          v-if="showRegexHelp && !isMobile"
           :examples="regexHelpExamples"
           :note="regexHelpNote"
           :title="regexHelpTitle"
@@ -196,10 +200,14 @@
 import {
   computed,
   nextTick,
+  onUnmounted,
   ref,
   watch,
 } from 'vue'
+import { detectPluginEnvironment } from '@/features/search-replace/plugin-environment'
 import { t } from '@/i18n/runtime'
+
+const { isMobile } = detectPluginEnvironment()
 import {
   hasAttributeViewMatches,
   hasUnsupportedCanvasReplacementMatches,

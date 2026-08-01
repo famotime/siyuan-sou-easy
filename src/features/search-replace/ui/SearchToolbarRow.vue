@@ -12,7 +12,10 @@
         @keydown.enter.prevent="props.onFindEnter"
       />
 
-      <div class="sfsr-field__toggles">
+      <div
+        v-if="!props.isMobile"
+        class="sfsr-field__toggles"
+      >
         <button
           :class="optionButtonClass(props.matchCase)"
           class="sfsr-button"
@@ -132,6 +135,7 @@
         </svg>
       </button>
       <button
+        v-if="!props.isMobile"
         :class="optionButtonClass(props.selectionOnly)"
         class="sfsr-button sfsr-action"
         :aria-label="t('selectionOnly')"
@@ -183,6 +187,7 @@ import { t } from '@/i18n/runtime'
 const props = defineProps<{
   currentIndex: number
   totalMatches: number
+  isMobile?: boolean
   matchCase: boolean
   onClose: () => void
   onFindCompositionEnd: (event: CompositionEvent) => void

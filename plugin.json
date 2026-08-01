@@ -9,9 +9,7 @@
     "all"
   ],
   "frontends": [
-    "desktop",
-    "desktop-window",
-    "browser-desktop"
+    "all"
   ],
   "displayName": {
     "default": "Search like VScode",

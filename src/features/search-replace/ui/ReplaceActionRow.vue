@@ -12,7 +12,10 @@
         @input="props.onReplaceInput"
         @keydown.enter.prevent="props.onReplaceCurrent"
       />
-      <div class="sfsr-field__toggles">
+      <div
+        v-if="!props.isMobile"
+        class="sfsr-field__toggles"
+      >
         <button
           :class="optionButtonClass(props.preserveCase)"
           class="sfsr-button"
@@ -92,6 +95,7 @@
         </svg>
       </button>
       <button
+        v-if="!props.isMobile"
         class="sfsr-button sfsr-action"
         :disabled="!props.hasMatches"
         :title="t('extractAllAction')"
@@ -125,6 +129,7 @@ const props = defineProps<{
   canReplaceAll: boolean
   canReplaceCurrent: boolean
   hasMatches: boolean
+  isMobile?: boolean
   onExtractAll: () => void
   onReplaceAll: () => void
   onReplaceCompositionEnd: (event: CompositionEvent) => void
