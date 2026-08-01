@@ -61,6 +61,7 @@ const searchEngineMocks = vi.hoisted(() => ({
 
 const kernelMocks = vi.hoisted(() => ({
   getBlockDoms: vi.fn(async () => ({})),
+  querySql: vi.fn(async () => []),
   updateDomBlock: vi.fn(async () => null),
 }))
 
@@ -71,6 +72,7 @@ vi.mock('@/features/search-replace/kernel', () => kernelMocks)
 import {
   applyPluginSettings,
   closePanel,
+  extractAll,
   onEditorContextChanged,
   openPanel,
   replaceAll,
@@ -268,6 +270,61 @@ describe('search store actions', () => {
     expect(editorMocks.getBlockElement).not.toHaveBeenCalled()
     expect(editorMocks.applyReplacementsToClone).not.toHaveBeenCalled()
     expect(kernelMocks.updateDomBlock).not.toHaveBeenCalled()
+  })
+
+  it('extracts plain text blocks strictly maintaining document block order even if SQL returns out of order', async () => {
+    let writtenText = ''
+    const writeTextMock = vi.fn(async (text: string) => {
+      writtenText = text
+    })
+    vi.stubGlobal('navigator', {
+      clipboard: {
+        writeText: writeTextMock,
+      },
+    })
+
+    searchReplaceState.settings.extractAsBlockRef = false
+    searchReplaceState.matches = [
+      createMatch('block-first', 0, 3),
+      createMatch('block-second', 0, 3),
+      createMatch('block-third', 0, 3),
+    ]
+
+    // Simulate SQL returning records in reverse or random order
+    kernelMocks.querySql.mockResolvedValueOnce([
+      { id: 'block-third', markdown: 'Third block content' },
+      { id: 'block-first', markdown: 'First block content' },
+      { id: 'block-second', markdown: 'Second block content' },
+    ])
+
+    await extractAll()
+
+    expect(writeTextMock).toHaveBeenCalledTimes(1)
+    expect(writtenText).toBe('First block content\n\nSecond block content\n\nThird block content')
+    expect(showMessage).toHaveBeenCalledWith(expect.stringContaining('3'), 3000, 'info')
+  })
+
+  it('extracts block references strictly maintaining document block order', async () => {
+    let writtenText = ''
+    const writeTextMock = vi.fn(async (text: string) => {
+      writtenText = text
+    })
+    vi.stubGlobal('navigator', {
+      clipboard: {
+        writeText: writeTextMock,
+      },
+    })
+
+    searchReplaceState.settings.extractAsBlockRef = true
+    searchReplaceState.matches = [
+      { ...createMatch('block-1', 0, 3), matchedText: 'First', previewText: '[First]' },
+      { ...createMatch('block-2', 0, 3), matchedText: 'Second', previewText: '[Second]' },
+    ]
+
+    await extractAll()
+
+    expect(writeTextMock).toHaveBeenCalledTimes(1)
+    expect(writtenText).toBe('* ((block-1 "First"))\n* ((block-2 "Second"))')
   })
 })
 

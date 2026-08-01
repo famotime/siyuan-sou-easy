@@ -415,8 +415,17 @@ export async function extractAll() {
     try {
       // Build a SQL query to get markdown for all targeted blocks
       const idListStr = targetIds.map(id => `'${id}'`).join(',')
-      const results = await querySql(`SELECT markdown FROM blocks WHERE id IN (${idListStr})`)
-      resultText = results.map(row => row.markdown).join('\n\n')
+      const results = await querySql(`SELECT id, markdown FROM blocks WHERE id IN (${idListStr})`)
+      const markdownMap = new Map<string, string>()
+      for (const row of results) {
+        if (row?.id && typeof row.markdown === 'string') {
+          markdownMap.set(row.id, row.markdown)
+        }
+      }
+      resultText = targetIds
+        .map(id => markdownMap.get(id))
+        .filter((md): md is string => typeof md === 'string')
+        .join('\n\n')
     } catch (e) {
       console.error('Failed to extract plain text', e)
       showMessage(t('extractLimitWarning').replace('{0}', '0'), 3000, 'error')
