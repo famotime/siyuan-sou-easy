@@ -101,7 +101,7 @@ describe('search panel canvas replacement controls', () => {
 
   function findActionButton(label: string) {
     return Array.from(host?.querySelectorAll<HTMLButtonElement>('.sfsr-action') ?? [])
-      .find(button => button.textContent?.trim() === label)
+      .find(button => button.title === label || button.getAttribute('aria-label') === label || button.textContent?.trim() === label)
   }
 
   function resetState() {
