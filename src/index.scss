@@ -430,6 +430,11 @@ body.b3-theme-dark .sfsr-minimap,
   display: block;
 }
 
+.sfsr-status__match {
+  font-weight: 700;
+  color: var(--b3-theme-on-background, #000);
+}
+
 .sfsr-status__line--pending {
   font-weight: 500;
 }

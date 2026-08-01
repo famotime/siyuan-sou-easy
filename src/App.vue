@@ -105,7 +105,21 @@
           v-if="primaryStatusText"
           class="sfsr-status__line"
         >
-          {{ primaryStatusText }}
+          <template v-if="state.error">
+            {{ primaryStatusText }}
+          </template>
+          <template v-else>
+            <template
+              v-for="(seg, idx) in primaryStatusSegments"
+              :key="idx"
+            >
+              <strong
+                v-if="seg.isMatch"
+                class="sfsr-status__match"
+              >{{ seg.text }}</strong>
+              <span v-else>{{ seg.text }}</span>
+            </template>
+          </template>
         </span>
         <span
           v-if="navigationStatusText"
@@ -190,6 +204,7 @@ import {
   hasAttributeViewMatches,
   hasUnsupportedCanvasReplacementMatches,
   isAttributeViewMatch,
+  parsePreviewSegments,
 } from '@/features/search-replace/match-utils'
 import {
   captureCurrentSelectionScope,
@@ -256,6 +271,16 @@ const primaryStatusText = computed(() => {
   }
 
   return currentMatch.value?.previewText ?? ''
+})
+const primaryStatusSegments = computed(() => {
+  if (state.error || !primaryStatusText.value) {
+    return []
+  }
+
+  return parsePreviewSegments(
+    primaryStatusText.value,
+    currentMatch.value?.matchedText,
+  )
 })
 const navigationStatusText = computed(() => {
   if (state.error) {

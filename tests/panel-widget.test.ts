@@ -295,7 +295,8 @@ describe('search panel replace toggle', () => {
     const lines = Array.from(host?.querySelectorAll<HTMLElement>('.sfsr-status__line') ?? [])
 
     expect(lines).toHaveLength(2)
-    expect(lines[0]?.textContent).toContain('前文 [foo] 后文')
+    expect(lines[0]?.textContent).toContain('前文 foo 后文')
+    expect(lines[0]?.querySelector('.sfsr-status__match')?.textContent).toBe('foo')
     expect(lines[1]?.textContent).toContain('正在定位命中内容，等待编辑器继续加载...')
     expect(lines[1]?.classList.contains('sfsr-status__line--pending')).toBe(true)
   })
