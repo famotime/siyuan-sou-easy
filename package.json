@@ -1,11 +1,11 @@
 {
   "name": "siyuan-sou-easy",
-  "version": "1.2.3",
+  "version": "1.3.0",
   "type": "module",
-  "description": "A SiYuan plugin that adds VS Code style find-and-replace for the current document.",
+  "description": "A SiYuan plugin that adds VS Code style find-and-replace for documents.",
   "author": "QuincyZou",
   "license": "MIT",
-  "homepage": "",
+  "homepage": "https://github.com/famotime/siyuan-sou-easy",
   "repository": "https://github.com/famotime/siyuan-sou-easy",
   "scripts": {
     "dev": "vite build --watch",
