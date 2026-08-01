@@ -55,7 +55,8 @@ describe('search panel replace toggle', () => {
     const count = host?.querySelector<HTMLElement>('.sfsr-count')
 
     expect(replaceToggle).not.toBeNull()
-    expect(count?.textContent?.trim()).toBe('0 / 0')
+    expect((count?.querySelector('.sfsr-count__input') as HTMLInputElement)?.value).toBe('0')
+    expect(count?.querySelector('.sfsr-count__total')?.textContent?.trim()).toBe('/ 0')
     expect(replaceToggle?.getAttribute('aria-expanded')).toBe('false')
     expect(host?.querySelector('.sfsr-drag-handle')).toBeNull()
     expect(host?.querySelector('.sfsr-row--secondary')).toBeNull()

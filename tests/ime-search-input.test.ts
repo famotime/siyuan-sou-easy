@@ -101,7 +101,8 @@ describe('search input ime handling', () => {
     const counter = host?.querySelector<HTMLElement>('.sfsr-count')
 
     expect(input).not.toBeNull()
-    expect(counter?.textContent?.trim()).toBe('2 / 2')
+    expect((counter?.querySelector('.sfsr-count__input') as HTMLInputElement)?.value).toBe('2')
+    expect(counter?.querySelector('.sfsr-count__total')?.textContent?.trim()).toBe('/ 2')
 
     input!.value = 'foo'
     input!.dispatchEvent(new InputEvent('input', {
@@ -111,7 +112,8 @@ describe('search input ime handling', () => {
     await nextTick()
 
     expect(searchReplaceState.query).toBe('foo')
-    expect(counter?.textContent?.trim()).toBe('0 / 0')
+    expect((counter?.querySelector('.sfsr-count__input') as HTMLInputElement)?.value).toBe('0')
+    expect(counter?.querySelector('.sfsr-count__total')?.textContent?.trim()).toBe('/ 0')
   })
 })
 

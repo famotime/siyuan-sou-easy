@@ -37,7 +37,8 @@
       <div class="sfsr-main">
         <SearchToolbarRow
           ref="searchToolbarRef"
-          :counter-text="counterText"
+          :current-index="currentMatchIndex"
+          :total-matches="totalMatches"
           :match-case="state.options.matchCase"
           :on-close="closePanel"
           :on-find-composition-end="onFindCompositionEnd"
@@ -46,6 +47,7 @@
           :on-find-input="onFindInput"
           :on-go-next="goNext"
           :on-go-prev="goPrev"
+          :on-jump-to-index="jumpToMatchIndex"
           :on-selection-only-click="onSelectionOnlyClick"
           :on-selection-only-pointer-down="onSelectionOnlyPointerDown"
           :on-toggle-option="toggleOption"
@@ -194,6 +196,8 @@ import {
   getCurrentMatch,
   goNext,
   goPrev,
+  jumpToMatchIndex,
+  onEditorContextChanged,
   persistPanelPosition,
   replaceAll,
   replaceCurrent,
@@ -290,11 +294,11 @@ const hasStatus = computed(() => Boolean(
   || navigationStatusText.value
   || secondaryStatusText.value,
 ))
-const counterText = computed(() => {
-  const current = state.query && state.matches.length ? state.currentIndex + 1 : 0
-  const total = state.query ? state.matches.length : 0
-
-  return t('matchCounter', { current, total })
+const currentMatchIndex = computed(() => {
+  return state.query && state.matches.length ? state.currentIndex + 1 : 0
+})
+const totalMatches = computed(() => {
+  return state.query ? state.matches.length : 0
 })
 
 const replaceInputDisabled = computed(() => state.documentReadonly || isTerminalMode.value)

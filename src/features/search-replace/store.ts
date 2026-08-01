@@ -266,6 +266,26 @@ export function goPrev() {
   searchController.revealCurrentMatch(undefined, 'if-needed')
 }
 
+export function jumpToMatchIndex(oneBasedIndex: number) {
+  if (!searchReplaceState.matches.length) {
+    return
+  }
+
+  const targetIndex = oneBasedIndex - 1
+  if (targetIndex < 0 || targetIndex >= searchReplaceState.matches.length) {
+    return
+  }
+
+  searchReplaceState.currentIndex = targetIndex
+
+  if (searchReplaceState.sourceMode === 'terminal') {
+    activeTerminalSurface?.goTo(searchReplaceState.currentIndex)
+    return
+  }
+
+  searchController.revealCurrentMatch(undefined, 'if-needed')
+}
+
 export function skipCurrent() {
   goNext()
 }

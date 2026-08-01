@@ -77,7 +77,21 @@
     </div>
 
     <div class="sfsr-row__trailing">
-      <div class="sfsr-count">{{ props.counterText }}</div>
+      <div class="sfsr-count">
+        <input
+          ref="indexInputRef"
+          type="text"
+          class="b3-text-field sfsr-count__input"
+          :value="displayIndex"
+          :disabled="props.totalMatches === 0"
+          @focus="onIndexFocus"
+          @input="onIndexInput"
+          @keydown.enter.prevent="onIndexEnter"
+          @keydown.esc.stop.prevent="onIndexEsc"
+          @blur="onIndexBlur"
+        />
+        <span class="sfsr-count__total">/ {{ props.totalMatches }}</span>
+      </div>
 
       <button
         class="sfsr-button"
@@ -132,12 +146,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import type { SearchOptions } from '../types'
 import { t } from '@/i18n/runtime'
 
 const props = defineProps<{
-  counterText: string
+  currentIndex: number
+  totalMatches: number
   matchCase: boolean
   onClose: () => void
   onFindCompositionEnd: (event: CompositionEvent) => void
@@ -146,6 +161,7 @@ const props = defineProps<{
   onFindInput: (event: Event) => void
   onGoNext: () => void
   onGoPrev: () => void
+  onJumpToIndex?: (index: number) => void
   onSelectionOnlyClick: () => void
   onSelectionOnlyPointerDown: () => void
   onToggleOption: (option: keyof SearchOptions) => void
@@ -156,6 +172,49 @@ const props = defineProps<{
 }>()
 
 const findInputRef = ref<HTMLInputElement>()
+const indexInputRef = ref<HTMLInputElement>()
+
+const isIndexFocused = ref(false)
+const displayIndex = ref<string>(String(props.currentIndex))
+
+watch(
+  () => [props.currentIndex, props.totalMatches],
+  () => {
+    if (!isIndexFocused.value) {
+      displayIndex.value = String(props.currentIndex)
+    }
+  },
+  { immediate: true },
+)
+
+function onIndexFocus() {
+  isIndexFocused.value = true
+  indexInputRef.value?.select()
+}
+
+function onIndexInput(event: Event) {
+  displayIndex.value = (event.target as HTMLInputElement).value
+}
+
+function onIndexEnter() {
+  const val = parseInt(displayIndex.value, 10)
+  if (!isNaN(val) && val >= 1 && val <= props.totalMatches) {
+    props.onJumpToIndex?.(val)
+  } else {
+    displayIndex.value = String(props.currentIndex)
+  }
+  indexInputRef.value?.select()
+}
+
+function onIndexEsc() {
+  displayIndex.value = String(props.currentIndex)
+  indexInputRef.value?.blur()
+}
+
+function onIndexBlur() {
+  isIndexFocused.value = false
+  displayIndex.value = String(props.currentIndex)
+}
 
 defineExpose({
   focusInput() {

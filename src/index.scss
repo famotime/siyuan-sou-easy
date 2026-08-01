@@ -305,11 +305,34 @@ body.b3-theme-dark .sfsr-minimap,
 }
 
 .sfsr-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
   min-width: 56px;
   color: var(--b3-theme-on-surface-light);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sfsr-count__input {
+  width: 32px;
+  height: var(--sfsr-control-height);
+  padding: 0 2px;
   text-align: center;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
+  border-radius: 4px;
+  box-sizing: border-box;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.sfsr-count__total {
+  white-space: nowrap;
 }
 
 .sfsr-action {
