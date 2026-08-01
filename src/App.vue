@@ -63,6 +63,7 @@
           :can-replace-all="canReplaceAll"
           :can-replace-current="canReplaceCurrent"
           :has-matches="Boolean(state.matches.length)"
+          :on-extract-all="extractAll"
           :on-replace-all="replaceAll"
           :on-replace-composition-end="onReplaceCompositionEnd"
           :on-replace-composition-start="onReplaceCompositionStart"
@@ -199,6 +200,7 @@ import {
   jumpToMatchIndex,
   onEditorContextChanged,
   persistPanelPosition,
+  extractAll,
   replaceAll,
   replaceCurrent,
   resetStoredPanelPosition,

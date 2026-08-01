@@ -64,5 +64,10 @@
   "regexHelpPatternWhitespace": "install\\s+plugin",
   "regexHelpDescWhitespace": "matches install and plugin with whitespace between them",
   "regexHelpPatternVersion": "v\\d+\\.\\d+\\.\\d+",
-  "regexHelpDescVersion": "matches versions like v1.2.3"
+  "regexHelpDescVersion": "matches versions like v1.2.3",
+  "extractAllAction": "Extract all",
+  "extractSuccess": "Extracted {0} blocks to clipboard",
+  "extractLimitWarning": "Extraction limit reached. Only the first {0} blocks were extracted.",
+  "settingExtractAsBlockRefTitle": "Extract as block reference",
+  "settingExtractAsBlockRefDesc": "Format extracted results as a list of dynamic block references rather than plain text."
 }

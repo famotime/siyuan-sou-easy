@@ -12,6 +12,7 @@ type BooleanSettingKey =
   | 'preloadSelection'
   | 'rememberPanelPosition'
   | 'searchAttributeView'
+  | 'extractAsBlockRef'
 
 export type NumberSettingKey = 'largeCodeBlockLineThreshold'
 
@@ -74,6 +75,11 @@ export const BOOLEAN_SETTING_DEFINITIONS: ReadonlyArray<SettingDefinition<Boolea
     descriptionKey: 'settingDebugLogDesc',
     settingKey: 'debugLog',
     titleKey: 'settingDebugLogTitle',
+  },
+  {
+    descriptionKey: 'settingExtractAsBlockRefDesc',
+    settingKey: 'extractAsBlockRef',
+    titleKey: 'settingExtractAsBlockRefTitle',
   },
 ]
 

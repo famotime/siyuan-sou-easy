@@ -21,6 +21,7 @@ type BooleanSettingKey =
   | 'includeCodeBlock'
   | 'debugLog'
   | 'preserveCase'
+  | 'extractAsBlockRef'
 
 type SettingsI18n = Record<string, string>
 
@@ -74,6 +75,11 @@ const BOOLEAN_SETTING_DESCRIPTORS: Array<{
     settingKey: 'preserveCase',
     titleKey: 'settingPreserveCaseTitle',
     descriptionKey: 'settingPreserveCaseDesc',
+  },
+  {
+    settingKey: 'extractAsBlockRef',
+    titleKey: 'settingExtractAsBlockRefTitle',
+    descriptionKey: 'settingExtractAsBlockRefDesc',
   },
 ]
 

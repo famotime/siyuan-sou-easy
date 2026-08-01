@@ -1,4 +1,5 @@
-import type { Plugin } from 'siyuan'
+import { showMessage, type Plugin } from 'siyuan'
+import { t } from '@/i18n/runtime'
 import {
   applyReplacementsToClone,
   createBlockElementFromDom,
@@ -9,6 +10,7 @@ import {
 } from './editor'
 import {
   getBlockDoms,
+  querySql,
   updateDomBlock,
 } from './kernel'
 import type {
@@ -380,5 +382,56 @@ function resetTerminalMode() {
   searchReplaceState.terminalSurfaceId = undefined
   if (wasTerminalMode) {
     searchReplaceState.documentReadonly = false
+  }
+}
+
+export async function extractAll() {
+  if (searchReplaceState.sourceMode === 'terminal' || !searchReplaceState.matches.length) {
+    return
+  }
+
+  const uniqueBlockIds = Array.from(new Set(searchReplaceState.matches.map(m => m.blockId)))
+  
+  const limit = 1000
+  const isLimited = uniqueBlockIds.length > limit
+  const targetIds = uniqueBlockIds.slice(0, limit)
+  let resultText = ''
+
+  if (searchReplaceState.settings.extractAsBlockRef) {
+    const textLimit = 30
+    resultText = targetIds.map(id => {
+      const match = searchReplaceState.matches.find(m => m.blockId === id)
+      let anchorText = match?.previewText?.trim() || ''
+      if (match?.matchedText) {
+        anchorText = anchorText.replace(`[${match.matchedText}]`, match.matchedText)
+      }
+      if (anchorText.length > textLimit) {
+        anchorText = anchorText.substring(0, textLimit) + '...'
+      }
+      anchorText = anchorText.replace(/"/g, "'").replace(/[\r\n]+/g, ' ') // Prevent breaking syntax
+      return `* ((${id} "${anchorText}"))`
+    }).join('\n')
+  } else {
+    try {
+      // Build a SQL query to get markdown for all targeted blocks
+      const idListStr = targetIds.map(id => `'${id}'`).join(',')
+      const results = await querySql(`SELECT markdown FROM blocks WHERE id IN (${idListStr})`)
+      resultText = results.map(row => row.markdown).join('\n\n')
+    } catch (e) {
+      console.error('Failed to extract plain text', e)
+      showMessage(t('extractLimitWarning').replace('{0}', '0'), 3000, 'error')
+      return
+    }
+  }
+
+  try {
+    await navigator.clipboard.writeText(resultText)
+    if (isLimited) {
+      showMessage(t('extractLimitWarning').replace('{0}', String(limit)), 5000, 'info')
+    } else {
+      showMessage(t('extractSuccess').replace('{0}', String(targetIds.length)), 3000, 'info')
+    }
+  } catch (e) {
+    console.error('Clipboard write failed', e)
   }
 }

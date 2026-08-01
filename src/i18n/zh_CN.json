@@ -64,5 +64,10 @@
   "regexHelpPatternWhitespace": "安装\\s+插件",
   "regexHelpDescWhitespace": "匹配中间含空白的“安装 插件”",
   "regexHelpPatternVersion": "v\\d+\\.\\d+\\.\\d+",
-  "regexHelpDescVersion": "匹配类似 v1.2.3 的版本号"
+  "regexHelpDescVersion": "匹配类似 v1.2.3 的版本号",
+  "extractAllAction": "全部提取",
+  "extractSuccess": "已成功提取 {0} 个块到剪贴板",
+  "extractLimitWarning": "达到提取上限。仅提取了前 {0} 个块。",
+  "settingExtractAsBlockRefTitle": "提取为块引",
+  "settingExtractAsBlockRefDesc": "将提取结果格式化为思源块引用的形式，以便在其他文档中点击跳转，而不是纯文本。"
 }

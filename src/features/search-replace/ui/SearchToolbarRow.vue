@@ -117,21 +117,15 @@
       >
         <svg
           aria-hidden="true"
-          class="sfsr-toolbar-icon"
-          viewBox="0 0 16 16"
+          class="sfsr-toolbar-icon sfsr-toolbar-icon--selection"
+          viewBox="2.5 2.5 19 19"
           fill="none"
           stroke="currentColor"
           stroke-linecap="round"
           stroke-linejoin="round"
-          stroke-width="1.4"
+          stroke-width="2"
         >
-          <path d="M4 2.75H2.75V5" />
-          <path d="M12 2.75H13.25V5" />
-          <path d="M4 13.25H2.75V11" />
-          <path d="M12 13.25H13.25V11" />
-          <path d="M5.25 6H10.75" />
-          <path d="M5.25 8H10.75" />
-          <path d="M5.25 10H8.75" />
+          <path d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2m8-16h2a2 2 0 0 1 2 2v2m-4 12h2a2 2 0 0 0 2-2v-2M8 12h8M8 9h6m-6 6h4" />
         </svg>
       </button>
       <button

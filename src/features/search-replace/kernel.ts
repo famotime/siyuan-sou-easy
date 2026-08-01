@@ -77,3 +77,9 @@ export async function setKeymap(keymap: unknown) {
     data: keymap,
   })
 }
+
+export async function querySql(stmt: string) {
+  return requestApi<Array<Record<string, any>>>('/api/query/sql', {
+    stmt,
+  })
+}
