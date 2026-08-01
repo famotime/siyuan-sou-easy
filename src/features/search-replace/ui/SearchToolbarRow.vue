@@ -94,22 +94,46 @@
       </div>
 
       <button
-        class="sfsr-button"
+        class="sfsr-button sfsr-action"
         :title="t('previousMatch')"
+        :aria-label="t('previousMatch')"
         @click="props.onGoPrev"
       >
-        ↑
+        <svg
+          aria-hidden="true"
+          class="sfsr-action__icon sfsr-toolbar-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="1.8"
+        >
+          <path d="M12 19V5M5 12l7-7 7 7" />
+        </svg>
       </button>
       <button
-        class="sfsr-button"
+        class="sfsr-button sfsr-action"
         :title="t('nextMatch')"
+        :aria-label="t('nextMatch')"
         @click="props.onGoNext"
       >
-        ↓
+        <svg
+          aria-hidden="true"
+          class="sfsr-action__icon sfsr-toolbar-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="1.8"
+        >
+          <path d="M12 5v14M5 12l7 7 7-7" />
+        </svg>
       </button>
       <button
         :class="optionButtonClass(props.selectionOnly)"
-        class="sfsr-button sfsr-icon-button"
+        class="sfsr-button sfsr-action"
         :aria-label="t('selectionOnly')"
         :title="t('selectionOnly')"
         @pointerdown.prevent.stop="props.onSelectionOnlyPointerDown"
@@ -117,23 +141,35 @@
       >
         <svg
           aria-hidden="true"
-          class="sfsr-toolbar-icon sfsr-toolbar-icon--selection"
-          viewBox="2.5 2.5 19 19"
+          class="sfsr-action__icon sfsr-toolbar-icon sfsr-toolbar-icon--selection"
+          viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           stroke-linecap="round"
           stroke-linejoin="round"
-          stroke-width="2"
+          stroke-width="1.8"
         >
-          <path d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2m8-16h2a2 2 0 0 1 2 2v2m-4 12h2a2 2 0 0 0 2-2v-2M8 12h8M8 9h6m-6 6h4" />
+          <path d="M4 7V5a2 2 0 0 1 2-2h2M4 17v2a2 2 0 0 0 2 2h2m8-18h2a2 2 0 0 1 2 2v2m-4 14h2a2 2 0 0 0 2-2v-2M8 12h8M8 8h6m-6 8h4" />
         </svg>
       </button>
       <button
-        class="sfsr-button"
+        class="sfsr-button sfsr-action"
         :title="t('closePanel')"
+        :aria-label="t('closePanel')"
         @click="props.onClose"
       >
-        ×
+        <svg
+          aria-hidden="true"
+          class="sfsr-action__icon sfsr-toolbar-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="1.8"
+        >
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
       </button>
     </div>
   </div>

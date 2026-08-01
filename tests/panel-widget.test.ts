@@ -206,7 +206,7 @@ describe('search panel replace toggle', () => {
     const buttons = host?.querySelectorAll<HTMLButtonElement>('.sfsr-row--secondary .sfsr-action')
     const status = host?.querySelector<HTMLElement>('.sfsr-status')
 
-    expect(buttons).toHaveLength(3)
+    expect(buttons).toHaveLength(4)
     expect(buttons?.[0]?.disabled).toBe(true)
     expect(buttons?.[2]?.disabled).toBe(true)
     expect(status?.textContent).toContain('数据库结果仅支持搜索与高亮，不支持替换')
@@ -235,10 +235,11 @@ describe('search panel replace toggle', () => {
     const buttons = host?.querySelectorAll<HTMLButtonElement>('.sfsr-row--secondary .sfsr-action')
 
     expect(replaceInput?.disabled).toBe(true)
-    expect(buttons).toHaveLength(3)
+    expect(buttons).toHaveLength(4)
     expect(buttons?.[0]?.disabled).toBe(true)
     expect(buttons?.[1]?.disabled).toBe(false)
     expect(buttons?.[2]?.disabled).toBe(true)
+    expect(buttons?.[3]?.disabled).toBe(false)
   })
 
   it('does not show minimap controls inside the search toolbar', async () => {

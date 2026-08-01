@@ -283,10 +283,18 @@ body.b3-theme-dark .sfsr-minimap,
   background: transparent;
   color: var(--b3-theme-on-background);
   cursor: pointer;
-}
+  box-sizing: border-box;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, opacity 120ms ease;
 
-.sfsr-button:hover {
-  background: var(--b3-list-hover);
+  &:hover:not(:disabled) {
+    background: var(--b3-list-hover);
+    color: var(--b3-theme-on-background);
+  }
+
+  &:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+  }
 }
 
 .sfsr-button--active {
@@ -341,19 +349,25 @@ body.b3-theme-dark .sfsr-minimap,
 }
 
 .sfsr-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  width: var(--sfsr-control-height);
   min-width: var(--sfsr-control-height);
   height: var(--sfsr-control-height);
-  padding: 0 6px;
-  white-space: nowrap;
+  padding: 0;
+  box-sizing: border-box;
+  flex: 0 0 auto;
 }
 
 .sfsr-action__icon {
-  width: 14px;
-  height: 14px;
+  width: 17px;
+  height: 17px;
   flex: 0 0 auto;
+  fill: none !important;
+  stroke: currentColor !important;
+
+  :where(path, circle, rect, polygon, polyline, line, g):not(text) {
+    fill: none !important;
+    stroke: currentColor !important;
+  }
 }
 
 .sfsr-regex-help {

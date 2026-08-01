@@ -85,6 +85,8 @@ const settingsI18n = {
   settingReplaceHotkeyTitle: 'Replace hotkey',
   settingSearchAttributeViewDesc: 'search database blocks',
   settingSearchAttributeViewTitle: 'Search database blocks',
+  settingExtractAsBlockRefDesc: 'extract as block reference',
+  settingExtractAsBlockRefTitle: 'Extract as block reference',
   settingSaved: 'saved',
 }
 
@@ -110,7 +112,7 @@ describe('plugin settings panel', () => {
 
     plugin.openSetting()
 
-    expect(addItemSpy).toHaveBeenCalledTimes(12)
+    expect(addItemSpy).toHaveBeenCalledTimes(13)
     expect(addItemSpy.mock.calls.map(([item]) => ({
       description: item.description,
       title: item.title,
@@ -162,6 +164,10 @@ describe('plugin settings panel', () => {
       {
         description: 'debug',
         title: 'Debug',
+      },
+      {
+        description: 'extract as block reference',
+        title: 'Extract as block reference',
       },
     ])
   })
