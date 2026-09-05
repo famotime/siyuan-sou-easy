@@ -17,6 +17,7 @@ export interface PanelPosition {
 
 export interface PersistedUiState {
   panelPosition?: PanelPosition | null
+  panelWidth?: number | null
 }
 
 export interface SearchReplaceState {
@@ -25,6 +26,7 @@ export interface SearchReplaceState {
   minimapVisible: boolean
   preserveCase: boolean
   panelPosition: PanelPosition | null
+  panelWidth: number | null
   settings: PluginSettings
   query: string
   replacement: string
@@ -51,6 +53,7 @@ function createInitialSearchReplaceState(): SearchReplaceState {
     minimapVisible: false,
     preserveCase: false,
     panelPosition: null,
+    panelWidth: null,
     settings: { ...DEFAULT_SETTINGS },
     query: '',
     replacement: '',

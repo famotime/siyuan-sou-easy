@@ -229,6 +229,7 @@ import {
   resetStoredPanelPosition,
   searchReplaceState as state,
   setPanelPosition,
+  setPanelWidth,
   setQuery,
   setReplacement,
   skipCurrent,
@@ -371,11 +372,13 @@ const {
   syncPanelBoundsToViewport,
 } = usePanelFrame({
   getPanelPosition: () => state.panelPosition,
+  getPanelWidth: () => state.panelWidth,
   onViewportResize: refreshMinimap,
   panelRef,
   persistPanelPosition,
   resetStoredPanelPosition,
   setPanelPosition,
+  setPanelWidth,
 })
 const {
   onCompositionEnd: onFindCompositionEnd,

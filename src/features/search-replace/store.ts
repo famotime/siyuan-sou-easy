@@ -41,7 +41,9 @@ import {
 import {
   bindUiStatePlugin,
   loadStoredPanelPosition,
+  loadStoredUiState,
   normalizePanelPosition,
+  normalizePanelWidth,
   persistUiState,
   schedulePersistUiState,
   unbindUiStatePlugin,
@@ -50,6 +52,7 @@ import { mapTerminalSearchResult } from './terminal/adapter'
 import type { TerminalSearchSurface } from './terminal/registry'
 
 export { searchReplaceState } from './store/state'
+export { normalizePanelWidth } from './store/ui-state'
 const searchController = createSearchController({
   getCurrentMatch: () => getCurrentMatch(),
   state: searchReplaceState,
@@ -69,14 +72,18 @@ export function unbindPlugin() {
 }
 
 export async function initializeUiState() {
-  const storedPanelPosition = await loadStoredPanelPosition()
-  if (storedPanelPosition === undefined && searchReplaceState.settings.rememberPanelPosition) {
+  const storedUiState = await loadStoredUiState()
+  if (!storedUiState && searchReplaceState.settings.rememberPanelPosition) {
     return
   }
 
-  searchReplaceState.panelPosition = searchReplaceState.settings.rememberPanelPosition
-    ? storedPanelPosition ?? null
-    : null
+  if (searchReplaceState.settings.rememberPanelPosition) {
+    searchReplaceState.panelPosition = storedUiState?.panelPosition ?? null
+    searchReplaceState.panelWidth = storedUiState?.panelWidth ?? null
+  } else {
+    searchReplaceState.panelPosition = null
+    searchReplaceState.panelWidth = null
+  }
 }
 
 export function applyPluginSettings(settings: PluginSettings) {
@@ -90,7 +97,8 @@ export function applyPluginSettings(settings: PluginSettings) {
 
   if (!settings.rememberPanelPosition) {
     searchReplaceState.panelPosition = null
-    void persistUiState(null)
+    searchReplaceState.panelWidth = null
+    void persistUiState(null, null)
   }
 }
 
@@ -105,7 +113,14 @@ function applySearchHighlightColor(color: string) {
 export function setPanelPosition(position: PanelPosition | null, persist = true) {
   searchReplaceState.panelPosition = normalizePanelPosition(position)
   if (persist && searchReplaceState.settings.rememberPanelPosition) {
-    schedulePersistUiState(searchReplaceState.panelPosition)
+    schedulePersistUiState(searchReplaceState.panelPosition, searchReplaceState.panelWidth)
+  }
+}
+
+export function setPanelWidth(width: number | null, persist = true) {
+  searchReplaceState.panelWidth = normalizePanelWidth(width)
+  if (persist && searchReplaceState.settings.rememberPanelPosition) {
+    schedulePersistUiState(searchReplaceState.panelPosition, searchReplaceState.panelWidth)
   }
 }
 
@@ -114,7 +129,7 @@ export function persistPanelPosition() {
     return
   }
 
-  schedulePersistUiState(searchReplaceState.panelPosition, 0)
+  schedulePersistUiState(searchReplaceState.panelPosition, searchReplaceState.panelWidth, 0)
 }
 
 export function resetStoredPanelPosition() {

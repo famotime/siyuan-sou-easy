@@ -363,6 +363,18 @@ describe('search panel replace toggle', () => {
       left: 40,
       top: 20,
     })
+    expect(searchReplaceState.panelWidth).toBe(708)
+  })
+
+  it('renders panel with stored panelWidth on mount', async () => {
+    searchReplaceState.panelWidth = 750
+    mountPanel()
+    applyPluginSettings({ ...DEFAULT_SETTINGS })
+    openPanel(true)
+    await nextTick()
+
+    const panel = getPanelElement()
+    expect(panel.style.width).toBe('750px')
   })
 
   it('starts dragging from non-interactive panel content', async () => {
@@ -539,6 +551,7 @@ describe('search panel replace toggle', () => {
     ;(searchReplaceState as any).minimapVisible = false
     ;(searchReplaceState as any).preserveCase = false
     searchReplaceState.panelPosition = null
+    searchReplaceState.panelWidth = null
     searchReplaceState.query = ''
     searchReplaceState.replacement = ''
     searchReplaceState.options = createSearchOptionsFromSettings(DEFAULT_SETTINGS)

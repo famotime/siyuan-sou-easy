@@ -2,6 +2,7 @@ import {
   computed,
   onBeforeUnmount,
   ref,
+  watch,
   type Ref,
 } from 'vue'
 import type { PanelPosition } from '../store/state'
@@ -22,22 +23,34 @@ const NON_DRAG_SELECTOR = [
 
 interface UsePanelFrameOptions {
   getPanelPosition: () => PanelPosition | null
+  getPanelWidth?: () => number | null
   onViewportResize?: () => void
   panelRef: Ref<HTMLDivElement | undefined>
   persistPanelPosition: () => void
   resetStoredPanelPosition: () => void
   setPanelPosition: (position: PanelPosition | null, persist?: boolean) => void
+  setPanelWidth?: (width: number | null, persist?: boolean) => void
 }
 
 export function usePanelFrame({
   getPanelPosition,
+  getPanelWidth,
   onViewportResize,
   panelRef,
   persistPanelPosition,
   resetStoredPanelPosition,
   setPanelPosition,
+  setPanelWidth,
 }: UsePanelFrameOptions) {
-  const panelWidth = ref(resolveDefaultPanelWidth())
+  const panelWidth = ref(resolveInitialPanelWidth(getPanelWidth?.()))
+
+  watch(() => getPanelWidth?.(), (nextWidth) => {
+    if (typeof nextWidth === 'number' && Number.isFinite(nextWidth)) {
+      panelWidth.value = clampPanelWidth(nextWidth)
+    } else if (nextWidth === null) {
+      panelWidth.value = resolveDefaultPanelWidth()
+    }
+  })
 
   let dragState: {
     pointerId: number
@@ -171,6 +184,7 @@ export function usePanelFrame({
     const rect = panel.getBoundingClientRect()
     const width = clampPanelWidth(rect.width)
     panelWidth.value = width
+    setPanelWidth?.(width, false)
     setPanelPosition({
       left: rect.right - width,
       top: rect.top,
@@ -222,6 +236,7 @@ export function usePanelFrame({
     const nextWidth = clampPanelWidth(resizeState.panelRight - event.clientX)
     const nextLeft = resizeState.panelRight - nextWidth
     panelWidth.value = nextWidth
+    setPanelWidth?.(nextWidth, false)
     setPanelPosition(clampPanelPosition({
       left: nextLeft,
       top: resizeState.panelTop,
@@ -234,6 +249,7 @@ export function usePanelFrame({
     }
 
     resizeState = null
+    setPanelWidth?.(panelWidth.value, false)
     persistPanelPosition()
     document.body.classList.remove('sfsr-resizing')
     window.removeEventListener('pointermove', onResizeMove)
@@ -275,9 +291,25 @@ export function usePanelFrame({
   }
 
   function clampPanelWidth(width: number) {
-    const maxWidth = Math.max(MIN_PANEL_WIDTH, window.innerWidth - (PANEL_MARGIN * 2))
-    return clamp(width, MIN_PANEL_WIDTH, maxWidth)
+    return clampPanelWidthValue(width)
   }
+}
+
+function resolveInitialPanelWidth(storedWidth?: number | null) {
+  if (typeof storedWidth === 'number' && Number.isFinite(storedWidth)) {
+    return clampPanelWidthValue(storedWidth)
+  }
+
+  return resolveDefaultPanelWidth()
+}
+
+function clampPanelWidthValue(width: number) {
+  if (typeof window === 'undefined') {
+    return clamp(width, MIN_PANEL_WIDTH, DEFAULT_PANEL_WIDTH)
+  }
+
+  const maxWidth = Math.max(MIN_PANEL_WIDTH, window.innerWidth - (PANEL_MARGIN * 2))
+  return clamp(width, MIN_PANEL_WIDTH, maxWidth)
 }
 
 function resolveDefaultPanelWidth() {
@@ -285,8 +317,7 @@ function resolveDefaultPanelWidth() {
     return DEFAULT_PANEL_WIDTH
   }
 
-  const maxWidth = Math.max(MIN_PANEL_WIDTH, window.innerWidth - (PANEL_MARGIN * 2))
-  return clamp(DEFAULT_PANEL_WIDTH, MIN_PANEL_WIDTH, maxWidth)
+  return clampPanelWidthValue(DEFAULT_PANEL_WIDTH)
 }
 
 function clamp(value: number, min: number, max: number) {

@@ -82,6 +82,7 @@ import {
   initializeUiState,
   searchReplaceState,
   setPanelPosition,
+  setPanelWidth,
   unbindPlugin,
 } from '@/features/search-replace/store'
 
@@ -161,6 +162,7 @@ describe('search store ui state', () => {
       left: 180,
       top: 96,
     }
+    searchReplaceState.panelWidth = 720
     plugin.saveData.mockClear()
 
     applyPluginSettings({
@@ -170,8 +172,57 @@ describe('search store ui state', () => {
     await Promise.resolve()
 
     expect(searchReplaceState.panelPosition).toBeNull()
+    expect(searchReplaceState.panelWidth).toBeNull()
     expect(plugin.saveData).toHaveBeenCalledWith('ui-state.json', {
       panelPosition: null,
+    })
+  })
+
+  it('restores the saved panel width during initialization when remember position is enabled', async () => {
+    plugin.loadData.mockResolvedValue({
+      panelPosition: {
+        left: 120,
+        top: 64,
+      },
+      panelWidth: 720,
+    })
+
+    bindPlugin(plugin as any)
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      rememberPanelPosition: true,
+    })
+
+    await initializeUiState()
+
+    expect(plugin.loadData).toHaveBeenCalledWith('ui-state.json')
+    expect(searchReplaceState.panelPosition).toEqual({
+      left: 120,
+      top: 64,
+    })
+    expect(searchReplaceState.panelWidth).toBe(720)
+  })
+
+  it('persists the panel width after it changes', async () => {
+    bindPlugin(plugin as any)
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      rememberPanelPosition: true,
+    })
+
+    setPanelPosition({
+      left: 180,
+      top: 96,
+    })
+    setPanelWidth(720)
+    vi.runOnlyPendingTimers()
+
+    expect(plugin.saveData).toHaveBeenCalledWith('ui-state.json', {
+      panelPosition: {
+        left: 180,
+        top: 96,
+      },
+      panelWidth: 720,
     })
   })
 
@@ -233,6 +284,7 @@ function resetState() {
   searchReplaceState.minimapVisible = false
   searchReplaceState.preserveCase = false
   searchReplaceState.panelPosition = null
+  searchReplaceState.panelWidth = null
   searchReplaceState.settings = { ...DEFAULT_SETTINGS }
   searchReplaceState.query = ''
   searchReplaceState.replacement = ''

@@ -18,7 +18,7 @@ export function unbindUiStatePlugin() {
   pluginInstance = null
 }
 
-export async function loadStoredPanelPosition() {
+export async function loadStoredUiState(): Promise<PersistedUiState | undefined> {
   if (!pluginInstance) {
     return undefined
   }
@@ -29,30 +29,49 @@ export async function loadStoredPanelPosition() {
       return undefined
     }
 
-    return normalizePanelPosition(data.panelPosition)
+    return {
+      panelPosition: normalizePanelPosition(data.panelPosition),
+      panelWidth: normalizePanelWidth(data.panelWidth),
+    }
   } catch {
     return undefined
   }
 }
 
-export function schedulePersistUiState(position: PanelPosition | null, delay = 180) {
+export async function loadStoredPanelPosition() {
+  const uiState = await loadStoredUiState()
+  return uiState ? uiState.panelPosition : undefined
+}
+
+export function schedulePersistUiState(
+  position: PanelPosition | null,
+  width?: number | null,
+  delay = 180,
+) {
   if (!pluginInstance) {
     return
   }
 
   window.clearTimeout(persistTimer)
   persistTimer = window.setTimeout(() => {
-    void persistUiState(position)
+    void persistUiState(position, width)
   }, delay)
 }
 
-export async function persistUiState(position: PanelPosition | null) {
+export async function persistUiState(
+  position: PanelPosition | null,
+  width?: number | null,
+) {
   if (!pluginInstance) {
     return
   }
 
   const payload: PersistedUiState = {
     panelPosition: normalizePanelPosition(position),
+  }
+  const normalizedWidth = normalizePanelWidth(width)
+  if (normalizedWidth !== null) {
+    payload.panelWidth = normalizedWidth
   }
 
   try {
@@ -74,3 +93,13 @@ export function normalizePanelPosition(position: PanelPosition | null | undefine
     top: position.top,
   }
 }
+
+export function normalizePanelWidth(width: number | null | undefined) {
+  if (typeof width !== 'number' || !Number.isFinite(width)) {
+    return null
+  }
+
+  const rounded = Math.round(width)
+  return rounded > 0 ? rounded : null
+}
+
