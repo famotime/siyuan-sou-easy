@@ -325,12 +325,15 @@ function resolveMatchScrollState(context: EditorContext, match: SearchMatch): Re
     ? verticalElement
     : element
 
-  const inlineTarget = verticalElement !== element
-    ? createElementScrollTarget(element)
-    : resolvePreciseMatchScrollTarget(context, match, element)
-  const verticalTarget = verticalElement !== element
-    ? createElementScrollTarget(verticalVisibilityElement)
-    : inlineTarget
+  const preciseTarget = resolvePreciseMatchScrollTarget(context, match, element)
+  const hasPreciseRange = preciseTarget.precise
+
+  const inlineTarget = hasPreciseRange
+    ? preciseTarget
+    : (verticalElement !== element ? createElementScrollTarget(element) : preciseTarget)
+  const verticalTarget = hasPreciseRange
+    ? preciseTarget
+    : (verticalElement !== element ? createElementScrollTarget(verticalVisibilityElement) : inlineTarget)
 
   return {
     element,
@@ -645,13 +648,10 @@ function findTableCellElement(context: EditorContext, match: SearchMatch) {
     return null
   }
 
-  const startCell = resolveNodeElement(range.startContainer)?.closest<HTMLElement>('[data-type="NodeTableCell"], .table__cell')
+  const startCell = resolveNodeElement(range.startContainer)?.closest<HTMLElement>('[data-type="NodeTableCell"], .table__cell, td, th')
   const endCell = resolveNodeElement(range.endContainer)?.closest<HTMLElement>('[data-type="NodeTableCell"], .table__cell, td, th')
-  const normalizedStartCell = startCell?.matches('td, th')
-    ? startCell
-    : resolveNodeElement(range.startContainer)?.closest<HTMLElement>('[data-type="NodeTableCell"], .table__cell, td, th')
-  if (normalizedStartCell && (!endCell || normalizedStartCell === endCell)) {
-    return normalizedStartCell
+  if (startCell && (!endCell || startCell === endCell)) {
+    return startCell
   }
 
   return endCell
@@ -694,21 +694,33 @@ function findTableCellElementByMetadata(context: EditorContext, match: SearchMat
 
   const rowIndex = match.table?.rowIndex
   const columnIndex = match.table?.columnIndex
-  if (typeof rowIndex !== 'number' || typeof columnIndex !== 'number') {
-    return null
+  if (typeof rowIndex === 'number' && typeof columnIndex === 'number') {
+    const rows = getTableRowElements(tableBlock)
+    const targetRow = rows[rowIndex]
+    if (targetRow) {
+      const rowCells = Array.from(targetRow.children)
+        .filter((child): child is HTMLElement => child instanceof HTMLElement)
+        .filter(child => child.matches('[data-type="NodeTableCell"], .table__cell, td, th'))
+
+      if (rowCells[columnIndex]) {
+        return rowCells[columnIndex]
+      }
+    }
   }
 
-  const rows = getTableRowElements(tableBlock)
-  const targetRow = rows[rowIndex]
-  if (!targetRow) {
-    return null
+  // 增强回退：如果由于合并单元格或行结构不一致未能按索引定位，则在表格中寻找包含 matchedText 的单元格
+  if (match.matchedText) {
+    const allCells = Array.from(
+      tableBlock.querySelectorAll<HTMLElement>('[data-type="NodeTableCell"], .table__cell, td, th'),
+    )
+    const needle = match.matchedText.toLowerCase()
+    const matchingCell = allCells.find(cell => cell.textContent?.toLowerCase().includes(needle))
+    if (matchingCell) {
+      return matchingCell
+    }
   }
 
-  const rowCells = Array.from(targetRow.children)
-    .filter((child): child is HTMLElement => child instanceof HTMLElement)
-    .filter(child => child.matches('[data-type="NodeTableCell"], .table__cell, td, th'))
-
-  return rowCells[columnIndex] ?? null
+  return null
 }
 
 function resolveNodeElement(node: Node | null) {

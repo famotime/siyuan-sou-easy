@@ -113,7 +113,10 @@ export function createSearchController({
     scheduleRefresh(80)
   }
 
-  async function refreshMatches(revision = ++latestRefreshRevision) {
+  async function refreshMatches(
+    revision = ++latestRefreshRevision,
+    scrollMode: 'if-needed' | 'none' = 'none',
+  ) {
     if (revision > latestRefreshRevision) {
       latestRefreshRevision = revision
     }
@@ -217,7 +220,7 @@ export function createSearchController({
         state.currentIndex = state.matches.length - 1
       }
 
-      revealCurrentMatch(context, 'none')
+      revealCurrentMatch(context, scrollMode)
     } finally {
       if (revision === latestRefreshRevision) {
         state.searching = false
@@ -272,7 +275,7 @@ export function createSearchController({
 
     const revision = latestRefreshRevision
     refreshTimer = window.setTimeout(() => {
-      void refreshMatches(revision)
+      void refreshMatches(revision, 'if-needed')
     }, delay)
   }
 

@@ -960,6 +960,195 @@ describe('match scrolling', () => {
     expect(containerScrollSpy).toHaveBeenCalled()
     expect(tableScrollSpy).not.toHaveBeenCalled()
   })
+
+  it('correctly handles navigation and visibility in a very large table exceeding container viewport height', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-background" data-node-id="root-1"></div>
+        <div class="protyle-title" data-node-id="root-1"></div>
+        <input class="protyle-title__input" value="Doc 1" />
+        <div class="protyle-content">
+          <div class="protyle-wysiwyg">
+            <div data-node-id="large-table-1" data-type="NodeTable" class="table">
+              <div contenteditable="false">
+                <table contenteditable="true">
+                  <tbody>
+                    <tr class="row-0"><td>Header</td></tr>
+                    <tr class="row-target"><td>Complex Deep Table Target Content</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    const container = document.querySelector<HTMLElement>('.protyle-content')!
+    const tableBlock = document.querySelector<HTMLElement>('[data-node-id="large-table-1"]')!
+    const targetRow = document.querySelector<HTMLElement>('.row-target')!
+    const targetCell = targetRow.querySelector<HTMLElement>('td')!
+    const cellScrollSpy = vi.fn()
+    const rowScrollSpy = vi.fn()
+    targetCell.scrollIntoView = cellScrollSpy
+    targetRow.scrollIntoView = rowScrollSpy
+
+    // 模拟大表格高度为 3000px，远超容器 300px 的视口高度
+    vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
+      bottom: 400,
+      height: 300,
+      left: 0,
+      right: 500,
+      toJSON: () => ({}),
+      top: 100,
+      width: 500,
+      x: 0,
+      y: 100,
+    })
+    vi.spyOn(tableBlock, 'getBoundingClientRect').mockReturnValue({
+      bottom: 3100,
+      height: 3000,
+      left: 0,
+      right: 500,
+      toJSON: () => ({}),
+      top: 100,
+      width: 500,
+      x: 0,
+      y: 100,
+    })
+    // 目标单元格位于视口下方 1500px 处
+    vi.spyOn(targetCell, 'getBoundingClientRect').mockReturnValue({
+      bottom: 1640,
+      height: 40,
+      left: 10,
+      right: 300,
+      toJSON: () => ({}),
+      top: 1600,
+      width: 290,
+      x: 10,
+      y: 1600,
+    })
+    vi.spyOn(targetRow, 'getBoundingClientRect').mockReturnValue({
+      bottom: 1640,
+      height: 40,
+      left: 0,
+      right: 500,
+      toJSON: () => ({}),
+      top: 1600,
+      width: 500,
+      x: 0,
+      y: 1600,
+    })
+
+    const result = scrollMatchIntoView(protyleContext(protyle), {
+      blockId: 'large-table-1',
+      blockIndex: 0,
+      blockType: 'NodeTable',
+      end: 40,
+      id: 'large-table-1:10:40',
+      matchedText: 'Deep Table Target',
+      previewText: 'Complex [Deep Table Target] Content',
+      replaceable: true,
+      rootId: 'root-1',
+      start: 10,
+      occ: 0,
+    }, 'if-needed')
+
+    expect(result).toBe('scrolled')
+    expect(cellScrollSpy).toHaveBeenCalled()
+  })
+
+  it('successfully locates and scrolls to cell in complex table with merged cells (colspan/rowspan) via text fallback', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-background" data-node-id="root-1"></div>
+        <div class="protyle-title" data-node-id="root-1"></div>
+        <input class="protyle-title__input" value="Doc 1" />
+        <div class="protyle-content">
+          <div class="protyle-wysiwyg">
+            <div data-node-id="complex-table-1" data-type="NodeTable" class="table">
+              <div contenteditable="false">
+                <table contenteditable="true">
+                  <thead>
+                    <tr><th colspan="3">Merged Header</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td rowspan="2">Merged Vertical</td>
+                      <td>Normal Cell</td>
+                      <td>Target In Merged Table</td>
+                    </tr>
+                    <tr>
+                      <td>Sub Cell</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    const targetCell = Array.from(document.querySelectorAll('td')).find(
+      td => td.textContent?.includes('Target In Merged Table')
+    )!
+    const tableBlock = document.querySelector<HTMLElement>('[data-node-id="complex-table-1"]')!
+    const cellScrollSpy = vi.fn()
+    targetCell.scrollIntoView = cellScrollSpy
+
+    vi.spyOn(tableBlock, 'getBoundingClientRect').mockReturnValue({
+      bottom: 500,
+      height: 300,
+      left: 0,
+      right: 400,
+      toJSON: () => ({}),
+      top: 200,
+      width: 400,
+      x: 0,
+      y: 200,
+    })
+    vi.spyOn(targetCell, 'getBoundingClientRect').mockReturnValue({
+      bottom: 350,
+      height: 40,
+      left: 100,
+      right: 300,
+      toJSON: () => ({}),
+      top: 310,
+      width: 200,
+      x: 100,
+      y: 310,
+    })
+
+    // 模拟元数据索引错位（由于 colspan/rowspan 导致 columnIndex 不对）
+    const result = scrollMatchIntoView(protyleContext(protyle), {
+      blockId: 'complex-table-1',
+      blockIndex: 0,
+      blockType: 'NodeTable',
+      end: 50,
+      id: 'complex-table-1:30:50',
+      matchedText: 'Target In Merged Table',
+      previewText: '...[Target In Merged Table]...',
+      replaceable: true,
+      rootId: 'root-1',
+      start: 30,
+      occ: 0,
+      table: {
+        cellEnd: 99,
+        cellId: '',
+        cellStart: 80,
+        columnCount: 3,
+        columnIndex: 99, // 故意错误的列索引，测试回退能力
+        rowCount: 3,
+        rowIndex: 99, // 故意错误的行索引，测试回退能力
+      },
+    } as SearchMatch, 'always')
+
+    expect(result).toBe('scrolled')
+    expect(cellScrollSpy).toHaveBeenCalled()
+  })
 })
 
 function setupEditor(): { block: HTMLElement, context: EditorContext } {

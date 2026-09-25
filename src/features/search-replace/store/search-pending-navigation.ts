@@ -333,7 +333,7 @@ export function createPendingNavigationController({
 
     const loadedBlockRange = resolveLoadedBlockRange(context, resolveEditorScrollContainer(context))
     const boundaryDistance = resolveNativeNavigationDistance(match, loadedBlockRange)
-    if (boundaryDistance < NATIVE_NAVIGATION_DISTANCE_THRESHOLD) {
+    if (boundaryDistance < NATIVE_NAVIGATION_DISTANCE_THRESHOLD && pendingNavigationRetryCount <= 1) {
       debugLog('pending-navigation:native-skip', {
         attempt: pendingNavigationRetryCount,
         boundaryDistance,

@@ -26,12 +26,25 @@ export function locateTextRange(context: EditorContext, match: SearchMatch) {
     return null
   }
 
+  // 表格块优先尝试单元格级精准 Range 定位
+  if (match.blockType === 'NodeTable' || match.table) {
+    const tableRange = locateTableTextRange(context, match)
+    if (tableRange) {
+      return tableRange
+    }
+  }
+
   const textNodes = getSearchTextNodes(blockElement)
   if (!textNodes.length) {
     return null
   }
 
-  return locateTextRangeInTextNodes(textNodes, match.matchedText, match.occ)
+  const directRange = locateTextRangeInTextNodes(textNodes, match.matchedText, match.occ)
+  if (directRange) {
+    return directRange
+  }
+
+  return locateFallbackTextRange(textNodes, match)
 }
 
 export function locateRangeInSingleTextNode(blockElement: HTMLElement, matchedText: string, occ: number): TextRangeLocation | null {
@@ -77,10 +90,53 @@ function locateTableTextRange(context: EditorContext, match: SearchMatch) {
     return null
   }
 
-  const preferredStart = typeof match.table?.cellStart === 'number'
-    ? Math.max(0, match.start - match.table.cellStart)
-    : match.start
-  return locateTextRangeInContainer(cell, match.matchedText, preferredStart)
+  const cellTextNodes = collectDescendantTextNodes(cell)
+  if (!cellTextNodes.length) {
+    return null
+  }
+
+  const combinedCellText = cellTextNodes.map(node => node.nodeValue ?? '').join('')
+  const cellOcc = resolveCellOcc(match, combinedCellText)
+  const cellRange = locateTextRangeInTextNodes(cellTextNodes, match.matchedText, cellOcc)
+  if (cellRange) {
+    return cellRange
+  }
+
+  return locateFallbackTextRange(cellTextNodes, match)
+}
+
+function resolveCellOcc(match: SearchMatch, cellText: string): number {
+  if (!match.table || typeof match.table.cellStart !== 'number' || match.table.cellStart < 0) {
+    return 0
+  }
+
+  const needle = match.matchedText
+  if (!needle) return 0
+
+  const offsetInCell = Math.max(0, match.start - match.table.cellStart)
+  let occ = 0
+  let idx = cellText.indexOf(needle)
+  while (idx !== -1 && idx < offsetInCell) {
+    occ++
+    idx = cellText.indexOf(needle, idx + needle.length)
+  }
+
+  return occ
+}
+
+function locateFallbackTextRange(textNodes: Text[], match: SearchMatch) {
+  const needle = match.matchedText
+  if (!textNodes.length || !needle) {
+    return null
+  }
+
+  const combinedText = textNodes.map(node => node.nodeValue ?? '').join('')
+  const start = resolveMatchStart(combinedText, needle, match.occ)
+  if (start < 0) {
+    return null
+  }
+
+  return createRangeFromOffsets(textNodes, start, start + needle.length)
 }
 
 function locateTextPoint(textNodes: Text[], targetOffset: number): TextPoint | null {
@@ -172,13 +228,13 @@ function collectDescendantTextNodes(container: HTMLElement) {
 }
 
 function resolveMatchStart(text: string, matchedText: string, occ: number) {
-  if (!matchedText || !text.includes(matchedText)) {
+  if (typeof text !== 'string' || typeof matchedText !== 'string' || !matchedText.length) {
     return -1
   }
 
+  // 优先精确区分大小写查找
   let currentOcc = 0
   let idx = text.indexOf(matchedText)
-  
   while (idx !== -1) {
     if (currentOcc === occ) {
       return idx
@@ -187,7 +243,32 @@ function resolveMatchStart(text: string, matchedText: string, occ: number) {
     idx = text.indexOf(matchedText, idx + matchedText.length)
   }
 
-  return -1
+  // 大小写不敏感查找与就近回退（借鉴 highlight-search resolveDomHit 思想）
+  const lowerText = text.toLowerCase()
+  const lowerMatched = matchedText.toLowerCase()
+  if (!lowerText.includes(lowerMatched)) {
+    return -1
+  }
+
+  currentOcc = 0
+  idx = lowerText.indexOf(lowerMatched)
+  let bestIdx = -1
+  let minOccDiff = Infinity
+
+  while (idx !== -1) {
+    const diff = Math.abs(currentOcc - occ)
+    if (diff < minOccDiff) {
+      minOccDiff = diff
+      bestIdx = idx
+    }
+    if (currentOcc === occ) {
+      return idx
+    }
+    currentOcc++
+    idx = lowerText.indexOf(lowerMatched, idx + lowerMatched.length)
+  }
+
+  return bestIdx
 }
 
 function findTableCellElement(context: EditorContext, match: SearchMatch) {
@@ -207,21 +288,33 @@ function findTableCellElement(context: EditorContext, match: SearchMatch) {
 
   const rowIndex = match.table?.rowIndex
   const columnIndex = match.table?.columnIndex
-  if (typeof rowIndex !== 'number' || typeof columnIndex !== 'number') {
-    return null
+  if (typeof rowIndex === 'number' && typeof columnIndex === 'number') {
+    const rows = getTableRowElements(tableBlock)
+    const targetRow = rows[rowIndex]
+    if (targetRow) {
+      const rowCells = Array.from(targetRow.children)
+        .filter((child): child is HTMLElement => child instanceof HTMLElement)
+        .filter(child => child.matches('[data-type="NodeTableCell"], .table__cell, td, th'))
+
+      if (rowCells[columnIndex]) {
+        return rowCells[columnIndex]
+      }
+    }
   }
 
-  const rows = getTableRowElements(tableBlock)
-  const targetRow = rows[rowIndex]
-  if (!targetRow) {
-    return null
+  // 增强回退：如果由于合并单元格或行结构不一致未能按索引定位，则在表格中寻找包含 matchedText 的单元格
+  if (match.matchedText) {
+    const allCells = Array.from(
+      tableBlock.querySelectorAll<HTMLElement>('[data-type="NodeTableCell"], .table__cell, td, th'),
+    )
+    const needle = match.matchedText.toLowerCase()
+    const matchingCell = allCells.find(cell => cell.textContent?.toLowerCase().includes(needle))
+    if (matchingCell) {
+      return matchingCell
+    }
   }
 
-  const rowCells = Array.from(targetRow.children)
-    .filter((child): child is HTMLElement => child instanceof HTMLElement)
-    .filter(child => child.matches('[data-type="NodeTableCell"], .table__cell, td, th'))
-
-  return rowCells[columnIndex] ?? null
+  return null
 }
 
 function getTableRowElements(tableBlock: HTMLElement) {
