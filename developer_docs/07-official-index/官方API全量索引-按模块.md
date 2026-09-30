@@ -1,8 +1,8 @@
 # 官方 API 全量索引（按模块）
 
-- 适用版本：SiYuan `v3.8.3`
-- 官方仓库同步到：`siyuan-note/siyuan@master` + Release `v3.8.3`（2026-09-13）
-- 最后核对：2026-09-13
+- 适用版本：SiYuan `v3.8.5`
+- 官方仓库同步到：`siyuan-note/siyuan@master` + Release `v3.8.5`（2026-09-25）
+- 最后核对：2026-09-25
 - 稳定性：public-index（官方承诺长期兼容）
 - 权威来源：
   - [../03-kernel-api/official/API_zh_CN.md](../03-kernel-api/official/API_zh_CN.md)
@@ -10,7 +10,8 @@
 说明：
 - 本页收录官方 `API_zh_CN.md` 文档化公开端点。
 - 端点参数、数据结构与响应示例请直接点击链接查阅 [official/API_zh_CN.md](../03-kernel-api/official/API_zh_CN.md)。
-- 725 个全量内部与公开路由列表详见 [router.go](../03-kernel-api/official/router.go) 与 [router路由变更与风险索引.md](router路由变更与风险索引.md)。
+- 在 `siyuan@1.2.8` 中，全部路由已由内核契约映射为强类型 `fetchSyncPost`/`fetchPost` 函数签名。
+- 725+ 个全量内部与公开路由列表详见 [router.go](../03-kernel-api/official/router.go) 与 [router路由变更与风险索引.md](router路由变更与风险索引.md)。
 
 ## 1. 规范与鉴权
 
@@ -33,11 +34,12 @@
 ## 3. 文档 (Filetree)
 
 - `/api/filetree/createDocWithMd`：通过 Markdown 文本创建文档
+- `/api/filetree/duplicateDocTree`：**连同子文档整树复制文档 (v3.8.5+)**
 - `/api/filetree/renameDoc`：按路径重命名文档
 - `/api/filetree/removeDoc`：按路径删除文档
 - `/api/filetree/moveDocs`：按路径移动文档
-- `/api/filetree/setSort`：**设置笔记本和文档排序值**
-- `/api/filetree/setDocSortMode`：**设置文档的子文档排序方式**
+- `/api/filetree/setSort`：设置笔记本和文档排序值
+- `/api/filetree/setDocSortMode`：设置文档的子文档排序方式
 - `/api/filetree/getHPathByPath`：根据物理存储路径获取人类可读路径
 - `/api/filetree/getHPathByID`：根据块 ID 获取人类可读路径
 - `/api/filetree/getPathByID`：根据块 ID 获取存储路径
@@ -46,8 +48,16 @@
 ## 4. 资源文件 (Asset)
 
 - `/api/asset/upload`：上传本地静态附件/资源文件（multipart/form-data）
+- `/api/asset/replaceAssetRef`：**全量替换工作空间中对特定资源文件的所有引用 (v3.8.4+)**
 
-## 5. 内容块 (Block)
+## 5. 插件发布 (Petal)
+
+- `/api/petal/getPluginPublishInfo`：获取插件发布资源、数据字段及授权状态
+- `/api/petal/setPluginPublishDataGrant`：授予或撤销插件公开快照授权
+- `/api/petal/savePluginPublishData`：保存/完整替换插件公开数据快照
+- `/api/petal/loadPluginPublishData`：读取已授权的插件公开数据快照
+
+## 6. 内容块 (Block)
 
 - `/api/block/insertBlock`：插入块（支持 markdown 与 dom）
 - `/api/block/prependBlock`：插入前置子块

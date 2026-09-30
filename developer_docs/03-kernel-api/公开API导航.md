@@ -1,8 +1,8 @@
 # 公开 API 导航
 
-- 适用版本：SiYuan `v3.8.3`
-- 官方仓库同步到：`siyuan-note/siyuan@master` + Release `v3.8.3`（2026-09-13）
-- 最后核对：2026-09-13
+- 适用版本：SiYuan `v3.8.5`
+- 官方仓库同步到：`siyuan-note/siyuan@master` + Release `v3.8.5`（2026-09-25）
+- 最后核对：2026-09-25
 - 稳定性：stable
 - 权威来源：
   - [official/API_zh_CN.md](official/API_zh_CN.md)
@@ -14,6 +14,7 @@
 - **服务端口**：默认运行在 `http://127.0.0.1:6806`。
 - **通信方式**：绝大多数采用 `POST /api/*`，入参与出参主体均为 JSON（文件上传/写入采用 `multipart/form-data`）。
 - **鉴权头**：外部脚本或未鉴权环境需在 HTTP Header 携带 `Authorization: Token <API_TOKEN>`。前端插件内直接使用 `fetchSyncPost` 时宿主会自动注入鉴权上下文。
+- **端到端类型契约 (v3.8.5+)**：由思源内核直接生成完整的强类型路由映射表（`types/api/index.d.ts`），`fetchSyncPost`、`fetchPost` 与 `fetchGet` 已支持全量自动化参数与响应推导。
 
 ### 1.2 统一响应结构
 
@@ -30,17 +31,17 @@
 
 ## 2. 公开 API 模块分类与演化
 
-| 模块类别 | 基础端点前缀 | 核心能力 | v3.8.3 新增/强化能力 |
+| 模块类别 | 基础端点前缀 | 核心能力 | v3.8.4 ~ v3.8.5 新增/强化能力 |
 |---|---|---|---|
-| **笔记本 (notebook)** | `/api/notebook/*` | 打开/关闭/重命名/新建笔记本、获取与修改配置 | `/api/notebook/reorder` 笔记本顺序重排 |
-| **文档树 (filetree)** | `/api/filetree/*` | Markdown 建档、移动/重命名/删除文档、ID 与路径转换 | `/api/filetree/setSort`、`/api/filetree/setDocSortMode`、`/api/filetree/reorderDocs` 自定义排序与层级重排 |
-| **内容块 (block)** | `/api/block/*` | 插入/更新/删除/移动/折叠块、取 Kramdown 文本、转移块引用 | 完善对 `NodeCustomBlock` 与 `NodeTabs` 容器块的处理 |
-| **块属性 (attr)** | `/api/attr/*` | 读写块的内联属性列表（IAL），操作 `custom-*` 业务状态 | 优化大批量属性并发写入与索引刷新 |
-| **SQL 查询 (query)** | `/api/query/*` | 结构化只读 SQL 检索（`blocks`, `refs`, `attributes` 等） | 全文搜索分词与大结果集限制 |
-| **属性视图 (av)** | `/api/av/*` | 数据库/属性视图增删改查、批量写值、渲染与结构转换 | `/api/av/setAttrViewContextFilter` 动态过滤、文档与数据库双向转换 |
-| **搜索条件 (storage)** | `/api/storage/*` | 插件与系统持久化过滤条件管理 | `/api/storage/setCriterion`、`getCriterion`、`removeCriterion` |
-| **资源与文件 (asset/file)** | `/api/asset/*`, `/api/file/*` | 资源上传与管理、工作空间文件读写/重命名/目录遍历 | 强化权限隔离与大文件分块流控 |
-| **系统与通知 (system/notification)** | `/api/system/*`, `/api/notification/*` | 版本查询、时间戳、启动进度、桌面通知推送 | 权限鉴权分级强化（管理员/只读区分） |
+| **笔记本 (notebook)** | `/api/notebook/*` | 打开/关闭/重命名/新建笔记本、获取与修改配置 | 跨设备主题与图标同步、配置持久化 |
+| **文档树 (filetree)** | `/api/filetree/*` | Markdown 建档、移动/重命名/删除文档、ID 与路径转换 | **`/api/filetree/duplicateDocTree` 连同子文档整树复制** |
+| **内容块 (block)** | `/api/block/*` | 插入/更新/删除/移动/折叠块、取 Kramdown 文本、转移块引用 | 自定义块纳入 FTS 搜索、列表块支持可编辑思维导图 |
+| **块属性 (attr)** | `/api/attr/*` | 读写块的内联属性列表（IAL），操作 `custom-*` 业务状态 | 完善对思维导图与富文本属性的高效更新 |
+| **SQL 查询 (query)** | `/api/query/*` | 结构化只读 SQL 检索（`blocks`, `refs`, `attributes` 等） | 默认结果行数限制与截断可见性指示 |
+| **属性视图 (av)** | `/api/av/*` | 数据库/属性视图增删改查、批量写值、渲染与结构转换 | **新增日历视图（`calendar`）与列表视图（`list`）**，表格单元格富文本 |
+| **资源与文件 (asset/file)** | `/api/asset/*`, `/api/file/*` | 资源上传与管理、工作空间文件读写/重命名/目录遍历 | **`/api/asset/replaceAssetRef` 全量替换资源引用** |
+| **插件发布 (petal)** | `/api/petal/*` | 插件发布数据授权与快照访问管理 | **`/api/petal/getPluginPublishInfo`、`savePluginPublishData`、`loadPluginPublishData`** |
+| **系统与通知 (system/notification)** | `/api/system/*`, `/api/notification/*` | 版本查询、时间戳、启动进度、桌面通知推送 | 强化运行时版本复制与工作空间存储统计 |
 
 ## 3. 插件开发核心接口导航
 
@@ -65,10 +66,19 @@
 - `/api/storage/getCriterion`：读取指定名称的过滤条件。
 - `/api/storage/removeCriterion`：清理指定过滤条件。
 
+### 3.5 插件发布与资源管理 (v3.8.5)
+- `/api/filetree/duplicateDocTree`：连同整棵子文档树完整复制文档。
+- `/api/asset/replaceAssetRef`：全局检索并替换所有对特定资源的引用路径。
+- `/api/petal/getPluginPublishInfo`：获取插件的额外发布资源、公开数据字段清单与当前管理员授权状态。
+- `/api/petal/setPluginPublishDataGrant`：管理员授予或撤销插件公开字段的发布授权。
+- `/api/petal/savePluginPublishData`：管理员端保存/完整替换插件公开快照。
+- `/api/petal/loadPluginPublishData`：发布页面读取已授权的公开快照。
+
 ## 4. 相关文档导航
 
 - [03-kernel-api/常用接口调用示例.md](常用接口调用示例.md)
 - [03-kernel-api/非公开API与风险说明.md](非公开API与风险说明.md)
+- [06-guides/插件发布服务规范与只读模式适配指南.md](../06-guides/插件发布服务规范与只读模式适配指南.md)
 - [03-kernel-api/official/API_zh_CN.md](official/API_zh_CN.md)
 - [03-kernel-api/official/router.go](official/router.go)
 - [07-official-index/官方API全量索引-按模块.md](../07-official-index/官方API全量索引-按模块.md)

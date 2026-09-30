@@ -1,8 +1,8 @@
 # AV 增删改查与参数模型
 
-- 适用版本：SiYuan `v3.8.3`
-- 官方仓库同步到：`siyuan-note/siyuan@master` + Release `v3.8.3`（2026-09-13）
-- 最后核对：2026-09-13
+- 适用版本：SiYuan `v3.8.5`
+- 官方仓库同步到：`siyuan-note/siyuan@master` + Release `v3.8.5`（2026-09-25）
+- 最后核对：2026-09-25
 - 稳定性：stable
 - 权威来源：
   - [../03-kernel-api/official/API_zh_CN.md](../03-kernel-api/official/API_zh_CN.md)
@@ -12,20 +12,20 @@
 
 | 端点 | 作用 | 推荐调用时机 |
 |---|---|---|
-| `/api/av/renderAttributeView` | 查询并渲染属性视图结构 | 读取表格/看板/画廊数据 |
+| `/api/av/renderAttributeView` | 查询并渲染属性视图结构 | 读取表格/看板/画廊/日历/列表数据 |
 | `/api/av/getAttributeViewKeysByAvID` | 获取属性视图所有列（字段）元数据 | 初始化表头或字段映射 |
 | `/api/av/addAttributeViewBlocks` | 为属性视图绑定已有内容块作为行 | 绑定块模式录入 |
 | `/api/av/appendAttributeViewDetachedBlocksWithValues` | 新增非绑定块行并附带初始值 | 纯结构化数据快速录入 |
 | `/api/av/batchSetAttributeViewBlockAttrs` | **高并发批量设置多行多列值** | 更新数据时的首选接口 |
 | `/api/av/removeAttributeViewBlocks` | 移除指定行（解绑或删除） | 删除单行或多行 |
-| `/api/av/setAttrViewContextFilter` | **v3.8.3 新增：动态设置上下文过滤规则** | 联动查询或动态视图切片 |
-| `/api/av/convertDocToAttrView` | **v3.8.3 新增：将普通文档转换为属性视图** | 数据迁移与视图升维 |
-| `/api/av/convertAttrViewToDoc` | **v3.8.3 新增：将属性视图转回普通文档** | 视图降维与纯文本归档 |
+| `/api/av/setAttrViewContextFilter` | 动态设置上下文过滤规则 | 联动查询或动态视图切片 |
+| `/api/av/convertDocToAttrView` | 将普通文档转换为属性视图 | 数据迁移与视图升维 |
+| `/api/av/convertAttrViewToDoc` | 将属性视图转回普通文档 | 视图降维与纯文本归档 |
 
 ## 2. 核心标识与数据层次模型
 
 - **`avID`**：属性视图唯一 ID（整个数据库实例根标识）。
-- **`viewID`**：子视图 ID（每个 AV 可以包含多个视图：表格 `table`、画廊 `gallery`、看板 `kanban`）。
+- **`viewID`**：子视图 ID（每个 AV 可以包含多个视图：表格 `table`、画廊 `gallery`、看板 `kanban`、**日历 `calendar` (v3.8.5+)**、**列表 `list` (v3.8.5+)**）。
 - **`itemID`**：行唯一标识（原 `rowID`，绑定块时该值等于块 `id`）。
 - **`keyID`**：列（字段）唯一标识。
 - **`cellID`**：单元格唯一标识。
