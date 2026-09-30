@@ -18,6 +18,7 @@ type BooleanSettingKey =
   | 'defaultReplaceVisible'
   | 'rememberPanelPosition'
   | 'preloadSelection'
+  | 'searchOnEnter'
   | 'includeCodeBlock'
   | 'debugLog'
   | 'preserveCase'
@@ -60,6 +61,11 @@ const BOOLEAN_SETTING_DESCRIPTORS: Array<{
     settingKey: 'preloadSelection',
     titleKey: 'settingPreloadSelectionTitle',
     descriptionKey: 'settingPreloadSelectionDesc',
+  },
+  {
+    settingKey: 'searchOnEnter',
+    titleKey: 'settingSearchOnEnterTitle',
+    descriptionKey: 'settingSearchOnEnterDesc',
   },
   {
     settingKey: 'includeCodeBlock',

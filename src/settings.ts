@@ -17,6 +17,7 @@ export interface PluginSettings {
   debugLog: boolean
   preserveCase: boolean
   extractAsBlockRef: boolean
+  searchOnEnter: boolean
 }
 
 export const DEFAULT_SEARCH_HIGHLIGHT_COLOR = '#ffc400'
@@ -36,6 +37,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
   debugLog: false,
   preserveCase: false,
   extractAsBlockRef: false,
+  searchOnEnter: false,
 }
 
 export const SETTINGS_STORAGE = 'settings.json'
@@ -102,6 +104,9 @@ export function normalizeSettings(settings?: Partial<PluginSettings> | null): Pl
     extractAsBlockRef: typeof settings?.extractAsBlockRef === 'boolean'
       ? settings.extractAsBlockRef
       : DEFAULT_SETTINGS.extractAsBlockRef,
+    searchOnEnter: typeof settings?.searchOnEnter === 'boolean'
+      ? settings.searchOnEnter
+      : DEFAULT_SETTINGS.searchOnEnter,
   }
 }
 

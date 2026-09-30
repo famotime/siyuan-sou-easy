@@ -118,4 +118,4 @@ export function registerSearchReplaceSettings({
   })
 }
 
-type BooleanSettingKey = Extract<keyof PluginSettings, 'debugLog' | 'defaultReplaceVisible' | 'includeCodeBlock' | 'minimapVisible' | 'optimizeLargeCodeBlocks' | 'preloadSelection' | 'rememberPanelPosition' | 'searchAttributeView' | 'extractAsBlockRef'>
+type BooleanSettingKey = Extract<keyof PluginSettings, 'debugLog' | 'defaultReplaceVisible' | 'includeCodeBlock' | 'minimapVisible' | 'optimizeLargeCodeBlocks' | 'preloadSelection' | 'searchOnEnter' | 'rememberPanelPosition' | 'searchAttributeView' | 'extractAsBlockRef'>

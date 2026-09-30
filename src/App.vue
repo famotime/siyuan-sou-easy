@@ -55,6 +55,7 @@
           :on-selection-only-pointer-down="onSelectionOnlyPointerDown"
           :on-toggle-option="toggleOption"
           :query="state.query"
+          :search-on-enter="state.settings.searchOnEnter"
           :selection-only="state.options.selectionOnly"
           :use-regex="state.options.useRegex"
           :whole-word="state.options.wholeWord"
@@ -217,6 +218,7 @@ import {
 import {
   captureCurrentSelectionScope,
   closePanel,
+  commitQueryAndSearch,
   getCurrentMatch,
   goNext,
   goPrev,
@@ -411,6 +413,21 @@ function onSelectionOnlyClick() {
 }
 
 function onFindEnter(event: KeyboardEvent) {
+  if (event.isComposing) {
+    return
+  }
+
+  if (state.settings.searchOnEnter) {
+    const queryTrimmed = state.query.trim()
+    const needsSearch = queryTrimmed.length > 0 && (
+      state.query !== state.committedQuery || state.matches.length === 0
+    )
+    if (needsSearch) {
+      commitQueryAndSearch()
+      return
+    }
+  }
+
   if (event.shiftKey) {
     goPrev()
     return

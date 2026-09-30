@@ -22,6 +22,7 @@ describe('normalizeSettings', () => {
       preserveCase: true,
       searchHighlightColor: '#ff8800',
       searchAttributeView: true,
+      searchOnEnter: true,
     })
 
     expect(settings).toMatchObject({
@@ -33,6 +34,7 @@ describe('normalizeSettings', () => {
       preserveCase: true,
       searchHighlightColor: '#ff8800',
       searchAttributeView: true,
+      searchOnEnter: true,
     })
   })
 
@@ -48,6 +50,7 @@ describe('normalizeSettings', () => {
       preserveCase: DEFAULT_SETTINGS.preserveCase,
       searchHighlightColor: DEFAULT_SETTINGS.searchHighlightColor,
       searchAttributeView: DEFAULT_SETTINGS.searchAttributeView,
+      searchOnEnter: false,
     })
   })
 

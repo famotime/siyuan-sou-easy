@@ -161,6 +161,18 @@ export function openPanel(forceVisible?: boolean, replaceVisible?: boolean) {
 
   if (selectionText) {
     searchReplaceState.query = selectionText
+    searchReplaceState.committedQuery = selectionText
+    searchController.scheduleRefresh(0)
+    return
+  }
+
+  if (searchReplaceState.settings.searchOnEnter) {
+    if (searchReplaceState.committedQuery && searchReplaceState.query === searchReplaceState.committedQuery) {
+      searchController.scheduleRefresh(0)
+    } else {
+      searchController.clearQueryDraftState()
+    }
+    return
   }
 
   searchController.scheduleRefresh(0)
@@ -184,12 +196,58 @@ export function closePanel() {
 export function setQuery(value: string) {
   if (searchReplaceState.sourceMode === 'terminal') {
     searchReplaceState.query = value
+    if (searchReplaceState.settings.searchOnEnter) {
+      if (value !== searchReplaceState.committedQuery) {
+        searchReplaceState.matches = []
+        searchReplaceState.currentIndex = 0
+        searchReplaceState.error = ''
+      }
+      return
+    }
     refreshTerminalMatches()
     return
   }
 
   searchReplaceState.query = value
+  if (searchReplaceState.settings.searchOnEnter) {
+    if (!value.trim()) {
+      searchReplaceState.committedQuery = ''
+      searchController.clearQueryDraftState()
+      return
+    }
+    if (value !== searchReplaceState.committedQuery) {
+      searchController.clearQueryDraftState()
+      return
+    }
+  }
+
   searchController.handleQueryEdited()
+}
+
+export function commitQueryAndSearch(value?: string) {
+  const nextQuery = typeof value === 'string' ? value : searchReplaceState.query
+  searchReplaceState.query = nextQuery
+
+  if (!nextQuery.trim()) {
+    searchReplaceState.committedQuery = ''
+    if (searchReplaceState.sourceMode === 'terminal') {
+      searchReplaceState.matches = []
+      searchReplaceState.currentIndex = 0
+      searchReplaceState.error = ''
+      return
+    }
+    searchController.clearQueryDraftState()
+    return
+  }
+
+  searchReplaceState.committedQuery = nextQuery
+
+  if (searchReplaceState.sourceMode === 'terminal') {
+    refreshTerminalMatches()
+    return
+  }
+
+  searchController.handleQueryEdited(0)
 }
 
 export function setReplacement(value: string) {
@@ -228,6 +286,12 @@ export function toggleOption(option: keyof SearchOptions) {
       return
     }
     searchReplaceState.options[option] = !searchReplaceState.options[option]
+    if (searchReplaceState.settings.searchOnEnter) {
+      if (searchReplaceState.committedQuery && searchReplaceState.query === searchReplaceState.committedQuery) {
+        refreshTerminalMatches()
+      }
+      return
+    }
     refreshTerminalMatches()
     return
   }
@@ -236,6 +300,18 @@ export function toggleOption(option: keyof SearchOptions) {
   if (option === 'selectionOnly' && !searchReplaceState.options.selectionOnly) {
     clearSelectionScope()
   }
+
+  if (searchReplaceState.settings.searchOnEnter) {
+    const hasCommittedQuery = Boolean(
+      searchReplaceState.committedQuery
+      && searchReplaceState.query === searchReplaceState.committedQuery,
+    )
+    if (hasCommittedQuery) {
+      searchController.scheduleRefresh(0)
+    }
+    return
+  }
+
   searchController.scheduleRefresh(0)
 }
 
@@ -365,7 +441,13 @@ export function openTerminalPanel(surface: TerminalSearchSurface, replaceVisible
   searchReplaceState.minimapBlocks = []
   surface.focus()
   if (searchReplaceState.query.trim()) {
-    refreshTerminalMatches()
+    if (searchReplaceState.settings.searchOnEnter) {
+      if (searchReplaceState.committedQuery && searchReplaceState.query === searchReplaceState.committedQuery) {
+        refreshTerminalMatches()
+      }
+    } else {
+      refreshTerminalMatches()
+    }
   }
 }
 

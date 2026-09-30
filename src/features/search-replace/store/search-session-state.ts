@@ -19,6 +19,7 @@ export function applyOpenPanelState(
 export function applyClosePanelState(
   state: {
     busy: boolean
+    committedQuery?: string
     documentReadonly: boolean
     error: string
     minimapBlocks: unknown[]
@@ -36,6 +37,9 @@ export function applyClosePanelState(
   state.navigationHint = ''
   state.minimapBlocks = []
   state.searchableBlockCount = 0
+  if (typeof state.committedQuery === 'string') {
+    state.committedQuery = ''
+  }
 }
 
 export function clearQueryEditState(

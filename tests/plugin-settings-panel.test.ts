@@ -22,6 +22,7 @@ const loadSettings = vi.fn().mockResolvedValue({
   replacePanelHotkey: 'Ctrl+F12',
   searchHighlightColor: '#ffc400',
   searchAttributeView: false,
+  searchOnEnter: false,
 })
 
 vi.mock('@/main', () => ({
@@ -51,6 +52,7 @@ vi.mock('@/settings', () => ({
     replacePanelHotkey: 'Ctrl+F12',
     searchHighlightColor: '#ffc400',
     searchAttributeView: false,
+    searchOnEnter: false,
   },
   SETTINGS_STORAGE: 'settings.json',
   isSupportedSearchHighlightColor: vi.fn((value: string) => typeof value === 'string' && value.trim().length > 0),
@@ -76,6 +78,8 @@ const settingsI18n = {
   settingPanelHotkeyTitle: 'Panel hotkey',
   settingPreloadSelectionDesc: 'preload selection',
   settingPreloadSelectionTitle: 'Preload selection',
+  settingSearchOnEnterDesc: 'search on enter',
+  settingSearchOnEnterTitle: 'Search on enter',
   settingSearchHighlightColorDesc: 'configure search highlight color',
   settingSearchHighlightColorReset: 'Reset',
   settingSearchHighlightColorTitle: 'Search highlight color',
@@ -112,7 +116,7 @@ describe('plugin settings panel', () => {
 
     plugin.openSetting()
 
-    expect(addItemSpy).toHaveBeenCalledTimes(13)
+    expect(addItemSpy).toHaveBeenCalledTimes(14)
     expect(addItemSpy.mock.calls.map(([item]) => ({
       description: item.description,
       title: item.title,
@@ -144,6 +148,10 @@ describe('plugin settings panel', () => {
       {
         description: 'preload selection',
         title: 'Preload selection',
+      },
+      {
+        description: 'search on enter',
+        title: 'Search on enter',
       },
       {
         description: 'include code',
@@ -184,9 +192,9 @@ describe('plugin settings panel', () => {
     plugin.openSetting()
 
     const items = addItemSpy.mock.calls.map(([item]) => item)
-    const includeCodeBlockInput = items[7].createActionElement() as HTMLInputElement
-    const optimizeInput = items[8].createActionElement() as HTMLInputElement
-    const thresholdInput = items[9].createActionElement() as HTMLInputElement
+    const includeCodeBlockInput = items[8].createActionElement() as HTMLInputElement
+    const optimizeInput = items[9].createActionElement() as HTMLInputElement
+    const thresholdInput = items[10].createActionElement() as HTMLInputElement
 
     expect(includeCodeBlockInput.disabled).toBe(false)
     expect(optimizeInput.disabled).toBe(true)
@@ -205,9 +213,9 @@ describe('plugin settings panel', () => {
     plugin.openSetting()
 
     const items = addItemSpy.mock.calls.map(([item]) => item)
-    const includeCodeBlockInput = items[7].createActionElement() as HTMLInputElement
-    const optimizeInput = items[8].createActionElement() as HTMLInputElement
-    const thresholdInput = items[9].createActionElement() as HTMLInputElement
+    const includeCodeBlockInput = items[8].createActionElement() as HTMLInputElement
+    const optimizeInput = items[9].createActionElement() as HTMLInputElement
+    const thresholdInput = items[10].createActionElement() as HTMLInputElement
 
     includeCodeBlockInput.checked = true
     includeCodeBlockInput.dispatchEvent(new Event('change'))

@@ -10,6 +10,7 @@ type BooleanSettingKey =
   | 'minimapVisible'
   | 'optimizeLargeCodeBlocks'
   | 'preloadSelection'
+  | 'searchOnEnter'
   | 'rememberPanelPosition'
   | 'searchAttributeView'
   | 'extractAsBlockRef'
@@ -55,6 +56,11 @@ export const BOOLEAN_SETTING_DEFINITIONS: ReadonlyArray<SettingDefinition<Boolea
     descriptionKey: 'settingPreloadSelectionDesc',
     settingKey: 'preloadSelection',
     titleKey: 'settingPreloadSelectionTitle',
+  },
+  {
+    descriptionKey: 'settingSearchOnEnterDesc',
+    settingKey: 'searchOnEnter',
+    titleKey: 'settingSearchOnEnterTitle',
   },
   {
     descriptionKey: 'settingIncludeCodeBlockDesc',

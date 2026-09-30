@@ -5,7 +5,7 @@
         ref="findInputRef"
         :value="props.query"
         class="b3-text-field sfsr-input"
-        :placeholder="t('findPlaceholder')"
+        :placeholder="props.searchOnEnter ? t('findPlaceholderOnEnter') : t('findPlaceholder')"
         @compositionstart="props.onFindCompositionStart"
         @compositionend="props.onFindCompositionEnd"
         @input="props.onFindInput"
@@ -201,6 +201,7 @@ const props = defineProps<{
   onSelectionOnlyPointerDown: () => void
   onToggleOption: (option: keyof SearchOptions) => void
   query: string
+  searchOnEnter?: boolean
   selectionOnly: boolean
   useRegex: boolean
   wholeWord: boolean

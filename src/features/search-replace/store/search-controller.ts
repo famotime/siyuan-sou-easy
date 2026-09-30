@@ -279,6 +279,17 @@ export function createSearchController({
     }, delay)
   }
 
+  function clearQueryDraftState() {
+    window.clearTimeout(refreshTimer)
+    latestRefreshRevision += 1
+    pendingQueryIndex = null
+    clearQueryEditState(state)
+    pendingNavigation.clearPendingNavigation()
+
+    const context = resolveEditorContext()
+    clearSearchDecorations(context)
+  }
+
   function revealCurrentMatch(
     context = resolveEditorContext(),
     scrollMode: 'if-needed' | 'none' = 'none',
@@ -344,6 +355,7 @@ export function createSearchController({
     revealCurrentMatch,
     resolveEditorContext,
     handleQueryEdited,
+    clearQueryDraftState,
     scheduleRefresh,
     unbindDocumentListeners,
   }

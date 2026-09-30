@@ -29,6 +29,7 @@ export interface SearchReplaceState {
   panelWidth: number | null
   settings: PluginSettings
   query: string
+  committedQuery: string
   replacement: string
   options: SearchOptions
   currentRootId: string
@@ -56,6 +57,7 @@ function createInitialSearchReplaceState(): SearchReplaceState {
     panelWidth: null,
     settings: { ...DEFAULT_SETTINGS },
     query: '',
+    committedQuery: '',
     replacement: '',
     options: createSearchOptionsFromSettings(DEFAULT_SETTINGS),
     currentRootId: '',
