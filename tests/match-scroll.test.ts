@@ -8,7 +8,10 @@ import {
   vi,
 } from 'vitest'
 
-import { scrollMatchIntoView } from '@/features/search-replace/editor'
+import {
+  isMatchVisible,
+  scrollMatchIntoView,
+} from '@/features/search-replace/editor'
 import type {
   EditorContext,
   SearchMatch,
@@ -593,6 +596,98 @@ describe('match scrolling', () => {
       block: 'nearest',
       inline: 'center',
     })
+  })
+
+  it('treats a table match as visible even when the row has sub-pixel overflow against a container', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-background" data-node-id="root-1"></div>
+        <div class="protyle-title" data-node-id="root-1"></div>
+        <input class="protyle-title__input" value="Doc 1" />
+        <div class="protyle-content">
+          <div class="protyle-wysiwyg">
+            <div class="table-scroll" style="overflow: auto; max-height: 240px; max-width: 320px;">
+              <div data-node-id="table-1" data-type="NodeTable" class="table">
+                <div class="table__row">
+                  <div data-node-id="cell-1" data-type="NodeTableCell" class="table__cell">
+                    <div contenteditable="true">Cell Alpha</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    const container = document.querySelector<HTMLElement>('.protyle-content')!
+    const tableScrollContainer = document.querySelector<HTMLElement>('.table-scroll')!
+    const targetRow = document.querySelector<HTMLElement>('.table__row')!
+    const targetCell = document.querySelector<HTMLElement>('[data-node-id="cell-1"]')!
+
+    vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
+      bottom: 700,
+      height: 600,
+      left: 0,
+      right: 900,
+      toJSON: () => ({}),
+      top: 100,
+      width: 900,
+      x: 0,
+      y: 100,
+    })
+    vi.spyOn(tableScrollContainer, 'getBoundingClientRect').mockReturnValue({
+      bottom: 360,
+      height: 240,
+      left: 40,
+      right: 360,
+      toJSON: () => ({}),
+      top: 120,
+      width: 320,
+      x: 40,
+      y: 120,
+    })
+    vi.spyOn(targetCell, 'getBoundingClientRect').mockReturnValue({
+      bottom: 240,
+      height: 40,
+      left: 50,
+      right: 250,
+      toJSON: () => ({}),
+      top: 200,
+      width: 200,
+      x: 50,
+      y: 200,
+    })
+    vi.spyOn(targetRow, 'getBoundingClientRect').mockReturnValue({
+      bottom: 240,
+      height: 40,
+      left: 40,
+      right: 360.0001,
+      toJSON: () => ({}),
+      top: 200,
+      width: 320.0001,
+      x: 40,
+      y: 200,
+    })
+
+    const match: SearchMatch = {
+      blockId: 'table-1',
+      blockIndex: 0,
+      blockType: 'NodeTable',
+      end: 10,
+      id: 'table-1:5:10',
+      matchedText: 'Alpha',
+      previewText: 'Cell [Alpha]',
+      replaceable: true,
+      rootId: 'root-1',
+      start: 5, occ: 0,
+    }
+
+    const context = protyleContext(protyle)
+    expect(isMatchVisible(context, match)).toBe(true)
+    const result = scrollMatchIntoView(context, match, 'if-needed')
+    expect(result).toBe('visible')
   })
 
   it('uses table metadata to center the matched row instead of the whole table when live offsets are stale', () => {

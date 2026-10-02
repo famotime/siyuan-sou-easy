@@ -23,6 +23,27 @@ describe('scroll geometry helpers', () => {
     )).toBe(false)
   })
 
+  it('allows sub-pixel tolerance when testing rect boundaries', () => {
+    expect(isRectVisibleWithinBoundary(
+      createRect({ top: 0, bottom: 80, left: 10, right: 100.0001 }),
+      createRect({ top: 0, bottom: 100, left: 0, right: 100 }),
+    )).toBe(true)
+
+    expect(isRectVisibleWithinBoundary(
+      createRect({ top: -0.2, bottom: 80, left: 10, right: 90 }),
+      createRect({ top: 0, bottom: 100, left: 0, right: 100 }),
+    )).toBe(true)
+  })
+
+  it('supports checking visibility along a single axis', () => {
+    const element = createRect({ top: 20, bottom: 80, left: 120, right: 180 })
+    const boundary = createRect({ top: 0, bottom: 100, left: 0, right: 100 })
+
+    expect(isRectVisibleWithinBoundary(element, boundary, 'y')).toBe(true)
+    expect(isRectVisibleWithinBoundary(element, boundary, 'x')).toBe(false)
+    expect(isRectVisibleWithinBoundary(element, boundary, 'both')).toBe(false)
+  })
+
   it('computes center deltas for both axes', () => {
     const subject = createRect({ top: 60, bottom: 100, left: 120, right: 180 })
     const container = createRect({ top: 0, bottom: 80, left: 40, right: 140 })

@@ -10,16 +10,26 @@ interface ScrollOffsetContainer {
 export function isRectVisibleWithinBoundary(
   elementRect: DOMRect | DOMRectReadOnly,
   boundaryRect: DOMRect | DOMRectReadOnly,
+  axis: 'both' | 'x' | 'y' = 'both',
+  tolerance = 0.5,
 ) {
   // 当元素高度超过边界时，只要元素与边界在垂直方向有交集即可，避免超大表格/段落永远判定为不可见
-  const verticallyVisible = elementRect.height >= boundaryRect.height
-    ? (elementRect.top < boundaryRect.bottom && elementRect.bottom > boundaryRect.top)
-    : (elementRect.top >= boundaryRect.top && elementRect.bottom <= boundaryRect.bottom)
+  const verticallyVisible = elementRect.height >= boundaryRect.height - tolerance
+    ? (elementRect.top < boundaryRect.bottom + tolerance && elementRect.bottom > boundaryRect.top - tolerance)
+    : (elementRect.top >= boundaryRect.top - tolerance && elementRect.bottom <= boundaryRect.bottom + tolerance)
+
+  if (axis === 'y') {
+    return verticallyVisible
+  }
 
   // 当元素宽度超过边界时，只要元素与边界在水平方向有交集即可
-  const horizontallyVisible = elementRect.width >= boundaryRect.width
-    ? (elementRect.left < boundaryRect.right && elementRect.right > boundaryRect.left)
-    : (elementRect.left >= boundaryRect.left && elementRect.right <= boundaryRect.right)
+  const horizontallyVisible = elementRect.width >= boundaryRect.width - tolerance
+    ? (elementRect.left < boundaryRect.right + tolerance && elementRect.right > boundaryRect.left - tolerance)
+    : (elementRect.left >= boundaryRect.left - tolerance && elementRect.right <= boundaryRect.right + tolerance)
+
+  if (axis === 'x') {
+    return horizontallyVisible
+  }
 
   return verticallyVisible && horizontallyVisible
 }

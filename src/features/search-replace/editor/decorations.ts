@@ -269,13 +269,17 @@ export function isMatchVisible(context: EditorContext, match: SearchMatch | null
   return visible
 }
 
-function isScrollTargetVisibleWithinContainers(target: ScrollTarget, containers: HTMLElement[]) {
+function isScrollTargetVisibleWithinContainers(
+  target: ScrollTarget,
+  containers: HTMLElement[],
+  axis: 'both' | 'x' | 'y' = 'both',
+) {
   const elementRect = target.getRect()
   if (!elementRect) {
     return false
   }
 
-  if (containers.some(container => !isRectVisibleWithinBoundary(elementRect, container.getBoundingClientRect()))) {
+  if (containers.some(container => !isRectVisibleWithinBoundary(elementRect, container.getBoundingClientRect(), axis))) {
     return false
   }
 
@@ -289,7 +293,7 @@ function isScrollTargetVisibleWithinContainers(target: ScrollTarget, containers:
     x: 0,
     y: 0,
     toJSON: () => ({}),
-  })
+  }, axis)
 }
 
 function safeScrollIntoView(
@@ -345,8 +349,16 @@ function resolveMatchScrollState(context: EditorContext, match: SearchMatch): Re
 }
 
 function isResolvedMatchScrollStateVisible(state: ResolvedMatchScrollState) {
-  return isScrollTargetVisibleWithinContainers(state.inlineTarget, state.visibilityContainers)
-    && isScrollTargetVisibleWithinContainers(state.verticalTarget, state.visibilityContainers)
+  const inlineVisible = isScrollTargetVisibleWithinContainers(state.inlineTarget, state.visibilityContainers, 'both')
+  if (!inlineVisible) {
+    return false
+  }
+
+  if (state.verticalTarget === state.inlineTarget) {
+    return true
+  }
+
+  return isScrollTargetVisibleWithinContainers(state.verticalTarget, state.visibilityContainers, 'y')
 }
 
 function resolvePreciseMatchScrollTarget(
@@ -486,10 +498,19 @@ function centerScrollTargetWithinContainers(
 }
 
 function isContainerScrollableOnAxis(container: HTMLElement, axis: 'x' | 'y') {
+  const style = globalThis.getComputedStyle?.(container)
   if (axis === 'y') {
+    const overflowY = style?.overflowY || container.style.overflowY || ''
+    if (overflowY === 'hidden' || overflowY === 'visible' || overflowY === 'clip') {
+      return false
+    }
     return (container.scrollHeight || 0) > (container.clientHeight || 0)
   }
 
+  const overflowX = style?.overflowX || container.style.overflowX || ''
+  if (overflowX === 'hidden' || overflowX === 'visible' || overflowX === 'clip') {
+    return false
+  }
   return (container.scrollWidth || 0) > (container.clientWidth || 0)
 }
 

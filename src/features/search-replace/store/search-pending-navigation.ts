@@ -165,6 +165,15 @@ export function createPendingNavigationController({
       return
     }
 
+    if (directScrollResult !== 'missing') {
+      if (pendingNavigationRetryCount >= 5) {
+        clearPendingNavigation('target-rendered')
+        return
+      }
+      schedulePendingNavigationRetry()
+      return
+    }
+
     const approximateNavigationState = scrollApproximateMatchIntoView(context, currentMatch)
     if (!approximateNavigationState) {
       clearPendingNavigation('approximate-unavailable')

@@ -3523,6 +3523,106 @@ describe('search store editor context fallback', () => {
     expect(editorMocks.isMatchVisible).toHaveBeenCalled()
   })
 
+  it('does not fall back to approximate scrolling when target element is in DOM and direct scroll returns scrolled', async () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-background" data-node-id="root-1"></div>
+        <div class="protyle-title" data-node-id="root-1"></div>
+        <input class="protyle-title__input" value="Doc 1" />
+        <div class="protyle-content">
+          <div class="protyle-wysiwyg">
+            <div data-node-id="block-1" data-type="NodeParagraph"><div contenteditable="true">foo</div></div>
+            <div data-node-id="block-8" data-type="NodeTable"><div contenteditable="true">foo</div></div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    const scrollContainer = document.querySelector<HTMLElement>('.protyle-content')!
+    let scrollTop = 8000
+
+    Object.defineProperty(scrollContainer, 'clientHeight', {
+      configurable: true,
+      value: 300,
+    })
+    Object.defineProperty(scrollContainer, 'scrollHeight', {
+      configurable: true,
+      value: 10000,
+    })
+    Object.defineProperty(scrollContainer, 'scrollTop', {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value: number) => {
+        scrollTop = value
+      },
+    })
+    const scrollToSpy = vi.fn(({ top }: { top?: number }) => {
+      scrollTop = top ?? scrollTop
+    })
+    scrollContainer.scrollTo = scrollToSpy as any
+
+    editorMocks.state.context = {
+      protyle,
+      rootId: 'root-1',
+      title: 'Doc 1',
+    }
+    editorMocks.scrollMatchIntoView.mockImplementation((_context, match) => {
+      if (match?.id === 'block-8:0:3') {
+        return 'scrolled'
+      }
+      return 'visible'
+    })
+    editorMocks.isMatchVisible.mockReturnValue(false)
+
+    searchReplaceState.visible = true
+    searchReplaceState.matches = [
+      {
+        blockId: 'block-1',
+        blockIndex: 0,
+        blockType: 'NodeParagraph',
+        end: 3,
+        id: 'block-1:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+        occ: 0,
+      },
+      {
+        blockId: 'block-8',
+        blockIndex: 7,
+        blockType: 'NodeTable',
+        end: 3,
+        id: 'block-8:0:3',
+        matchedText: 'foo',
+        previewText: '[foo]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+        occ: 0,
+      },
+    ]
+    searchReplaceState.currentIndex = 0
+    searchReplaceState.searchableBlockCount = 10
+    searchReplaceState.minimapBlocks = Array.from({ length: 10 }, (_, index) => ({
+      blockId: `block-${index + 1}`,
+      blockIndex: index,
+      blockType: 'NodeParagraph',
+    }))
+
+    goNext()
+
+    expect(searchReplaceState.navigationHint).toContain('等待内容加载')
+
+    await vi.advanceTimersByTimeAsync(120 * 6)
+
+    expect(scrollToSpy).not.toHaveBeenCalled()
+    expect(scrollTop).toBe(8000)
+    expect(searchReplaceState.navigationHint).toBe('')
+  })
+
   it('unfolds collapsed ancestor blocks before timing out pending navigation for hidden matches', async () => {
     document.body.innerHTML = `
       <div class="protyle">
