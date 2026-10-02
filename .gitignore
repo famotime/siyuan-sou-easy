@@ -9,8 +9,6 @@ build
 tmp
 .env
 /tmp/
-/plugin-sample-vite-vue/
-/reference_docs/
 .worktrees/
 .log
-/docs/superpowers/
+/developer_docs/
