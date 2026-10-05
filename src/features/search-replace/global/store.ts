@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-import { openTab } from 'siyuan'
+import { openTab, type TProtyleAction } from 'siyuan'
 import { getPluginInstance } from '@/plugin-instance'
 import type {
   DocAggregateNode,
@@ -126,6 +126,35 @@ export function toggleDocSelection(rootId: string) {
 }
 
 /**
+ * 判断目标块是否已经存在于当前可见的活动编辑器中
+ */
+export function isBlockVisibleInActiveEditor(blockId: string): HTMLElement | null {
+  if (typeof document === 'undefined') return null
+
+  // 1. 优先在当前激活的窗口中查找
+  const activeBlock = document.querySelector<HTMLElement>(
+    `.layout__wnd--active .protyle:not(.fn__none) [data-node-id="${blockId}"]`,
+  )
+  if (activeBlock && activeBlock.offsetParent !== null) {
+    return activeBlock
+  }
+
+  // 2. 其次在任意未隐藏的可见 Protyle 编辑器中查找
+  const visibleBlocks = Array.from(
+    document.querySelectorAll<HTMLElement>(
+      `.protyle:not(.fn__none) [data-node-id="${blockId}"]`,
+    ),
+  )
+  for (const block of visibleBlocks) {
+    if (block.offsetParent !== null) {
+      return block
+    }
+  }
+
+  return null
+}
+
+/**
  * 在目标表格块的 DOM 中，精准找到对应的 <tr> 节点
  */
 export function findTargetTableRowElement(
@@ -137,12 +166,25 @@ export function findTargetTableRowElement(
 ): HTMLElement | null {
   if (!rows.length) return null
 
+  // 解析并提取有效关键词列表（兼容多处匹配如 "深圳, 深圳"）
+  const keywords = keyword
+    ? keyword
+        .split(/,\s*/)
+        .map(k => k.trim())
+        .filter(Boolean)
+    : []
+
+  const containsAnyKeyword = (text: string) => {
+    if (!keywords.length) return true
+    return keywords.some(k => text.includes(k))
+  }
+
   // 1. 最高优先级：直接按 1:1 对应的 rowIndex 索引查找并校验内容
   if (typeof rowIndex === 'number' && rows[rowIndex]) {
     const candidate = rows[rowIndex]
     const content = candidate.textContent || ''
-    // 校验：若没有指定关键词，或者内容包含关键词，或者内容包含命中单元格
-    if (!keyword || content.includes(keyword) || (matchedCellText && content.includes(matchedCellText))) {
+    // 校验：若没有指定关键词，或者内容包含任一关键词，或者内容包含命中单元格特征
+    if (containsAnyKeyword(content) || (matchedCellText && content.includes(matchedCellText))) {
       return candidate
     }
   }
@@ -155,8 +197,8 @@ export function findTargetTableRowElement(
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i]
     const text = r.textContent || ''
-    if (keyword && !text.includes(keyword)) {
-      continue // 必须至少包含搜索关键词
+    if (keywords.length && !containsAnyKeyword(text)) {
+      continue // 必须至少包含搜索关键词之一
     }
 
     let score = 10
@@ -166,7 +208,7 @@ export function findTargetTableRowElement(
     }
     // 如果 rowText 中包含的同一行其他列文本也出现在该行中，按命中加分
     if (rowText) {
-      const parts = rowText.split(' | ').filter(p => p.length >= 2)
+      const parts = rowText.split(' | ').map(p => p.trim()).filter(p => p.length >= 2)
       for (const part of parts) {
         if (text.includes(part)) {
           score += 20
@@ -201,28 +243,29 @@ export function findTargetTableRowElement(
  * 将目标表格行平滑滚动至 Protyle 编辑器视口正中心
  */
 export function scrollToCenterTableRow(targetRow: HTMLElement) {
-  const scrollContainer = targetRow.closest('.protyle-content') as HTMLElement | null
-  if (scrollContainer) {
-    const containerRect = scrollContainer.getBoundingClientRect()
-    const rowRect = targetRow.getBoundingClientRect()
-    const currentScrollTop = scrollContainer.scrollTop
-    // 计算将 targetRow 垂直居中的 scrollTop
-    const targetScrollTop =
-      currentScrollTop +
-      (rowRect.top - containerRect.top) -
-      containerRect.height / 2 +
-      rowRect.height / 2
-
-    scrollContainer.scrollTo({
-      top: Math.max(0, targetScrollTop),
-      behavior: 'smooth',
-    })
-  } else {
+  try {
     targetRow.scrollIntoView({
       behavior: 'smooth',
       block: 'center',
       inline: 'nearest',
     })
+  } catch {
+    const scrollContainer = targetRow.closest('.protyle-content') as HTMLElement | null
+    if (scrollContainer) {
+      const containerRect = scrollContainer.getBoundingClientRect()
+      const rowRect = targetRow.getBoundingClientRect()
+      const currentScrollTop = scrollContainer.scrollTop
+      const targetScrollTop =
+        currentScrollTop +
+        (rowRect.top - containerRect.top) -
+        containerRect.height / 2 +
+        rowRect.height / 2
+
+      scrollContainer.scrollTo({
+        top: Math.max(0, targetScrollTop),
+        behavior: 'smooth',
+      })
+    }
   }
 }
 
@@ -239,7 +282,10 @@ export function scrollAndHighlightTableRow(
 ) {
   if (typeof document === 'undefined') return
 
-  const tableBlock = document.querySelector<HTMLElement>(`[data-node-id="${tableBlockId}"]`)
+  // 优先在当前可见编辑器中寻找表格
+  const tableBlock = isBlockVisibleInActiveEditor(tableBlockId)
+    || document.querySelector<HTMLElement>(`[data-node-id="${tableBlockId}"]`)
+
   if (!tableBlock) {
     if (attempt < 10) {
       setTimeout(() => {
@@ -255,11 +301,15 @@ export function scrollAndHighlightTableRow(
   const targetRow = findTargetTableRowElement(rows, rowIndex, rowText, keyword, matchedCellText)
   if (!targetRow) return
 
-  // 立即触发一次居中滚动
+  // 立即触发平滑居中滚动
   scrollToCenterTableRow(targetRow)
 
-  // 施加高亮闪烁动画
+  // 施加高亮闪烁动画（先清除该表格内旧高亮）
   const HIGHLIGHT_CLASS = 'sfsr-table-row-target-highlight'
+  tableBlock.querySelectorAll(`.${HIGHLIGHT_CLASS}`).forEach(el => {
+    el.classList.remove(HIGHLIGHT_CLASS)
+  })
+
   targetRow.classList.remove(HIGHLIGHT_CLASS)
   void targetRow.offsetWidth
   targetRow.classList.add(HIGHLIGHT_CLASS)
@@ -268,8 +318,8 @@ export function scrollAndHighlightTableRow(
     targetRow.classList.remove(HIGHLIGHT_CLASS)
   }, 2200)
 
-  // 针对思源 openTab 异步处理后的时序抗干扰校验：
-  // 350ms 后再次校验 targetRow 是否偏离视口中心较多；若被思源自带的 cb-get-focus 重新拉回了顶部，再次执行居中滚动纠偏
+  // 针对跨文档初次加载时的时序抗干扰校验：
+  // 300ms 后再次校验 targetRow 是否偏离视口中心较多；若被思源微任务拉偏，再次执行居中滚动纠偏
   setTimeout(() => {
     const scrollContainer = targetRow.closest('.protyle-content') as HTMLElement | null
     if (scrollContainer) {
@@ -281,7 +331,7 @@ export function scrollAndHighlightTableRow(
         scrollToCenterTableRow(targetRow)
       }
     }
-  }, 350)
+  }, 300)
 }
 
 /**
@@ -293,15 +343,37 @@ export async function navigateToGlobalMatch(match: GlobalMatchSnippet) {
 
   try {
     if (plugin?.app) {
+      // 1. 若为表格命中，检查目标表格是否已存在于当前活动编辑器中
+      if (match.blockType === 't' && (typeof match.tableRowIndex === 'number' || match.tableRowText)) {
+        const visibleTable = isBlockVisibleInActiveEditor(match.blockId)
+        if (visibleTable) {
+          // 目标表格已在当前活动页面可见！直接在当前视图执行行定位，绝对不调用 openTab 重复聚焦整个表格块
+          scrollAndHighlightTableRow(
+            match.blockId,
+            match.tableRowIndex,
+            match.tableRowText,
+            match.matchedText,
+            match.matchedCellText,
+          )
+          return
+        }
+      }
+
+      // 2. 目标块未在当前活动编辑器中（跨文档或未打开）：调用 openTab 打开文档
+      // 表格块不传入 cb-get-focus，避免思源内核把光标死锁在表格第 1 单元格并强制回滚到表格头部
+      const action: TProtyleAction[] = match.blockType === 't'
+        ? ['cb-get-hl']
+        : ['cb-get-hl', 'cb-get-focus']
+
       await openTab({
         app: plugin.app,
         doc: {
           id: match.blockId,
-          action: ['cb-get-hl', 'cb-get-focus'],
+          action,
         },
       })
 
-      // 若为表格命中，精确滚动并高亮至具体表格行（避开 openTab 同步回调冲突，延时执行）
+      // 3. 打开后定位表格行（初次打开 Tab 需等待 Protyle 渲染就绪）
       if (match.blockType === 't' && (typeof match.tableRowIndex === 'number' || match.tableRowText)) {
         setTimeout(() => {
           scrollAndHighlightTableRow(
@@ -311,7 +383,7 @@ export async function navigateToGlobalMatch(match: GlobalMatchSnippet) {
             match.matchedText,
             match.matchedCellText,
           )
-        }, 120)
+        }, 150)
       }
     }
   } catch (error) {

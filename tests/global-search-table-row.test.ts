@@ -11,6 +11,7 @@ import {
 } from '@/features/search-replace/global/doc-aggregator'
 import {
   findTargetTableRowElement,
+  isBlockVisibleInActiveEditor,
   scrollAndHighlightTableRow,
 } from '@/features/search-replace/global/store'
 import type { RawBlockRecord } from '@/features/search-replace/global/types'
@@ -187,4 +188,31 @@ describe('Global search table row parsing and positioning', () => {
       container.remove()
     })
   })
+
+  describe('isBlockVisibleInActiveEditor & successive clicks navigation', () => {
+    it('detects visible table block in active editor window', () => {
+      const activeWnd = document.createElement('div')
+      activeWnd.className = 'layout__wnd--active'
+      const protyle = document.createElement('div')
+      protyle.className = 'protyle'
+      const table = document.createElement('div')
+      table.setAttribute('data-node-id', 'table-block-visible')
+
+      // 模拟可见元素 (JSDOM 下 offsetParent 需 mock)
+      Object.defineProperty(table, 'offsetParent', {
+        get: () => document.body,
+        configurable: true,
+      })
+
+      protyle.appendChild(table)
+      activeWnd.appendChild(protyle)
+      document.body.appendChild(activeWnd)
+
+      const detected = isBlockVisibleInActiveEditor('table-block-visible')
+      expect(detected).toBe(table)
+
+      activeWnd.remove()
+    })
+  })
 })
+
