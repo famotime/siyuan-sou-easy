@@ -80,6 +80,16 @@
           >
           <span class="sfsr-dock-switch-text">仅搜索文档</span>
         </label>
+
+        <button
+          class="sfsr-dock-opt-btn sfsr-dock-collapse-btn"
+          type="button"
+          :title="isAllCollapsed ? '全部展开文档' : '全部折叠文档'"
+          :disabled="state.results.length === 0"
+          @click="onToggleCollapseAll"
+        >
+          {{ isAllCollapsed ? '全部展开' : '全部折叠' }}
+        </button>
       </div>
     </div>
 
@@ -111,13 +121,23 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import {
   executeGlobalSearch,
   globalSearchState as state,
   openGlobalSearch,
+  toggleAllDocsCollapse,
   toggleGlobalOption,
 } from '../store'
 import DocAggregateItem from './DocAggregateItem.vue'
+
+const isAllCollapsed = computed(() => {
+  return state.results.length > 0 && state.results.every(d => d.collapsed)
+})
+
+function onToggleCollapseAll() {
+  toggleAllDocsCollapse()
+}
 
 function onEnterSearch() {
   executeGlobalSearch()
@@ -211,6 +231,7 @@ function openModalWorkbench() {
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-wrap: wrap;
 }
 
 .sfsr-dock-switch-label {
@@ -281,6 +302,16 @@ function openModalWorkbench() {
   border-radius: 3px;
   cursor: pointer;
   font-size: 11px;
+}
+
+.sfsr-dock-collapse-btn {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.sfsr-dock-collapse-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .sfsr-dock-opt-btn--active {

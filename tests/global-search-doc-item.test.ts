@@ -103,4 +103,95 @@ describe('DocAggregateItem badge rendering', () => {
     // 第二个为段落块，显示为“段落”
     expect(badges[1].textContent?.trim()).toBe('段落')
   })
+
+  it('renders "标题" badge for heading blocks and "块" for generic/other blocks', async () => {
+    const docData: DocAggregateNode = {
+      rootId: 'doc-root-2',
+      boxId: 'box-1',
+      hpath: '/知识库/标题与其它测试',
+      docTitle: '测试文档',
+      updated: '20261005120000',
+      created: '20261005120000',
+      collapsed: false,
+      totalCount: 3,
+      matches: [
+        {
+          matchId: 'h-1:0:0',
+          blockId: 'h-1',
+          rootId: 'doc-root-2',
+          blockType: 'h',
+          subType: 'h2',
+          matchedText: '标题词',
+          prefixText: '',
+          suffixText: '',
+          previewText: '二级标题内容',
+          segments: [{ text: '标题词', isMatch: true }],
+          fullContent: '二级标题内容',
+          sort: 1,
+          updated: '20261005120000',
+          created: '20261005120000',
+          hpath: '/知识库/测试',
+          box: 'box-1',
+          selectedForReplace: true,
+          startOffset: 0,
+          endOffset: 3,
+        },
+        {
+          matchId: 'h-sub:0:0',
+          blockId: 'h-sub',
+          rootId: 'doc-root-2',
+          blockType: 'other',
+          subType: 'h3',
+          matchedText: '标题词',
+          prefixText: '',
+          suffixText: '',
+          previewText: '三级标题',
+          segments: [{ text: '标题词', isMatch: true }],
+          fullContent: '三级标题',
+          sort: 2,
+          updated: '20261005120000',
+          created: '20261005120000',
+          hpath: '/知识库/测试',
+          box: 'box-1',
+          selectedForReplace: true,
+          startOffset: 0,
+          endOffset: 3,
+        },
+        {
+          matchId: 'generic-1:0:0',
+          blockId: 'generic-1',
+          rootId: 'doc-root-2',
+          blockType: 'custom_widget',
+          matchedText: '组件词',
+          prefixText: '',
+          suffixText: '',
+          previewText: '自定义组件内容',
+          segments: [{ text: '组件词', isMatch: true }],
+          fullContent: '自定义组件内容',
+          sort: 3,
+          updated: '20261005120000',
+          created: '20261005120000',
+          hpath: '/知识库/测试',
+          box: 'box-1',
+          selectedForReplace: true,
+          startOffset: 0,
+          endOffset: 3,
+        },
+      ],
+    }
+
+    app = createApp(DocAggregateItem, { doc: docData })
+    app.mount(host!)
+    await nextTick()
+
+    const badges = host!.querySelectorAll('.sfsr-match-item__type-badge')
+    expect(badges.length).toBe(3)
+
+    // type='h' -> 标题
+    expect(badges[0].textContent?.trim()).toBe('标题')
+    // subType='h3' -> 标题
+    expect(badges[1].textContent?.trim()).toBe('标题')
+    // 未特别细分的普通/其它块 -> 块
+    expect(badges[2].textContent?.trim()).toBe('块')
+  })
 })

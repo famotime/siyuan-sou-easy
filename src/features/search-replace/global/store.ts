@@ -97,6 +97,16 @@ export function collapseAllDocs() {
   globalSearchState.results.forEach(d => (d.collapsed = true))
 }
 
+export function toggleAllDocsCollapse() {
+  const isAllCollapsed = globalSearchState.results.length > 0
+    && globalSearchState.results.every(d => d.collapsed)
+  if (isAllCollapsed) {
+    expandAllDocs()
+  } else {
+    collapseAllDocs()
+  }
+}
+
 export function toggleMatchSelection(matchId: string) {
   for (const doc of globalSearchState.results) {
     const match = doc.matches.find(m => m.matchId === matchId)

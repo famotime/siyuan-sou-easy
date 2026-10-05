@@ -72,11 +72,18 @@ function isSelected(matchId: string) {
 }
 
 function formatBlockType(type: GlobalBlockType, match?: GlobalMatchSnippet): string {
+  // 1. 标题块：h1-h6 或 type 为 h，明确标识为“标题”
+  if (type === 'h' || (match?.subType && /^h[1-6]$/i.test(match.subType))) {
+    return '标题'
+  }
+
+  // 2. 文档根块：type 为 d/doc，或者块ID为根文档ID，标识为“文档”
   if (type === 'd' || type === 'doc' || (match && match.blockId === match.rootId)) {
     return '文档'
   }
+
+  // 3. 具体已支持的细分块类型
   switch (type) {
-    case 'h': return '标题'
     case 'p': return '段落'
     case 'c': return '代码'
     case 't': return '表格'
@@ -86,7 +93,8 @@ function formatBlockType(type: GlobalBlockType, match?: GlobalMatchSnippet): str
     case 'm': return '公式'
     case 's': return '超级块'
     case 'av': return '数据库'
-    default: return '文档'
+    // 4. 其余所有未细分的块类型标识为“块”
+    default: return '块'
   }
 }
 </script>
