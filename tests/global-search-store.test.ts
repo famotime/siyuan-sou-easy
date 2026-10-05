@@ -121,4 +121,12 @@ describe('global-search store', () => {
     setGlobalSortMode('updatedDesc')
     expect(globalSearchState.sortMode).toBe('updatedDesc')
   })
+
+  it('toggles pinyin option correctly', () => {
+    const initial = globalSearchState.options.pinyin
+    toggleGlobalOption('pinyin')
+    expect(globalSearchState.options.pinyin).toBe(!initial)
+    toggleGlobalOption('pinyin')
+    expect(globalSearchState.options.pinyin).toBe(initial)
+  })
 })

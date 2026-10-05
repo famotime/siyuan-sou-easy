@@ -258,5 +258,39 @@ describe('doc-aggregator', () => {
       expect(sorted[0].rootId).toBe('d2')
       expect(sorted[1].rootId).toBe('d1')
     })
+
+    it('aggregates blocks with pinyin mode matching sz to 深圳', () => {
+      const blocks: RawBlockRecord[] = [
+        {
+          id: 'doc-sz',
+          root_id: 'doc-sz',
+          box: 'box-1',
+          path: '/sz.sy',
+          hpath: '/城市/深圳介绍',
+          content: '深圳介绍',
+          type: 'd',
+          created: '20261005100000',
+          updated: '20261005100000',
+        },
+        {
+          id: 'block-sz-1',
+          root_id: 'doc-sz',
+          box: 'box-1',
+          path: '/sz.sy',
+          hpath: '/城市/深圳介绍',
+          content: '深圳是一座极具创新活力的城市，很多人向往深圳。',
+          type: 'p',
+          created: '20261005100100',
+          updated: '20261005100100',
+        },
+      ]
+
+      const docs = aggregateBlocksToDocs(blocks, 'sz', { pinyin: true })
+      expect(docs).toHaveLength(1)
+      expect(docs[0].docTitle).toBe('深圳介绍')
+      // doc block has 1 '深圳', p block has 2 '深圳' => total 3
+      expect(docs[0].totalCount).toBe(3)
+      expect(docs[0].matches.every(m => m.matchedText === '深圳')).toBe(true)
+    })
   })
 })

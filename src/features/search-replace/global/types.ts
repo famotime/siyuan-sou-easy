@@ -78,6 +78,9 @@ export interface GlobalMatchSnippet {
   selectedForReplace: boolean
   startOffset: number
   endOffset: number
+  tableRowIndex?: number
+  tableRowText?: string
+  matchedCellText?: string
 }
 
 export interface DocAggregateNode {

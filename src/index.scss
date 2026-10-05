@@ -665,3 +665,32 @@ body.sfsr-resizing {
     background: transparent !important;
   }
 }
+
+/* 全库搜索表格行定位高亮闪烁效果 */
+@keyframes sfsr-table-row-flash {
+  0% {
+    background-color: var(--b3-theme-secondary-light, rgba(255, 229, 143, 0.75));
+    box-shadow: inset 0 0 0 2px var(--b3-theme-primary, #4285f4);
+    outline: 2px solid var(--b3-theme-primary, #4285f4);
+  }
+  65% {
+    background-color: var(--b3-theme-secondary-light, rgba(255, 229, 143, 0.6));
+    box-shadow: inset 0 0 0 2px var(--b3-theme-primary, #4285f4);
+    outline: 2px solid var(--b3-theme-primary, #4285f4);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: inset 0 0 0 0 transparent;
+    outline: 2px solid transparent;
+  }
+}
+
+.sfsr-table-row-target-highlight {
+  animation: sfsr-table-row-flash 2.2s ease-out forwards !important;
+
+  > td,
+  > th {
+    background-color: inherit !important;
+  }
+}
+
