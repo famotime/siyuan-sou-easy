@@ -195,6 +195,8 @@
       />
     </div>
   </div>
+
+  <GlobalSearchWorkbench />
 </template>
 
 <script setup lang="ts">
@@ -205,6 +207,7 @@ import {
   ref,
   watch,
 } from 'vue'
+import GlobalSearchWorkbench from '@/features/search-replace/global/ui/GlobalSearchWorkbench.vue'
 import { detectPluginEnvironment } from '@/features/search-replace/plugin-environment'
 import { t } from '@/i18n/runtime'
 

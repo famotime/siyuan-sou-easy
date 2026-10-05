@@ -2,6 +2,7 @@
   "addTopBarIcon": "Search like VScode",
   "togglePanel": "Open find panel",
   "toggleReplacePanel": "Open replace panel",
+  "openGlobalSearch": "Open Global Search Workbench",
   "settingSaved": "Settings saved",
   "settingPanelHotkeyTitle": "Find panel hotkey",
   "settingPanelHotkeyDesc": "Use SiYuan command hotkey format, for example Ctrl+F11.",

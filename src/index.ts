@@ -58,6 +58,11 @@ import {
   openPanel,
   searchReplaceState,
 } from '@/features/search-replace/store'
+import {
+  closeGlobalSearch,
+  globalSearchState,
+  openGlobalSearch,
+} from '@/features/search-replace/global/store'
 import { UI_STATE_STORAGE } from '@/features/search-replace/store/ui-state'
 import { createEditorContextFromProtyleLike } from '@/features/search-replace/editor'
 import { setKeymap } from '@/features/search-replace/kernel'
@@ -124,11 +129,19 @@ export default class FriendlySearchReplacePlugin extends Plugin {
       return
     }
 
-    if (event.key === 'Escape' && searchReplaceState.visible) {
-      event.preventDefault()
-      event.stopPropagation()
-      closePanel()
-      return
+    if (event.key === 'Escape') {
+      if (globalSearchState.visible) {
+        event.preventDefault()
+        event.stopPropagation()
+        closeGlobalSearch()
+        return
+      }
+      if (searchReplaceState.visible) {
+        event.preventDefault()
+        event.stopPropagation()
+        closePanel()
+        return
+      }
     }
 
     const target = event.target instanceof Element ? event.target : null
@@ -147,6 +160,13 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     }
 
     const runtimeHotkeySettings = this.getRuntimeHotkeySettings()
+
+    if (normalizedHotkey === runtimeHotkeySettings.globalSearchHotkey) {
+      event.preventDefault()
+      event.stopPropagation()
+      openGlobalSearch()
+      return
+    }
 
     if (normalizedHotkey === runtimeHotkeySettings.panelHotkey) {
       event.preventDefault()
@@ -198,11 +218,21 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     })
     panelCommands.forEach(command => this.addCommand(command))
 
+    this.addCommand({
+      callback: () => {
+        openGlobalSearch()
+      },
+      hotkey: this.toRegisteredHotkey(this.settingsData.globalSearchHotkey || 'Ctrl+Shift+F'),
+      langKey: 'openGlobalSearch',
+      langText: '打开全库搜索工作台',
+    })
+
     bindEditorContextEvents(this.eventBus, this.handleEditorEvent)
     window.addEventListener('keydown', this.handleDocumentKeydown, true)
   }
 
   onunload() {
+    closeGlobalSearch()
     unbindEditorContextEvents(this.eventBus, this.handleEditorEvent)
     window.removeEventListener('keydown', this.handleDocumentKeydown, true)
     destroy()

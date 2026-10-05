@@ -2,6 +2,7 @@
   "addTopBarIcon": "搜 easy",
   "togglePanel": "打开查找面板",
   "toggleReplacePanel": "打开替换面板",
+  "openGlobalSearch": "打开全库搜索工作台",
   "settingSaved": "设置已保存",
   "settingPanelHotkeyTitle": "查找面板快捷键",
   "settingPanelHotkeyDesc": "使用思源命令快捷键格式，例如 Ctrl+F11。",

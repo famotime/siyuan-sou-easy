@@ -18,6 +18,7 @@ export interface PluginSettings {
   preserveCase: boolean
   extractAsBlockRef: boolean
   searchOnEnter: boolean
+  globalSearchHotkey: string
 }
 
 export const DEFAULT_SEARCH_HIGHLIGHT_COLOR = '#ffc400'
@@ -38,6 +39,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
   preserveCase: false,
   extractAsBlockRef: false,
   searchOnEnter: false,
+  globalSearchHotkey: 'Ctrl+Shift+F',
 }
 
 export const SETTINGS_STORAGE = 'settings.json'
@@ -107,6 +109,7 @@ export function normalizeSettings(settings?: Partial<PluginSettings> | null): Pl
     searchOnEnter: typeof settings?.searchOnEnter === 'boolean'
       ? settings.searchOnEnter
       : DEFAULT_SETTINGS.searchOnEnter,
+    globalSearchHotkey: normalizeHotkey(settings?.globalSearchHotkey, DEFAULT_SETTINGS.globalSearchHotkey),
   }
 }
 
