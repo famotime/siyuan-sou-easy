@@ -25,6 +25,7 @@ export function buildGlobalSearchSql(
     limit?: number
     offset?: number
     useRegex?: boolean
+    docOnly?: boolean
   } = {},
 ): string {
   const whereClauses: string[] = []
@@ -52,8 +53,10 @@ export function buildGlobalSearchSql(
     whereClauses.push(`(${tagConditions.join(' OR ')})`)
   }
 
-  // 块类型过滤
-  if (filters.types && filters.types.length > 0) {
+  // 块类型过滤（当启用仅搜索文档时，限制仅搜索文档根块 type = 'd'）
+  if (options.docOnly) {
+    whereClauses.push(`type = 'd'`)
+  } else if (filters.types && filters.types.length > 0) {
     const typesStr = filters.types.map(t => `'${escapeSqlString(t)}'`).join(',')
     whereClauses.push(`type IN (${typesStr})`)
   }
@@ -85,6 +88,7 @@ export async function executeGlobalBlockQuery(
     limit?: number
     offset?: number
     useRegex?: boolean
+    docOnly?: boolean
   } = {},
 ): Promise<RawBlockRecord[]> {
   const sql = buildGlobalSearchSql(keyword, filters, options)

@@ -15,6 +15,10 @@ describe('dock-manager', () => {
     expect(dockEl.querySelector('.sfsr-dock-panel')).not.toBeNull()
     expect(dockEl.querySelector('.sfsr-dock-input')).not.toBeNull()
 
+    const docOnlySwitch = dockEl.querySelector('.sfsr-dock-switch') as HTMLInputElement | null
+    expect(docOnlySwitch).not.toBeNull()
+    expect(docOnlySwitch?.checked).toBe(true)
+
     destroyGlobalSearchDock()
   })
 })

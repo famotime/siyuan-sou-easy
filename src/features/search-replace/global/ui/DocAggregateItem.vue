@@ -33,7 +33,7 @@
         @click="onClickMatch(match)"
       >
         <span class="sfsr-match-item__type-badge">
-          {{ formatBlockType(match.blockType) }}
+          {{ formatBlockType(match.blockType, match) }}
         </span>
 
         <span class="sfsr-match-item__snippet">
@@ -71,7 +71,10 @@ function isSelected(matchId: string) {
   return globalSearchState.selectedMatchId === matchId
 }
 
-function formatBlockType(type: GlobalBlockType): string {
+function formatBlockType(type: GlobalBlockType, match?: GlobalMatchSnippet): string {
+  if (type === 'd' || type === 'doc' || (match && match.blockId === match.rootId)) {
+    return '文档'
+  }
   switch (type) {
     case 'h': return '标题'
     case 'p': return '段落'
@@ -81,8 +84,9 @@ function formatBlockType(type: GlobalBlockType): string {
     case 'i': return '项'
     case 'b': return '引述'
     case 'm': return '公式'
+    case 's': return '超级块'
     case 'av': return '数据库'
-    default: return '块'
+    default: return '文档'
   }
 }
 </script>

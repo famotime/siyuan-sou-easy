@@ -29,6 +29,7 @@ export const globalSearchState = reactive<GlobalSearchStateModel>({
     useRegex: false,
     pinyin: false,
     fuzzy: false,
+    docOnly: true,
   },
   filters: {
     tags: [],
@@ -169,6 +170,7 @@ export async function executeGlobalSearch() {
     const blocks = await executeGlobalBlockQuery(sqlKeyword, effectiveFilters, {
       limit: 500,
       useRegex: globalSearchState.options.useRegex || globalSearchState.options.pinyin,
+      docOnly: globalSearchState.options.docOnly,
     })
 
     const docNodes = aggregateBlocksToDocs(blocks, keyword, {
@@ -176,6 +178,7 @@ export async function executeGlobalSearch() {
       wholeWord: globalSearchState.options.wholeWord,
       useRegex: globalSearchState.options.useRegex,
       pinyin: globalSearchState.options.pinyin,
+      docOnly: globalSearchState.options.docOnly,
     })
 
     const sorted = sortDocAggregateNodes(docNodes, globalSearchState.sortMode, keyword)

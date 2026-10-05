@@ -118,6 +118,7 @@ export interface GlobalSearchStateModel {
     useRegex: boolean
     pinyin: boolean
     fuzzy: boolean
+    docOnly: boolean
   }
   filters: GlobalSearchFilters
   sortMode: GlobalSearchSortMode

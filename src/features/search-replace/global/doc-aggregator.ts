@@ -79,7 +79,10 @@ export function findMatchesInBlock(
     pinyin?: boolean
   } = {},
 ): GlobalMatchSnippet[] {
-  const content = block.fcontent || block.content || ''
+  let content = block.fcontent || block.content || ''
+  if (!content && block.type === 'd' && block.hpath) {
+    content = extractDocTitleFromHpath(block.hpath)
+  }
   if (!content || !query) {
     return []
   }
@@ -197,8 +200,13 @@ export function aggregateBlocksToDocs(
     wholeWord?: boolean
     useRegex?: boolean
     pinyin?: boolean
+    docOnly?: boolean
   } = {},
 ): DocAggregateNode[] {
+  const targetBlocks = options.docOnly
+    ? blocks.filter(b => b.type === 'd')
+    : blocks
+
   const docMap = new Map<string, {
     rootId: string
     boxId: string
@@ -211,13 +219,13 @@ export function aggregateBlocksToDocs(
 
   // 首先识别是否有文档根块自身
   const docTitleOverrides = new Map<string, string>()
-  for (const block of blocks) {
+  for (const block of targetBlocks) {
     if (block.type === 'd' && block.id === block.root_id && block.content?.trim()) {
       docTitleOverrides.set(block.root_id, block.content.trim())
     }
   }
 
-  for (const block of blocks) {
+  for (const block of targetBlocks) {
     const matches = findMatchesInBlock(block, query, options)
     if (!matches.length) {
       continue

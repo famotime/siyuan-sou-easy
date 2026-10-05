@@ -48,4 +48,9 @@ describe('kernel-query SQL builder', () => {
     expect(sql).toContain('subtype')
     expect(sql).not.toContain('sub_type')
   })
+
+  it('builds SQL with docOnly option filtering type = \'d\'', () => {
+    const sql = buildGlobalSearchSql('test', {}, { docOnly: true })
+    expect(sql).toContain("type = 'd'")
+  })
 })

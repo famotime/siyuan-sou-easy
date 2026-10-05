@@ -149,6 +149,50 @@ describe('doc-aggregator', () => {
       expect(doc2.docTitle).toBe('未命名随笔')
       expect(doc2.matches).toHaveLength(1)
     })
+
+    it('filters out non-document blocks when docOnly is true', () => {
+      const blocks: RawBlockRecord[] = [
+        {
+          id: 'doc-1',
+          root_id: 'doc-1',
+          box: 'box-1',
+          path: '/d1.sy',
+          hpath: '/知识库/深圳绿道',
+          content: '深圳绿道',
+          type: 'd',
+          created: '20261005100000',
+          updated: '20261005100000',
+        },
+        {
+          id: 'b-p1',
+          root_id: 'doc-1',
+          box: 'box-1',
+          path: '/d1.sy',
+          hpath: '/知识库/深圳绿道',
+          content: '段落中也有深圳内容',
+          type: 'p',
+          created: '20261005100000',
+          updated: '20261005110000',
+        },
+        {
+          id: 'b-p2',
+          root_id: 'doc-2',
+          box: 'box-1',
+          path: '/d2.sy',
+          hpath: '/知识库/其他文章',
+          content: '只有段落包含深圳',
+          type: 'p',
+          created: '20261005100000',
+          updated: '20261005110000',
+        },
+      ]
+
+      const docs = aggregateBlocksToDocs(blocks, '深圳', { docOnly: true })
+      expect(docs).toHaveLength(1)
+      expect(docs[0].rootId).toBe('doc-1')
+      expect(docs[0].matches).toHaveLength(1)
+      expect(docs[0].matches[0].blockType).toBe('d')
+    })
   })
 
   describe('sortDocAggregateNodes', () => {

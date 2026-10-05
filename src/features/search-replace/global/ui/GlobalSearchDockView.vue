@@ -67,6 +67,19 @@
         >
           拼
         </button>
+
+        <label
+          class="sfsr-dock-switch-label"
+          title="仅搜索文档（默认开启）"
+        >
+          <input
+            type="checkbox"
+            class="b3-switch sfsr-dock-switch"
+            :checked="state.options.docOnly"
+            @change="toggleGlobalOption('docOnly')"
+          >
+          <span class="sfsr-dock-switch-text">仅搜索文档</span>
+        </label>
       </div>
     </div>
 
@@ -196,7 +209,67 @@ function openModalWorkbench() {
 
 .sfsr-dock-options {
   display: flex;
+  align-items: center;
   gap: 4px;
+}
+
+.sfsr-dock-switch-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 11px;
+  margin-left: 6px;
+  color: var(--b3-theme-on-surface-light, #666);
+  line-height: 1;
+}
+
+.sfsr-dock-switch-label:hover {
+  color: var(--b3-theme-primary, #4285f4);
+}
+
+.sfsr-dock-switch {
+  position: relative;
+  width: 26px;
+  height: 15px;
+  background-color: var(--b3-theme-surface-lighter, #d0d5dd);
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  vertical-align: middle;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.sfsr-dock-switch:checked {
+  background-color: var(--b3-theme-primary, #4285f4);
+}
+
+.sfsr-dock-switch::after {
+  content: "";
+  position: absolute;
+  top: 1.5px;
+  left: 1.5px;
+  width: 12px;
+  height: 12px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.sfsr-dock-switch:checked::after {
+  transform: translateX(11px);
+}
+
+.sfsr-dock-switch-text {
+  white-space: nowrap;
+  font-size: 11px;
 }
 
 .sfsr-dock-opt-btn {
