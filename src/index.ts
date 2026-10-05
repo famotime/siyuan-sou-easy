@@ -64,8 +64,10 @@ import {
   openGlobalSearch,
 } from '@/features/search-replace/global/store'
 import {
+  closeGlobalSearchDockAndReturnFocus,
   destroyGlobalSearchDock,
   initGlobalSearchDock,
+  toggleGlobalSearchDock,
 } from '@/features/search-replace/global/dock-manager'
 import { UI_STATE_STORAGE } from '@/features/search-replace/store/ui-state'
 import { createEditorContextFromProtyleLike } from '@/features/search-replace/editor'
@@ -134,12 +136,6 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     }
 
     if (event.key === 'Escape') {
-      if (globalSearchState.visible) {
-        event.preventDefault()
-        event.stopPropagation()
-        closeGlobalSearch()
-        return
-      }
       if (searchReplaceState.visible) {
         event.preventDefault()
         event.stopPropagation()
@@ -166,9 +162,12 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     const runtimeHotkeySettings = this.getRuntimeHotkeySettings()
 
     if (normalizedHotkey === runtimeHotkeySettings.globalSearchHotkey) {
+      if (this.isMobile) {
+        return
+      }
       event.preventDefault()
       event.stopPropagation()
-      openGlobalSearch()
+      toggleGlobalSearchDock(false)
       return
     }
 
@@ -222,16 +221,18 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     })
     panelCommands.forEach(command => this.addCommand(command))
 
-    this.addCommand({
-      callback: () => {
-        openGlobalSearch()
-      },
-      hotkey: this.toRegisteredHotkey(this.settingsData.globalSearchHotkey || 'Ctrl+Shift+F'),
-      langKey: 'openGlobalSearch',
-      langText: '打开全库搜索工作台',
-    })
+    if (!this.isMobile) {
+      this.addCommand({
+        callback: () => {
+          toggleGlobalSearchDock(false)
+        },
+        hotkey: this.toRegisteredHotkey(this.settingsData.globalSearchHotkey || 'Ctrl+Shift+F'),
+        langKey: 'openGlobalSearch',
+        langText: '全库搜索与替换 (侧边栏)',
+      })
+    }
 
-    if (typeof (this as any).addDock === 'function') {
+    if (!this.isMobile && typeof (this as any).addDock === 'function') {
       this.addDock({
         config: {
           hotkey: this.toRegisteredHotkey(this.settingsData.globalSearchHotkey || 'Ctrl+Shift+F'),
@@ -258,6 +259,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
   }
 
   onunload() {
+    closeGlobalSearchDockAndReturnFocus()
     closeGlobalSearch()
     destroyGlobalSearchDock()
     unbindEditorContextEvents(this.eventBus, this.handleEditorEvent)

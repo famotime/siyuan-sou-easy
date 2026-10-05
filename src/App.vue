@@ -195,8 +195,6 @@
       />
     </div>
   </div>
-
-  <GlobalSearchWorkbench />
 </template>
 
 <script setup lang="ts">
@@ -207,8 +205,6 @@ import {
   ref,
   watch,
 } from 'vue'
-import GlobalSearchWorkbench from '@/features/search-replace/global/ui/GlobalSearchWorkbench.vue'
-import { globalSearchState } from '@/features/search-replace/global/store'
 import { detectPluginEnvironment } from '@/features/search-replace/plugin-environment'
 import { t } from '@/i18n/runtime'
 
@@ -471,20 +467,5 @@ watch(
 
     replaceToolbarRef.value?.focusInput()
   },
-)
-
-watch(
-  () => globalSearchState.visible,
-  (visible) => {
-    const rootEl = document.getElementById('siyuan-friendly-search-replace')
-    if (rootEl) {
-      if (visible) {
-        rootEl.classList.add('sfsr-root--workbench-open')
-      } else {
-        rootEl.classList.remove('sfsr-root--workbench-open')
-      }
-    }
-  },
-  { immediate: true },
 )
 </script>

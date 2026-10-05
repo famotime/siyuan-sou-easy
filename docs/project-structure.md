@@ -114,6 +114,28 @@
 | `ui/use-composed-input.ts` | IME-aware input behavior |
 | `ui/SearchToolbarRow.vue`, `ui/ReplaceActionRow.vue`, `ui/RegexHelpPanel.vue` | Panel UI pieces used by `App.vue` |
 
+### Global Search & Replace (`src/features/search-replace/global/`)
+
+| Path | Responsibility |
+| --- | --- |
+| `store.ts` | Reactive global search state, option toggles, sorting, and cross-doc navigation/table-row alignment |
+| `types.ts` | Types for global search blocks, match snippets, aggregate nodes, and filter options |
+| `dock-manager.ts` | Manages the SiYuan RightTop dock lifecycle, toggle behavior, focus management, and selection preloading |
+| `kernel-query.ts` | Queries SiYuan kernel SQL blocks table with pagination and regex/literal modes |
+| `doc-aggregator.ts` | Groups raw block hits into Doc-First nodes, extracts semantic context snippets, and handles sorting |
+| `query-parser.ts` | Parses user query strings into structured filters (`path:`, `tag:`, `type:`) |
+| `replace-engine.ts` | Batch replace executor with chunked dispatch, transaction logging, and atomic rollback support |
+| `diff-builder.ts` | Constructs Visual Diff structures with per-item and per-group exclusion states |
+| `transaction-history.ts` | Manages replace transaction history snapshots and undo/rollback operations |
+| `export-utils.ts` | Exports search results to Markdown links, SiYuan block references, and SQL embed blocks |
+| `saved-presets.ts` | Persists and loads saved search query presets |
+| `pinyin/` | Lightweight pinyin engine for initials and full-pinyin Chinese matching |
+| `ui/GlobalSearchDockView.vue` | Primary sidebar dock component unifying search, replace, presets, export, history, and filters |
+| `ui/DocAggregateItem.vue` | Doc-First tree item rendering with match highlighting and collapse toggle |
+| `ui/FilterPillsBar.vue` | Interactive filter pills for notebooks, tags, and block types |
+| `ui/VisualDiffModal.vue` | Centered modal visual diff preview for safe batch replace verification |
+| `ui/TransactionHistoryDrawer.vue` | Drawer for inspecting replace transaction batches and triggering one-click rollbacks |
+
 ## Shared UI and Localization
 
 | Path | Responsibility |
