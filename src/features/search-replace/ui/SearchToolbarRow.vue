@@ -19,6 +19,7 @@
         <button
           :class="optionButtonClass(props.matchCase)"
           class="sfsr-button"
+          :aria-label="t('matchCase')"
           :title="t('matchCase')"
           @click="props.onToggleOption('matchCase')"
         >
@@ -27,13 +28,16 @@
         <button
           :class="optionButtonClass(props.wholeWord)"
           class="sfsr-button sfsr-icon-button sfsr-icon-button--wide sfsr-icon-button--compact"
+          :aria-label="t('wholeWord')"
           :title="t('wholeWord')"
           @click="props.onToggleOption('wholeWord')"
         >
           <svg
             aria-hidden="true"
             class="sfsr-toolbar-icon sfsr-toolbar-icon--whole-word sfsr-toolbar-icon--whole-word-wide"
+            style="fill: none !important;"
             viewBox="0 0 22 18"
+            fill="none"
           >
             <path
               class="sfsr-toolbar-icon-boundary"
@@ -71,6 +75,7 @@
         <button
           :class="optionButtonClass(props.useRegex)"
           class="sfsr-button"
+          :aria-label="t('useRegex')"
           :title="t('useRegex')"
           @click="props.onToggleOption('useRegex')"
         >
@@ -98,13 +103,14 @@
 
       <button
         class="sfsr-button sfsr-action"
-        :title="t('previousMatch')"
         :aria-label="t('previousMatch')"
+        :title="t('previousMatch')"
         @click="props.onGoPrev"
       >
         <svg
           aria-hidden="true"
           class="sfsr-action__icon sfsr-toolbar-icon"
+          style="fill: none !important;"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -117,13 +123,14 @@
       </button>
       <button
         class="sfsr-button sfsr-action"
-        :title="t('nextMatch')"
         :aria-label="t('nextMatch')"
+        :title="t('nextMatch')"
         @click="props.onGoNext"
       >
         <svg
           aria-hidden="true"
           class="sfsr-action__icon sfsr-toolbar-icon"
+          style="fill: none !important;"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -146,6 +153,7 @@
         <svg
           aria-hidden="true"
           class="sfsr-action__icon sfsr-toolbar-icon sfsr-toolbar-icon--selection"
+          style="fill: none !important;"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -158,13 +166,14 @@
       </button>
       <button
         class="sfsr-button sfsr-action"
-        :title="t('closePanel')"
         :aria-label="t('closePanel')"
+        :title="t('closePanel')"
         @click="props.onClose"
       >
         <svg
           aria-hidden="true"
           class="sfsr-action__icon sfsr-toolbar-icon"
+          style="fill: none !important;"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"

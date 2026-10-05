@@ -7,15 +7,19 @@
       <span
         class="sfsr-doc-item__arrow"
         :class="{ 'sfsr-doc-item__arrow--expanded': !doc.collapsed }"
-      >▶</span>
+      >
+        <WireframeIcon name="chevron" :size="11" />
+      </span>
 
-      <span class="sfsr-doc-item__icon">📄</span>
+      <span class="sfsr-doc-item__icon">
+        <WireframeIcon name="document" :size="13" />
+      </span>
 
-      <span class="sfsr-doc-item__title" :title="doc.hpath || doc.docTitle">
+      <span class="sfsr-doc-item__title">
         {{ doc.docTitle }}
       </span>
 
-      <span v-if="doc.hpath" class="sfsr-doc-item__path" :title="doc.hpath">
+      <span v-if="doc.hpath" class="sfsr-doc-item__path">
         {{ doc.hpath }}
       </span>
 
@@ -32,7 +36,10 @@
         :class="{ 'sfsr-match-item--selected': isSelected(match.matchId) }"
         @click="onClickMatch(match)"
       >
-        <span class="sfsr-match-item__type-badge">
+        <span
+          class="sfsr-match-item__type-badge"
+          :class="`sfsr-match-item__type-badge--${match.blockType || 'p'}`"
+        >
           {{ formatBlockType(match.blockType, match) }}
         </span>
 
@@ -54,6 +61,7 @@ import {
   navigateToGlobalMatch,
   toggleDocCollapse,
 } from '../store'
+import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
 
 const props = defineProps<{
   doc: DocAggregateNode
@@ -116,14 +124,17 @@ function formatBlockType(type: GlobalBlockType, match?: GlobalMatchSnippet): str
 }
 
 .sfsr-doc-item__header:hover {
-  background-color: var(--b3-theme-surface-hover, rgba(128, 128, 128, 0.08));
+  background-color: var(--b3-theme-surface-hover, var(--b3-list-hover, rgba(128, 128, 128, 0.08)));
 }
 
 .sfsr-doc-item__arrow {
-  font-size: 10px;
-  color: var(--b3-theme-on-surface-light, #888);
-  transition: transform 0.15s ease;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: var(--b3-theme-on-surface-light);
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sfsr-doc-item__arrow--expanded {
@@ -131,13 +142,17 @@ function formatBlockType(type: GlobalBlockType, match?: GlobalMatchSnippet): str
 }
 
 .sfsr-doc-item__icon {
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--b3-theme-primary);
+  opacity: 0.85;
 }
 
 .sfsr-doc-item__title {
   font-weight: 600;
-  font-size: 13px;
-  color: var(--b3-theme-on-background, #333);
+  font-size: 12px;
+  color: var(--b3-theme-on-background);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -145,7 +160,8 @@ function formatBlockType(type: GlobalBlockType, match?: GlobalMatchSnippet): str
 
 .sfsr-doc-item__path {
   font-size: 11px;
-  color: var(--b3-theme-on-surface-light, #999);
+  color: var(--b3-theme-on-surface-light);
+  opacity: 0.8;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -157,8 +173,8 @@ function formatBlockType(type: GlobalBlockType, match?: GlobalMatchSnippet): str
   font-size: 11px;
   padding: 1px 6px;
   border-radius: 10px;
-  background: var(--b3-theme-primary-light, rgba(66, 133, 244, 0.15));
-  color: var(--b3-theme-primary, #4285f4);
+  background: var(--sfsr-primary-light, var(--b3-theme-primary-light, rgba(66, 133, 244, 0.15)));
+  color: var(--b3-theme-primary);
   font-weight: bold;
 }
 
@@ -179,24 +195,35 @@ function formatBlockType(type: GlobalBlockType, match?: GlobalMatchSnippet): str
 }
 
 .sfsr-match-item:hover {
-  background-color: var(--b3-theme-surface-hover, rgba(128, 128, 128, 0.08));
+  background-color: var(--b3-theme-surface-hover, var(--b3-list-hover, rgba(128, 128, 128, 0.08)));
 }
 
 .sfsr-match-item--selected {
-  background-color: var(--b3-theme-primary-light, rgba(66, 133, 244, 0.15));
+  background-color: var(--sfsr-primary-light, var(--b3-theme-primary-light, rgba(66, 133, 244, 0.15)));
 }
 
 .sfsr-match-item__type-badge {
   font-size: 10px;
-  padding: 1px 4px;
+  padding: 1px 5px;
   border-radius: 3px;
-  background: var(--b3-theme-surface-lighter, rgba(128, 128, 128, 0.15));
-  color: var(--b3-theme-on-surface-light, #777);
+  background: var(--b3-theme-surface-lighter, rgba(128, 128, 128, 0.12));
+  color: var(--b3-theme-on-surface-light);
   white-space: nowrap;
+  font-family: var(--sfsr-font-family-base, inherit);
+}
+
+.sfsr-match-item__type-badge--h {
+  background: var(--sfsr-primary-light, rgba(66, 133, 244, 0.12));
+  color: var(--b3-theme-primary);
+}
+
+.sfsr-match-item__type-badge--c {
+  font-family: var(--sfsr-font-family-mono, monospace);
+  background: rgba(128, 128, 128, 0.18);
 }
 
 .sfsr-match-item__snippet {
-  color: var(--b3-theme-on-surface, #444);
+  color: var(--b3-theme-on-surface);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -204,10 +231,10 @@ function formatBlockType(type: GlobalBlockType, match?: GlobalMatchSnippet): str
 }
 
 .sfsr-match-item__highlight {
-  background-color: var(--b3-theme-secondary-light, #ffe58f);
+  background-color: var(--sfsr-highlight-bg, var(--b3-theme-secondary-light, #ffe58f));
   color: inherit;
   font-weight: 600;
-  padding: 0 1px;
+  padding: 0 2px;
   border-radius: 2px;
 }
 </style>

@@ -19,6 +19,7 @@
         <button
           :class="optionButtonClass(props.preserveCase)"
           class="sfsr-button"
+          :aria-label="t('settingPreserveCaseTitle')"
           :title="t('settingPreserveCaseTitle')"
           @click="props.onTogglePreserveCase"
         >
@@ -30,13 +31,14 @@
       <button
         class="sfsr-button sfsr-action"
         :disabled="!props.canReplaceCurrent"
-        :title="t('replaceAction')"
         :aria-label="t('replaceAction')"
+        :title="t('replaceAction')"
         @click="props.onReplaceCurrent"
       >
         <svg
           aria-hidden="true"
           class="sfsr-action__icon"
+          style="fill: none !important;"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -52,13 +54,14 @@
       <button
         class="sfsr-button sfsr-action"
         :disabled="!props.hasMatches"
-        :title="t('skipAction')"
         :aria-label="t('skipAction')"
+        :title="t('skipAction')"
         @click="props.onSkipCurrent"
       >
         <svg
           aria-hidden="true"
           class="sfsr-action__icon sfsr-toolbar-icon"
+          style="fill: none !important;"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -74,13 +77,14 @@
       <button
         class="sfsr-button sfsr-action"
         :disabled="!props.canReplaceAll"
-        :title="t('replaceAllAction')"
         :aria-label="t('replaceAllAction')"
+        :title="t('replaceAllAction')"
         @click="props.onReplaceAll"
       >
         <svg
           aria-hidden="true"
           class="sfsr-action__icon sfsr-toolbar-icon"
+          style="fill: none !important;"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -98,13 +102,14 @@
         v-if="!props.isMobile"
         class="sfsr-button sfsr-action"
         :disabled="!props.hasMatches"
-        :title="t('extractAllAction')"
         :aria-label="t('extractAllAction')"
+        :title="t('extractAllAction')"
         @click="props.onExtractAll"
       >
         <svg
           aria-hidden="true"
           class="sfsr-action__icon sfsr-toolbar-icon"
+          style="fill: none !important;"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"

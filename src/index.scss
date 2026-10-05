@@ -1,5 +1,142 @@
 :root {
+  /* 双主题自适应设计系统语义 Tokens */
   --sfsr-highlight-color: #ffc400;
+
+  --sfsr-bg-panel: var(--b3-theme-background);
+  --sfsr-bg-surface: var(--b3-theme-surface);
+  --sfsr-bg-surface-hover: var(--b3-theme-surface-hover, var(--b3-list-hover));
+  --sfsr-border-subtle: var(--b3-border-color);
+
+  --sfsr-text-primary: var(--b3-theme-on-background);
+  --sfsr-text-secondary: var(--b3-theme-on-surface);
+  --sfsr-text-muted: var(--b3-theme-on-surface-light);
+
+  --sfsr-primary: var(--b3-theme-primary);
+  --sfsr-primary-light: var(--b3-theme-primary-light, color-mix(in srgb, var(--b3-theme-primary) 14%, transparent));
+
+  --sfsr-diff-del-bg: color-mix(in srgb, var(--b3-theme-error, #f5222d) 14%, transparent);
+  --sfsr-diff-del-highlight: color-mix(in srgb, var(--b3-theme-error, #f5222d) 26%, transparent);
+  --sfsr-diff-del-text: var(--b3-theme-error, #f5222d);
+
+  --sfsr-diff-ins-bg: color-mix(in srgb, var(--b3-theme-success, #52c41a) 14%, transparent);
+  --sfsr-diff-ins-highlight: color-mix(in srgb, var(--b3-theme-success, #52c41a) 26%, transparent);
+  --sfsr-diff-ins-text: var(--b3-theme-success, #52c41a);
+}
+
+/* 显式线框图标防护：彻底免疫思源笔记对全局 svg 强加的 fill 属性，确保纯线框展示 */
+.sfsr-wireframe-icon,
+.sfsr-icon,
+.sfsr-action__icon,
+.sfsr-toolbar-icon,
+.sfsr-dock-icon {
+  fill: none !important;
+  stroke: currentColor !important;
+
+  :where(path, circle, rect, polygon, polyline, line, g):not(text) {
+    fill: none !important;
+    stroke: currentColor !important;
+  }
+}
+
+/* 彻底解决思源 b3-tooltips 因 focus-within 导致鼠标移出不消失、以及 300ms 延迟残留的问题 */
+.b3-tooltips::after {
+  transition: opacity 120ms ease !important;
+}
+
+/* 只要鼠标离开元素，立即隐藏 tooltip，杜绝因按钮点击后保留 focus 焦点而留在屏幕上 */
+.b3-tooltips:not(:hover)::after {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  display: none !important;
+}
+
+/* 按钮处于点击 active 状态时瞬间隐藏，防止遮挡操作视线 */
+.b3-tooltips:active::after {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  display: none !important;
+}
+
+/* 确保 Tooltips 保持单行水平展示，杜绝因未定宽被折叠为纵向竖条 */
+.sfsr-dock-panel .b3-tooltips::after,
+.b3-tooltips::after {
+  white-space: nowrap !important;
+  width: max-content !important;
+  max-width: none !important;
+  line-height: normal !important;
+  box-sizing: border-box !important;
+}
+
+/* 提升 hover 时 Tooltip 及其宿主元素的层叠优先级，杜绝被相邻按钮遮挡 */
+.sfsr-dock-panel .b3-tooltips:hover,
+.b3-tooltips:hover {
+  position: relative;
+  z-index: 9999 !important;
+}
+
+.sfsr-dock-panel .b3-tooltips:hover::after,
+.b3-tooltips:hover::after {
+  z-index: 99999 !important;
+}
+
+/* 输入行与选项行的层叠优先级明确管理：输入行永远高于选项行 */
+.sfsr-dock-input-row {
+  position: relative;
+  z-index: 25;
+}
+
+.sfsr-dock-replace-row {
+  position: relative;
+  z-index: 20;
+}
+
+.sfsr-dock-options {
+  position: relative;
+  z-index: 10;
+}
+
+/* 针对侧栏右侧按钮的 __sw 方位：右对齐且往左侧展开，严禁右侧溢出截断 */
+.sfsr-dock-panel .b3-tooltips__sw::after {
+  right: 0 !important;
+  left: auto !important;
+  transform: none !important;
+}
+
+/* 针对侧栏左侧按钮的 __se 方位：左对齐且往右侧展开，严禁左侧溢出截断 */
+.sfsr-dock-panel .b3-tooltips__se::after {
+  left: 0 !important;
+  right: auto !important;
+  transform: none !important;
+}
+
+/* 侧栏顶部操作按钮高对比度激活态：如筛选漏斗按钮激活时实心主题色底+纯白线框图标 */
+.sfsr-dock-action-btn--active {
+  background: var(--b3-theme-primary) !important;
+  border-color: var(--b3-theme-primary) !important;
+  color: #ffffff !important;
+
+  :where(svg, path, circle, rect, polygon, polyline, line, g) {
+    stroke: #ffffff !important;
+    fill: none !important;
+  }
+}
+
+/* 侧栏选项按钮高对比度激活态：保证在任何暗色或亮色背景下文字与线框图标均清晰醒目 */
+.sfsr-dock-opt-btn--active {
+  background: var(--b3-theme-primary) !important;
+  border-color: var(--b3-theme-primary) !important;
+  color: #ffffff !important;
+
+  :where(svg, path, circle, rect, polygon, polyline, line, g) {
+    stroke: #ffffff !important;
+    fill: none !important;
+  }
+
+  .sfsr-dock-chip-text {
+    color: #ffffff !important;
+    font-weight: 600;
+  }
 }
 
 .sfsr-root {

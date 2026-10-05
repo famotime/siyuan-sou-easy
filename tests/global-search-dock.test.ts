@@ -33,7 +33,8 @@ describe('dock-manager', () => {
 
     const collapseBtn = dockEl.querySelector('.sfsr-dock-collapse-btn') as HTMLButtonElement | null
     expect(collapseBtn).not.toBeNull()
-    expect(collapseBtn?.textContent?.trim()).toBe('折叠')
+    expect(collapseBtn?.getAttribute('aria-label')).toBe('全部折叠文档')
+    expect(collapseBtn?.querySelector('svg.sfsr-wireframe-icon')).not.toBeNull()
 
     destroyGlobalSearchDock()
   })

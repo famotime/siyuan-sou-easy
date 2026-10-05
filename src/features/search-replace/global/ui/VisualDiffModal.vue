@@ -3,9 +3,12 @@
     <div class="sfsr-diff-modal">
       <div class="sfsr-diff-header">
         <div class="sfsr-diff-title">
-          <span>🔄 批量替换变更对比 (Visual Diff)</span>
+          <WireframeIcon name="diff" :size="15" />
+          <span>批量替换变更对比 (Visual Diff)</span>
         </div>
-        <button class="sfsr-diff-close" type="button" @click="onCancel">✕</button>
+        <button class="sfsr-diff-close" type="button" aria-label="关闭对比视窗" @click="onCancel">
+          <WireframeIcon name="close" :size="13" />
+        </button>
       </div>
 
       <div class="sfsr-diff-summary-bar">
@@ -35,7 +38,8 @@
                 :checked="!group.allExcluded"
                 @change="onToggleGroup(group)"
               >
-              <span class="sfsr-group-title">📄 {{ group.docTitle }}</span>
+              <WireframeIcon name="document" :size="13" class="sfsr-group-icon" />
+              <span class="sfsr-group-title">{{ group.docTitle }}</span>
               <span class="sfsr-group-path">({{ group.hpath }})</span>
             </label>
             <span class="sfsr-group-count">{{ group.items.length }} 处</span>
@@ -100,6 +104,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { DiffDocumentGroup, DiffItem, DiffSummary } from '../diff-builder'
+import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
 
 const props = defineProps<{
   visible: boolean
@@ -146,6 +151,13 @@ function toggleIncludeAll(include: boolean) {
 }
 
 defineExpose({
+  setExecuting(isExecuting: boolean) {
+    executing.value = isExecuting
+  },
+  setProgress(processed: number, total: number) {
+    processedBlocks.value = processed
+    totalBlocks.value = total
+  },
   setExecutionState(isExecuting: boolean, processed = 0, total = 0) {
     executing.value = isExecuting
     processedBlocks.value = processed
@@ -161,7 +173,7 @@ defineExpose({
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.55);
+  background-color: var(--b3-mask-background, rgba(0, 0, 0, 0.48));
   display: flex;
   justify-content: center;
   align-items: center;
@@ -172,9 +184,11 @@ defineExpose({
   width: 820px;
   max-width: 94vw;
   max-height: 85vh;
-  background: var(--b3-theme-background, #fff);
+  background: var(--b3-theme-background);
+  color: var(--b3-theme-on-background);
+  border: 1px solid var(--b3-border-color);
   border-radius: 8px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--b3-dialog-shadow, 0 16px 40px rgba(0, 0, 0, 0.3));
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -189,17 +203,27 @@ defineExpose({
 }
 
 .sfsr-diff-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 600;
-  font-size: 15px;
-  color: var(--b3-theme-on-background, #333);
+  font-size: 14px;
+  color: var(--b3-theme-primary);
 }
 
 .sfsr-diff-close {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 14px;
-  color: var(--b3-theme-on-surface-light, #888);
+  padding: 2px;
+  color: var(--b3-theme-on-surface-light);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sfsr-diff-close:hover {
+  color: var(--b3-theme-on-background);
 }
 
 .sfsr-diff-summary-bar {
@@ -207,7 +231,7 @@ defineExpose({
   justify-content: space-between;
   align-items: center;
   padding: 8px 18px;
-  background: var(--b3-theme-surface, #f8f9fa);
+  background: var(--b3-theme-surface, transparent);
   border-bottom: 1px solid var(--b3-border-color, rgba(128, 128, 128, 0.15));
   font-size: 12px;
 }
@@ -216,11 +240,11 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--b3-theme-on-surface, #555);
+  color: var(--b3-theme-on-surface);
 }
 
 .sfsr-divider {
-  color: #ccc;
+  color: var(--b3-border-color, rgba(128, 128, 128, 0.3));
 }
 
 .sfsr-diff-quick-actions {
@@ -231,7 +255,7 @@ defineExpose({
 .sfsr-diff-text-btn {
   background: none;
   border: none;
-  color: var(--b3-theme-primary, #4285f4);
+  color: var(--b3-theme-primary);
   cursor: pointer;
   font-size: 12px;
 }
@@ -259,7 +283,7 @@ defineExpose({
   justify-content: space-between;
   align-items: center;
   padding: 6px 10px;
-  background: var(--b3-theme-surface, #f0f2f5);
+  background: var(--b3-theme-surface, rgba(128, 128, 128, 0.05));
   font-size: 13px;
   font-weight: 600;
 }
@@ -271,15 +295,19 @@ defineExpose({
   cursor: pointer;
 }
 
+.sfsr-group-icon {
+  color: var(--b3-theme-primary);
+}
+
 .sfsr-group-path {
   font-size: 11px;
   font-weight: normal;
-  color: var(--b3-theme-on-surface-light, #888);
+  color: var(--b3-theme-on-surface-light);
 }
 
 .sfsr-group-count {
   font-size: 11px;
-  color: var(--b3-theme-primary, #4285f4);
+  color: var(--b3-theme-primary);
 }
 
 .sfsr-diff-items-list {
@@ -318,11 +346,11 @@ defineExpose({
 }
 
 .sfsr-diff-line--before {
-  color: var(--b3-theme-on-surface, #333);
+  color: var(--b3-theme-on-surface);
 }
 
 .sfsr-diff-line--after {
-  color: var(--b3-theme-on-surface, #333);
+  color: var(--b3-theme-on-surface);
   margin-top: 2px;
 }
 
@@ -334,34 +362,36 @@ defineExpose({
 }
 
 .sfsr-diff-badge--del {
-  background: rgba(245, 34, 45, 0.15);
-  color: #f5222d;
+  background: var(--sfsr-diff-del-bg, rgba(245, 34, 45, 0.15));
+  color: var(--sfsr-diff-del-text, #f5222d);
 }
 
 .sfsr-diff-badge--ins {
-  background: rgba(82, 196, 26, 0.15);
-  color: #52c41a;
+  background: var(--sfsr-diff-ins-bg, rgba(82, 196, 26, 0.15));
+  color: var(--sfsr-diff-ins-text, #52c41a);
 }
 
 .sfsr-del-highlight {
-  background: rgba(245, 34, 45, 0.25);
-  color: #cf1322;
+  background: var(--sfsr-diff-del-highlight, rgba(245, 34, 45, 0.25));
+  color: var(--sfsr-diff-del-text, #f5222d);
   text-decoration: line-through;
   padding: 0 2px;
+  border-radius: 2px;
 }
 
 .sfsr-ins-highlight {
-  background: rgba(82, 196, 26, 0.25);
-  color: #389e0d;
+  background: var(--sfsr-diff-ins-highlight, rgba(82, 196, 26, 0.25));
+  color: var(--sfsr-diff-ins-text, #52c41a);
   text-decoration: underline;
   padding: 0 2px;
   font-weight: 600;
+  border-radius: 2px;
 }
 
 .sfsr-diff-progress {
   position: relative;
-  height: 20px;
-  background: #eee;
+  height: 22px;
+  background: var(--b3-theme-surface-lighter, rgba(128, 128, 128, 0.1));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -372,14 +402,14 @@ defineExpose({
   left: 0;
   top: 0;
   bottom: 0;
-  background: var(--b3-theme-primary, #4285f4);
+  background: var(--b3-theme-primary);
   transition: width 0.15s ease;
 }
 
 .sfsr-progress-text {
   position: relative;
   font-size: 11px;
-  color: #333;
+  color: var(--b3-theme-on-background);
   font-weight: 500;
 }
 
@@ -392,28 +422,37 @@ defineExpose({
 }
 
 .sfsr-btn {
-  height: 32px;
-  padding: 0 16px;
+  height: 30px;
+  padding: 0 14px;
   border-radius: 4px;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
   font-weight: 500;
+  transition: all 0.15s ease;
 }
 
 .sfsr-btn--secondary {
   border: 1px solid var(--b3-border-color, rgba(128, 128, 128, 0.3));
-  background: var(--b3-theme-surface, #fff);
-  color: var(--b3-theme-on-surface, #555);
+  background: var(--b3-theme-surface, transparent);
+  color: var(--b3-theme-on-surface);
+}
+
+.sfsr-btn--secondary:hover {
+  background: var(--b3-theme-surface-hover, var(--b3-list-hover, rgba(128, 128, 128, 0.08)));
 }
 
 .sfsr-btn--primary {
-  background: var(--b3-theme-primary, #4285f4);
+  background: var(--b3-theme-primary);
   color: #fff;
   border: none;
 }
 
+.sfsr-btn--primary:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
 .sfsr-btn--primary:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 </style>

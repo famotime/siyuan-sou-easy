@@ -174,9 +174,9 @@ function resetFilters() {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  padding: 6px 16px;
-  background: var(--b3-theme-surface, #f9fafb);
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--b3-theme-surface, transparent);
   border-bottom: 1px solid var(--b3-border-color, rgba(128, 128, 128, 0.1));
   font-size: 11px;
 }
@@ -188,7 +188,7 @@ function resetFilters() {
 }
 
 .sfsr-pill-label {
-  color: var(--b3-theme-on-surface-light, #888);
+  color: var(--b3-theme-on-surface-light);
   margin-right: 2px;
 }
 
@@ -196,28 +196,29 @@ function resetFilters() {
   padding: 2px 7px;
   border-radius: 12px;
   border: 1px solid var(--b3-border-color, rgba(128, 128, 128, 0.2));
-  background: var(--b3-theme-background, #fff);
-  color: var(--b3-theme-on-surface, #555);
+  background: var(--b3-theme-surface, transparent);
+  color: var(--b3-theme-on-surface);
   cursor: pointer;
   font-size: 11px;
   transition: all 0.15s ease;
 }
 
 .sfsr-pill:hover {
-  border-color: var(--b3-theme-primary, #4285f4);
+  border-color: var(--b3-theme-primary);
+  color: var(--b3-theme-on-background);
 }
 
 .sfsr-pill--active {
-  background: var(--b3-theme-primary, #4285f4);
-  border-color: var(--b3-theme-primary, #4285f4);
-  color: #fff;
+  background: var(--sfsr-primary-light, var(--b3-theme-primary-light, rgba(66, 133, 244, 0.15)));
+  border-color: var(--b3-theme-primary);
+  color: var(--b3-theme-primary);
   font-weight: 500;
 }
 
 .sfsr-pill-select {
   border: 1px solid var(--b3-border-color, rgba(128, 128, 128, 0.2));
   border-radius: 10px;
-  background: var(--b3-theme-background, #fff);
+  background: var(--b3-theme-background);
   color: inherit;
   font-size: 11px;
   padding: 1px 6px;
@@ -227,10 +228,11 @@ function resetFilters() {
 .sfsr-pill-reset {
   background: none;
   border: none;
-  color: var(--b3-theme-error, #f5222d);
+  color: var(--b3-theme-error);
   cursor: pointer;
   font-size: 11px;
   margin-left: auto;
+  padding: 1px 4px;
 }
 
 .sfsr-pill-reset:hover {
