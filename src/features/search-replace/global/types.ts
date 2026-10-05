@@ -29,6 +29,7 @@ export interface RawBlockRecord {
   fcontent?: string
   markdown?: string
   type: GlobalBlockType
+  subtype?: string
   sub_type?: string
   sort?: number
   created: string

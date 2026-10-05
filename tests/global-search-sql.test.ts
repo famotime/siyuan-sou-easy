@@ -42,4 +42,10 @@ describe('kernel-query SQL builder', () => {
     const sql = buildGlobalSearchSql('\\d+', {}, { useRegex: true })
     expect(sql).not.toContain('LIKE')
   })
+
+  it('selects valid SiYuan blocks schema columns (subtype instead of sub_type)', () => {
+    const sql = buildGlobalSearchSql('test')
+    expect(sql).toContain('subtype')
+    expect(sql).not.toContain('sub_type')
+  })
 })

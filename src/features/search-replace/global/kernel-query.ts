@@ -72,7 +72,7 @@ export function buildGlobalSearchSql(
   const limitPart = `LIMIT ${options.limit || 300}`
   const offsetPart = options.offset ? `OFFSET ${options.offset}` : ''
 
-  return `SELECT id, parent_id, root_id, box, path, hpath, content, fcontent, markdown, type, sub_type, sort, created, updated FROM blocks ${wherePart} ORDER BY updated DESC ${limitPart} ${offsetPart}`.trim()
+  return `SELECT id, parent_id, root_id, box, path, hpath, content, fcontent, markdown, type, subtype, sort, created, updated FROM blocks ${wherePart} ORDER BY updated DESC ${limitPart} ${offsetPart}`.trim()
 }
 
 /**
