@@ -17,6 +17,22 @@
           <button
             class="sfsr-icon-action-btn"
             type="button"
+            title="常用搜索预设"
+            @click="togglePresetsMenu"
+          >
+            ⭐ 预设
+          </button>
+          <button
+            class="sfsr-icon-action-btn"
+            type="button"
+            title="批量导出结果"
+            @click="toggleExportMenu"
+          >
+            📋 导出
+          </button>
+          <button
+            class="sfsr-icon-action-btn"
+            type="button"
             title="替换事务历史与回退"
             @click="openHistoryDrawer"
           >
@@ -78,6 +94,14 @@
               @click="toggleGlobalOption('useRegex')"
             >
               .*
+            </button>
+            <button
+              class="sfsr-opt-btn"
+              :class="{ 'sfsr-opt-btn--active': state.options.pinyin }"
+              title="中文拼音首字母/全拼搜索 (Pinyin)"
+              @click="toggleGlobalOption('pinyin')"
+            >
+              拼
             </button>
           </div>
           <button
@@ -204,6 +228,67 @@
       @close="closeHistoryDrawer"
       @reverted="onTransactionReverted"
     />
+
+    <!-- 批量导出弹窗 -->
+    <div v-if="showExportModal" class="sfsr-popup-backdrop" @click.self="showExportModal = false">
+      <div class="sfsr-popup-modal">
+        <div class="sfsr-popup-header">
+          <span>📋 批量导出搜索结果</span>
+          <button class="sfsr-popup-close" type="button" @click="showExportModal = false">✕</button>
+        </div>
+        <div class="sfsr-popup-body">
+          <button class="sfsr-popup-btn" type="button" @click="onExportMarkdown">
+            📄 复制为 Markdown 链接列表
+          </button>
+          <button class="sfsr-popup-btn" type="button" @click="onExportBlockRefs">
+            🔗 复制为思源块引用列表 ((id '锚文本'))
+          </button>
+          <button class="sfsr-popup-btn" type="button" @click="onExportEmbedSql">
+            🧩 复制为思源 SQL 嵌入块
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 预设管理弹窗 -->
+    <div v-if="showPresetsModal" class="sfsr-popup-backdrop" @click.self="showPresetsModal = false">
+      <div class="sfsr-popup-modal sfsr-popup-modal--presets">
+        <div class="sfsr-popup-header">
+          <span>⭐ 常用搜索预设</span>
+          <button class="sfsr-popup-close" type="button" @click="showPresetsModal = false">✕</button>
+        </div>
+        <div class="sfsr-popup-body">
+          <div class="sfsr-preset-create-row">
+            <input
+              v-model="newPresetName"
+              class="sfsr-preset-input"
+              type="text"
+              placeholder="输入新预设名称..."
+            >
+            <button class="sfsr-btn sfsr-btn--primary" type="button" @click="onSaveCurrentAsPreset">
+              保存当前条件
+            </button>
+          </div>
+          <div class="sfsr-preset-list">
+            <div v-if="presetList.length === 0" class="sfsr-empty-tip">
+              暂无保存的预设
+            </div>
+            <div
+              v-for="p in presetList"
+              :key="p.id"
+              class="sfsr-preset-item"
+            >
+              <span class="sfsr-preset-name" @click="onApplyPreset(p)">
+                <strong>{{ p.name }}</strong> ({{ p.query }})
+              </span>
+              <button class="sfsr-preset-del" type="button" @click="onDeletePreset(p.id)">
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -234,6 +319,19 @@ import DocAggregateItem from './DocAggregateItem.vue'
 import FilterPillsBar from './FilterPillsBar.vue'
 import VisualDiffModal from './VisualDiffModal.vue'
 import TransactionHistoryDrawer from './TransactionHistoryDrawer.vue'
+import {
+  copyToClipboard,
+  exportAsBlockRefs,
+  exportAsEmbedQuery,
+  exportAsMarkdownLinks,
+} from '../export-utils'
+import {
+  deletePreset,
+  getSavedPresets,
+  loadSavedPresets,
+  savePreset,
+  type SavedSearchPreset,
+} from '../saved-presets'
 
 const inputRef = ref<HTMLInputElement>()
 const diffModalRef = ref<InstanceType<typeof VisualDiffModal>>()
@@ -367,6 +465,73 @@ async function onTransactionReverted() {
   transactionList.value = getTransactions()
   alert('已成功回滚该事务变更！')
   await executeGlobalSearch()
+}
+
+const showExportModal = ref(false)
+const showPresetsModal = ref(false)
+const presetList = ref<SavedSearchPreset[]>([])
+const newPresetName = ref('')
+
+function toggleExportMenu() {
+  showExportModal.value = !showExportModal.value
+}
+
+async function onExportMarkdown() {
+  const content = exportAsMarkdownLinks(state.results)
+  await copyToClipboard(content)
+  alert('已复制 Markdown 链接列表到剪贴板！')
+  showExportModal.value = false
+}
+
+async function onExportBlockRefs() {
+  const content = exportAsBlockRefs(state.results)
+  await copyToClipboard(content)
+  alert('已复制思源块引用列表到剪贴板！')
+  showExportModal.value = false
+}
+
+async function onExportEmbedSql() {
+  const content = exportAsEmbedQuery(state.results)
+  await copyToClipboard(content)
+  alert('已复制思源 SQL 嵌入块到剪贴板！')
+  showExportModal.value = false
+}
+
+async function togglePresetsMenu() {
+  showPresetsModal.value = !showPresetsModal.value
+  if (showPresetsModal.value) {
+    presetList.value = await loadSavedPresets()
+  }
+}
+
+async function onSaveCurrentAsPreset() {
+  if (!newPresetName.value.trim()) {
+    alert('请输入预设名称')
+    return
+  }
+  await savePreset(newPresetName.value, {
+    query: state.query,
+    replacement: state.replacement,
+    options: state.options,
+    filters: state.filters,
+  })
+  newPresetName.value = ''
+  presetList.value = getSavedPresets()
+  alert('预设保存成功！')
+}
+
+function onApplyPreset(preset: SavedSearchPreset) {
+  state.query = preset.query
+  state.replacement = preset.replacement || ''
+  state.options = { ...preset.options }
+  state.filters = { ...preset.filters }
+  showPresetsModal.value = false
+  executeGlobalSearch()
+}
+
+async function onDeletePreset(id: string) {
+  await deletePreset(id)
+  presetList.value = getSavedPresets()
 }
 
 onMounted(async () => {
@@ -659,5 +824,131 @@ watch(
 .sfsr-results-list {
   display: flex;
   flex-direction: column;
+}
+
+.sfsr-popup-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.35);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10003;
+}
+
+.sfsr-popup-modal {
+  width: 380px;
+  max-width: 90vw;
+  background: var(--b3-theme-background, #fff);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sfsr-popup-modal--presets {
+  width: 440px;
+}
+
+.sfsr-popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--b3-border-color, rgba(128, 128, 128, 0.15));
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.sfsr-popup-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--b3-theme-on-surface-light, #888);
+}
+
+.sfsr-popup-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sfsr-popup-btn {
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--b3-border-color, rgba(128, 128, 128, 0.15));
+  background: var(--b3-theme-surface, #f9fafb);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.sfsr-popup-btn:hover {
+  background: var(--b3-theme-surface-hover, rgba(128, 128, 128, 0.08));
+  border-color: var(--b3-theme-primary, #4285f4);
+}
+
+.sfsr-preset-create-row {
+  display: flex;
+  gap: 6px;
+}
+
+.sfsr-preset-input {
+  flex: 1;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--b3-border-color, rgba(128, 128, 128, 0.25));
+  border-radius: 4px;
+  font-size: 12px;
+  outline: none;
+}
+
+.sfsr-preset-list {
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.sfsr-empty-tip {
+  text-align: center;
+  color: #999;
+  font-size: 12px;
+  padding: 16px 0;
+}
+
+.sfsr-preset-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  background: var(--b3-theme-surface, #f8f9fa);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.sfsr-preset-name {
+  cursor: pointer;
+  color: var(--b3-theme-primary, #4285f4);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sfsr-preset-del {
+  background: none;
+  border: none;
+  color: var(--b3-theme-error, #f5222d);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0 4px;
 }
 </style>

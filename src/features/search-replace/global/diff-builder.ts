@@ -47,23 +47,33 @@ export function computeReplacement(
   options: {
     useRegex?: boolean
     preserveCase?: boolean
+    query?: string
   } = {},
 ): string {
-  // 基础替换内容
   let result = replacement
+
+  // 正则捕获组反向引用支持 ($1, $2 等)
+  if (options.useRegex && options.query) {
+    try {
+      const reg = new RegExp(options.query)
+      result = matchedText.replace(reg, replacement)
+    } catch {
+      result = replacement
+    }
+  }
 
   // 如果启用大小写保持
   if (options.preserveCase) {
     if (matchedText === matchedText.toUpperCase()) {
-      result = replacement.toUpperCase()
+      result = result.toUpperCase()
     } else if (matchedText === matchedText.toLowerCase()) {
-      result = replacement.toLowerCase()
+      result = result.toLowerCase()
     } else if (
       matchedText.length > 0
       && matchedText[0] === matchedText[0].toUpperCase()
       && matchedText.slice(1) === matchedText.slice(1).toLowerCase()
     ) {
-      result = replacement.charAt(0).toUpperCase() + replacement.slice(1).toLowerCase()
+      result = result.charAt(0).toUpperCase() + result.slice(1).toLowerCase()
     }
   }
 
@@ -79,6 +89,7 @@ export function buildVisualDiff(
   options: {
     useRegex?: boolean
     preserveCase?: boolean
+    query?: string
   } = {},
 ): DiffSummary {
   const groups: DiffDocumentGroup[] = []

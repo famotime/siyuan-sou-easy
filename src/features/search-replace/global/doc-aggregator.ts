@@ -4,6 +4,10 @@ import type {
   GlobalSearchSortMode,
   RawBlockRecord,
 } from './types'
+import {
+  matchFullPinyin,
+  matchPinyinInitials,
+} from './pinyin-match'
 
 const PUNCTUATION_REGEX = /[。！？!?；;\n]/
 
@@ -72,6 +76,7 @@ export function findMatchesInBlock(
     matchCase?: boolean
     wholeWord?: boolean
     useRegex?: boolean
+    pinyin?: boolean
   } = {},
 ): GlobalMatchSnippet[] {
   const content = block.fcontent || block.content || ''
@@ -140,6 +145,44 @@ export function findMatchesInBlock(
     })
   }
 
+  // 拼音首字母或全拼匹配
+  if (results.length === 0 && options.pinyin) {
+    const pinyinMatch = matchPinyinInitials(content, query) || matchFullPinyin(content, query)
+    if (pinyinMatch) {
+      const { start, end, matchedText } = pinyinMatch
+      const { prefixText, suffixText, previewText } = extractContextSnippet(
+        content,
+        start,
+        end,
+      )
+      results.push({
+        matchId: `${block.id}:${start}:py`,
+        blockId: block.id,
+        rootId: block.root_id,
+        blockType: block.type,
+        subType: block.sub_type,
+        matchedText,
+        prefixText,
+        suffixText,
+        previewText,
+        segments: [
+          { text: prefixText, isMatch: false },
+          { text: matchedText, isMatch: true },
+          { text: suffixText, isMatch: false },
+        ],
+        fullContent: content,
+        sort: block.sort ?? 0,
+        updated: block.updated || '',
+        created: block.created || '',
+        hpath: block.hpath || '',
+        box: block.box || '',
+        selectedForReplace: true,
+        startOffset: start,
+        endOffset: end,
+      })
+    }
+  }
+
   return results
 }
 
@@ -153,6 +196,7 @@ export function aggregateBlocksToDocs(
     matchCase?: boolean
     wholeWord?: boolean
     useRegex?: boolean
+    pinyin?: boolean
   } = {},
 ): DocAggregateNode[] {
   const docMap = new Map<string, {

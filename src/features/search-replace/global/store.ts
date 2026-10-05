@@ -164,16 +164,18 @@ export async function executeGlobalSearch() {
     }
 
     const keyword = parsed.textQuery || raw
+    const sqlKeyword = globalSearchState.options.pinyin ? '' : keyword
 
-    const blocks = await executeGlobalBlockQuery(keyword, effectiveFilters, {
+    const blocks = await executeGlobalBlockQuery(sqlKeyword, effectiveFilters, {
       limit: 500,
-      useRegex: globalSearchState.options.useRegex,
+      useRegex: globalSearchState.options.useRegex || globalSearchState.options.pinyin,
     })
 
     const docNodes = aggregateBlocksToDocs(blocks, keyword, {
       matchCase: globalSearchState.options.matchCase,
       wholeWord: globalSearchState.options.wholeWord,
       useRegex: globalSearchState.options.useRegex,
+      pinyin: globalSearchState.options.pinyin,
     })
 
     const sorted = sortDocAggregateNodes(docNodes, globalSearchState.sortMode, keyword)
