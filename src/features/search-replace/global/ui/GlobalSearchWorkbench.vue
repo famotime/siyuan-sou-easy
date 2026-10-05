@@ -11,21 +11,41 @@
       <!-- 标题栏 -->
       <div class="sfsr-workbench-header">
         <div class="sfsr-workbench-title">
-          <span>🔍 全库搜索工作台</span>
+          <span>🔍 全库搜索与替换工作台</span>
         </div>
-        <button
-          class="sfsr-workbench-close"
-          type="button"
-          title="关闭 (Esc)"
-          @click="closeGlobalSearch"
-        >
-          ✕
-        </button>
+        <div class="sfsr-header-actions">
+          <button
+            class="sfsr-icon-action-btn"
+            type="button"
+            title="替换事务历史与回退"
+            @click="openHistoryDrawer"
+          >
+            📜 历史
+          </button>
+          <button
+            class="sfsr-workbench-close"
+            type="button"
+            title="关闭 (Esc)"
+            @click="closeGlobalSearch"
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       <!-- 输入栏 -->
       <div class="sfsr-workbench-inputs">
         <div class="sfsr-input-row">
+          <button
+            class="sfsr-toggle-replace-btn"
+            :class="{ 'sfsr-toggle-replace-btn--active': state.replaceVisible }"
+            type="button"
+            title="展开/折叠替换栏"
+            @click="toggleGlobalReplace"
+          >
+            {{ state.replaceVisible ? '▼' : '▶' }}
+          </button>
+
           <input
             ref="inputRef"
             v-model="state.query"
@@ -69,7 +89,33 @@
             {{ state.searching ? '搜索中...' : '搜索' }}
           </button>
         </div>
+
+        <!-- 替换输入行 -->
+        <div v-if="state.replaceVisible" class="sfsr-input-row sfsr-input-row--replace">
+          <div class="sfsr-indent-spacer" />
+          <input
+            v-model="state.replacement"
+            class="sfsr-query-input sfsr-query-input--replace"
+            type="text"
+            placeholder="输入全库替换文本..."
+          >
+          <button
+            class="sfsr-batch-replace-btn"
+            type="button"
+            :disabled="!canBatchReplace"
+            @click="openBatchReplaceDiff"
+          >
+            批量替换预览...
+          </button>
+        </div>
       </div>
+
+      <!-- 渐进式过滤胶囊栏 -->
+      <FilterPillsBar
+        :filters="state.filters"
+        :notebooks="notebooks"
+        @change="onFiltersChange"
+      />
 
       <!-- 工具栏与排序 -->
       <div class="sfsr-workbench-toolbar">
@@ -138,11 +184,31 @@
         </div>
       </div>
     </div>
+
+    <!-- Visual Diff 差异对比视窗 -->
+    <VisualDiffModal
+      ref="diffModalRef"
+      :visible="showDiffModal"
+      :diff-summary="currentDiffSummary"
+      @cancel="closeDiffModal"
+      @confirm="onConfirmExecuteReplace"
+      @toggle-item="onToggleDiffItem"
+      @toggle-group="onToggleDiffGroup"
+      @toggle-all="onToggleDiffAll"
+    />
+
+    <!-- 事务历史抽屉 -->
+    <TransactionHistoryDrawer
+      :visible="showHistoryDrawer"
+      :transactions="transactionList"
+      @close="closeHistoryDrawer"
+      @reverted="onTransactionReverted"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import {
   closeGlobalSearch,
   collapseAllDocs,
@@ -150,12 +216,48 @@ import {
   expandAllDocs,
   globalSearchState as state,
   setGlobalSortMode,
+  toggleDocSelection,
   toggleGlobalOption,
+  toggleGlobalReplace,
+  toggleMatchSelection,
 } from '../store'
-import type { GlobalSearchSortMode } from '../types'
+import type { GlobalSearchFilters, GlobalSearchSortMode } from '../types'
+import { fetchNotebooks, type NotebookInfo } from '../kernel-query'
+import { buildVisualDiff, type DiffDocumentGroup, type DiffItem, type DiffSummary } from '../diff-builder'
+import { executeBatchReplace } from '../replace-engine'
+import {
+  getTransactions,
+  loadTransactions,
+  type ReplaceTransaction,
+} from '../transaction-history'
 import DocAggregateItem from './DocAggregateItem.vue'
+import FilterPillsBar from './FilterPillsBar.vue'
+import VisualDiffModal from './VisualDiffModal.vue'
+import TransactionHistoryDrawer from './TransactionHistoryDrawer.vue'
 
 const inputRef = ref<HTMLInputElement>()
+const diffModalRef = ref<InstanceType<typeof VisualDiffModal>>()
+
+const notebooks = ref<NotebookInfo[]>([])
+const showDiffModal = ref(false)
+const showHistoryDrawer = ref(false)
+const transactionList = ref<ReplaceTransaction[]>([])
+
+const currentDiffSummary = ref<DiffSummary>({
+  totalCount: 0,
+  includedCount: 0,
+  excludedCount: 0,
+  affectedDocCount: 0,
+  groups: [],
+})
+
+const canBatchReplace = computed(() => {
+  return Boolean(
+    state.query.trim()
+    && state.results.length > 0
+    && state.totalMatchCount > 0,
+  )
+})
 
 function onEnterSearch() {
   executeGlobalSearch()
@@ -166,6 +268,111 @@ function onSortChange(e: Event) {
   setGlobalSortMode(select.value as GlobalSearchSortMode)
 }
 
+function onFiltersChange(nextFilters: GlobalSearchFilters) {
+  state.filters = nextFilters
+  if (state.query.trim()) {
+    executeGlobalSearch()
+  }
+}
+
+function openBatchReplaceDiff() {
+  currentDiffSummary.value = buildVisualDiff(state.results, state.replacement, {
+    useRegex: state.options.useRegex,
+  })
+  showDiffModal.value = true
+}
+
+function closeDiffModal() {
+  showDiffModal.value = false
+}
+
+function onToggleDiffItem(item: DiffItem) {
+  item.excluded = !item.excluded
+  toggleMatchSelection(item.matchId)
+  recalcDiffStats()
+}
+
+function onToggleDiffGroup(group: DiffDocumentGroup) {
+  const targetExcluded = !group.allExcluded
+  group.items.forEach(i => {
+    i.excluded = targetExcluded
+  })
+  group.allExcluded = targetExcluded
+  toggleDocSelection(group.rootId)
+  recalcDiffStats()
+}
+
+function onToggleDiffAll(include: boolean) {
+  currentDiffSummary.value.groups.forEach(g => {
+    g.allExcluded = !include
+    g.items.forEach(i => {
+      i.excluded = !include
+    })
+  })
+  state.results.forEach(d => {
+    d.matches.forEach(m => {
+      m.selectedForReplace = include
+    })
+  })
+  recalcDiffStats()
+}
+
+function recalcDiffStats() {
+  let inc = 0
+  let exc = 0
+  for (const g of currentDiffSummary.value.groups) {
+    for (const it of g.items) {
+      if (it.excluded) exc++
+      else inc++
+    }
+    g.allExcluded = g.items.every(it => it.excluded)
+  }
+  currentDiffSummary.value.includedCount = inc
+  currentDiffSummary.value.excludedCount = exc
+  currentDiffSummary.value.affectedDocCount = currentDiffSummary.value.groups.filter(g => g.items.some(i => !i.excluded)).length
+}
+
+async function onConfirmExecuteReplace() {
+  diffModalRef.value?.setExecutionState(true, 0, currentDiffSummary.value.includedCount)
+  try {
+    const res = await executeBatchReplace(
+      currentDiffSummary.value,
+      state.query,
+      state.replacement,
+      (processed, total) => {
+        diffModalRef.value?.setExecutionState(true, processed, total)
+      },
+    )
+    showDiffModal.value = false
+    alert(`全库替换完成！共替换 ${res.replacedCount} 处，跳过 ${res.skippedCount} 处。\n可在“历史”中一键回退。`)
+    // 重新检索刷新视图
+    await executeGlobalSearch()
+  } catch (err: any) {
+    alert(`替换出错: ${err.message || '未知错误'}`)
+  } finally {
+    diffModalRef.value?.setExecutionState(false)
+  }
+}
+
+async function openHistoryDrawer() {
+  transactionList.value = await loadTransactions()
+  showHistoryDrawer.value = true
+}
+
+function closeHistoryDrawer() {
+  showHistoryDrawer.value = false
+}
+
+async function onTransactionReverted() {
+  transactionList.value = getTransactions()
+  alert('已成功回滚该事务变更！')
+  await executeGlobalSearch()
+}
+
+onMounted(async () => {
+  notebooks.value = await fetchNotebooks()
+})
+
 watch(
   () => state.visible,
   async (visible) => {
@@ -173,6 +380,9 @@ watch(
       await nextTick()
       inputRef.value?.focus()
       inputRef.value?.select()
+      if (notebooks.value.length === 0) {
+        notebooks.value = await fetchNotebooks()
+      }
     }
   },
 )
@@ -189,18 +399,18 @@ watch(
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding-top: 60px;
+  padding-top: 50px;
   z-index: 9999;
   backdrop-filter: blur(2px);
 }
 
 .sfsr-workbench-modal {
-  width: 760px;
-  max-width: 92vw;
-  max-height: 82vh;
+  width: 780px;
+  max-width: 94vw;
+  max-height: 86vh;
   background: var(--b3-theme-background, #fff);
   border-radius: 8px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
   border: 1px solid var(--b3-border-color, rgba(128, 128, 128, 0.2));
   display: flex;
   flex-direction: column;
@@ -221,6 +431,26 @@ watch(
   color: var(--b3-theme-on-background, #333);
 }
 
+.sfsr-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sfsr-icon-action-btn {
+  background: none;
+  border: 1px solid var(--b3-border-color, rgba(128, 128, 128, 0.2));
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--b3-theme-on-surface, #555);
+}
+
+.sfsr-icon-action-btn:hover {
+  background: var(--b3-theme-surface-hover, rgba(128, 128, 128, 0.08));
+}
+
 .sfsr-workbench-close {
   background: none;
   border: none;
@@ -236,7 +466,10 @@ watch(
 }
 
 .sfsr-workbench-inputs {
-  padding: 12px 16px 8px;
+  padding: 10px 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .sfsr-input-row {
@@ -245,9 +478,32 @@ watch(
   gap: 8px;
 }
 
+.sfsr-input-row--replace {
+  margin-top: 2px;
+}
+
+.sfsr-indent-spacer {
+  width: 24px;
+}
+
+.sfsr-toggle-replace-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--b3-theme-on-surface-light, #888);
+  font-size: 11px;
+}
+
+.sfsr-toggle-replace-btn--active {
+  color: var(--b3-theme-primary, #4285f4);
+}
+
 .sfsr-query-input {
   flex: 1;
-  height: 34px;
+  height: 32px;
   padding: 0 10px;
   border: 1px solid var(--b3-border-color, rgba(128, 128, 128, 0.3));
   border-radius: 4px;
@@ -261,13 +517,17 @@ watch(
   border-color: var(--b3-theme-primary, #4285f4);
 }
 
+.sfsr-query-input--replace {
+  background: var(--b3-theme-surface, #fff);
+}
+
 .sfsr-option-buttons {
   display: flex;
   gap: 4px;
 }
 
 .sfsr-opt-btn {
-  height: 32px;
+  height: 30px;
   padding: 0 8px;
   border: 1px solid var(--b3-border-color, rgba(128, 128, 128, 0.2));
   background: var(--b3-theme-surface, #fff);
@@ -285,7 +545,7 @@ watch(
 }
 
 .sfsr-search-action-btn {
-  height: 34px;
+  height: 32px;
   padding: 0 16px;
   background: var(--b3-theme-primary, #4285f4);
   color: #fff;
@@ -298,6 +558,23 @@ watch(
 
 .sfsr-search-action-btn:hover {
   opacity: 0.9;
+}
+
+.sfsr-batch-replace-btn {
+  height: 32px;
+  padding: 0 14px;
+  background: var(--b3-theme-warning, #fa8c16);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.sfsr-batch-replace-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .sfsr-workbench-toolbar {
@@ -358,7 +635,7 @@ watch(
   flex: 1;
   overflow-y: auto;
   min-height: 280px;
-  max-height: 58vh;
+  max-height: 56vh;
   padding: 8px 12px;
 }
 
