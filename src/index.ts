@@ -63,6 +63,10 @@ import {
   globalSearchState,
   openGlobalSearch,
 } from '@/features/search-replace/global/store'
+import {
+  destroyGlobalSearchDock,
+  initGlobalSearchDock,
+} from '@/features/search-replace/global/dock-manager'
 import { UI_STATE_STORAGE } from '@/features/search-replace/store/ui-state'
 import { createEditorContextFromProtyleLike } from '@/features/search-replace/editor'
 import { setKeymap } from '@/features/search-replace/kernel'
@@ -227,12 +231,35 @@ export default class FriendlySearchReplacePlugin extends Plugin {
       langText: '打开全库搜索工作台',
     })
 
+    if (typeof (this as any).addDock === 'function') {
+      this.addDock({
+        config: {
+          hotkey: this.toRegisteredHotkey(this.settingsData.globalSearchHotkey || 'Ctrl+Shift+F'),
+          icon: SEARCH_REPLACE_TOP_BAR_ICON_ID,
+          position: 'RightTop',
+          size: { height: 0, width: 340 },
+          title: this.i18n.globalSearchDockTitle || '搜 easy 全库搜索',
+        },
+        data: {},
+        destroy: () => {
+          destroyGlobalSearchDock()
+        },
+        init: (dock: any) => {
+          if (dock?.element) {
+            initGlobalSearchDock(dock.element)
+          }
+        },
+        type: 'siyuan-sou-easy-dock-tab',
+      })
+    }
+
     bindEditorContextEvents(this.eventBus, this.handleEditorEvent)
     window.addEventListener('keydown', this.handleDocumentKeydown, true)
   }
 
   onunload() {
     closeGlobalSearch()
+    destroyGlobalSearchDock()
     unbindEditorContextEvents(this.eventBus, this.handleEditorEvent)
     window.removeEventListener('keydown', this.handleDocumentKeydown, true)
     destroy()

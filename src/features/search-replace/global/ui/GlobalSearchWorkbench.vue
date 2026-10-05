@@ -293,7 +293,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import {
   closeGlobalSearch,
   collapseAllDocs,
@@ -534,8 +534,21 @@ async function onDeletePreset(id: string) {
   presetList.value = getSavedPresets()
 }
 
+function onWorkbenchGlobalKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && state.visible) {
+    e.preventDefault()
+    e.stopPropagation()
+    closeGlobalSearch()
+  }
+}
+
 onMounted(async () => {
+  window.addEventListener('keydown', onWorkbenchGlobalKeydown, true)
   notebooks.value = await fetchNotebooks()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', onWorkbenchGlobalKeydown, true)
 })
 
 watch(
@@ -565,8 +578,9 @@ watch(
   justify-content: center;
   align-items: flex-start;
   padding-top: 50px;
-  z-index: 9999;
+  z-index: 99999;
   backdrop-filter: blur(2px);
+  pointer-events: auto !important;
 }
 
 .sfsr-workbench-modal {
@@ -580,6 +594,7 @@ watch(
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  pointer-events: auto !important;
 }
 
 .sfsr-workbench-header {

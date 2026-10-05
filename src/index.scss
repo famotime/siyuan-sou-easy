@@ -9,6 +9,22 @@
   pointer-events: none;
 }
 
+.sfsr-root--workbench-open {
+  z-index: 99999 !important;
+  pointer-events: auto !important;
+}
+
+.sfsr-workbench-backdrop,
+.sfsr-workbench-modal,
+.sfsr-diff-backdrop,
+.sfsr-diff-modal,
+.sfsr-history-backdrop,
+.sfsr-history-drawer,
+.sfsr-popup-backdrop,
+.sfsr-popup-modal {
+  pointer-events: auto !important;
+}
+
 .sfsr-panel {
   --sfsr-toolbar-gap: 6px;
   --sfsr-control-height: 30px;
