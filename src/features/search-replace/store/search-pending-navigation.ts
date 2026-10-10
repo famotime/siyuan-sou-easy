@@ -5,7 +5,7 @@ import type {
 } from '../types'
 import { resolveEditorSearchRoot } from '../editor/blocks'
 import { resolveEditorScrollContainer } from '../editor/scroll-container'
-import { debugElement, debugLog } from '../debug'
+import { debugElement, debugLog, debugLogLazy } from '../debug'
 import { unfoldBlock } from '../kernel'
 import {
   canTriggerNativeMatchNavigation,
@@ -467,7 +467,7 @@ export function createPendingNavigationController({
       }
     }
 
-    debugLog('pending-navigation:approximate-scroll', {
+    debugLogLazy('pending-navigation:approximate-scroll', () => ({
       attempt: pendingNavigationRetryCount,
       blockIndex: match.blockIndex,
       clientHeight: activeState.clientHeight,
@@ -481,7 +481,7 @@ export function createPendingNavigationController({
       nudgedBoundary: activeScrollApplication.nudgedBoundary,
       scrollHeight: activeState.scrollHeight,
       appliedScrollTop,
-    })
+    }))
 
     return {
       key: [

@@ -1,13 +1,15 @@
 import {
   getBlockTextLength,
   getSearchTextNodes,
-  getUniqueBlockElements,
 } from './blocks'
+import { TABLE_NODE_TYPE } from './constants'
 import type {
   EditorContext,
   SelectionScope,
   TextOffsetRange,
 } from '../types'
+
+const BLOCK_SELECTOR = '[data-node-id][data-type]'
 
 export function getCurrentSelectionText() {
   return window.getSelection()?.toString() ?? ''
@@ -15,11 +17,13 @@ export function getCurrentSelectionText() {
 
 export function getCurrentSelectionScope(context: EditorContext): SelectionScope {
   const selection = window.getSelection()
-  const textSelectionScope = selection && selection.rangeCount > 0
-    ? getSelectionScopeFromTextRanges(context, selection)
-    : new Map()
-  if (textSelectionScope.size > 0) {
-    return textSelectionScope
+  // A collapsed caret cannot intersect any text node, so the scan below would always
+  // come back empty. Skipping it keeps plain typing off the document-sized walk.
+  if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+    const textSelectionScope = getSelectionScopeFromTextRanges(context, selection)
+    if (textSelectionScope.size > 0) {
+      return textSelectionScope
+    }
   }
 
   return getSelectionScopeFromSelectedBlocks(context)
@@ -27,7 +31,7 @@ export function getCurrentSelectionScope(context: EditorContext): SelectionScope
 
 function getSelectionScopeFromTextRanges(context: EditorContext, selection: Selection): SelectionScope {
   const scope: SelectionScope = new Map()
-  getUniqueBlockElements(context.protyle).forEach((blockElement) => {
+  collectSelectionCandidateBlocks(context, selection).forEach((blockElement) => {
     const blockId = blockElement.dataset.nodeId
     if (!blockId) {
       return
@@ -42,6 +46,102 @@ function getSelectionScopeFromTextRanges(context: EditorContext, selection: Sele
   })
 
   return scope
+}
+
+/**
+ * Blocks whose own text can intersect the selection.
+ *
+ * Blocks are enumerated in document order from the selection's start block through its
+ * end block, so a caret costs one block and a dragged selection costs the selected
+ * blocks instead of every block of the editor.
+ *
+ * This relies on the editor DOM keeping a block's own text ahead of its nested blocks
+ * (SiYuan renders a list item's text before its children), so walking the selection's
+ * span reaches every block that owns selected text. The endpoints' table ancestors are
+ * added explicitly because a table block owns the text of the cells nested inside it.
+ */
+function collectSelectionCandidateBlocks(context: EditorContext, selection: Selection) {
+  const candidates: HTMLElement[] = []
+  const seen = new Set<HTMLElement>()
+
+  const addBlock = (blockElement: HTMLElement | null) => {
+    if (!blockElement || seen.has(blockElement) || !context.protyle.contains(blockElement)) {
+      return
+    }
+
+    seen.add(blockElement)
+    candidates.push(blockElement)
+  }
+
+  const addBlockWithTableAncestors = (blockElement: HTMLElement) => {
+    addBlock(blockElement)
+    let ancestor = getOwnerBlockElement(blockElement.parentElement)
+    while (ancestor) {
+      if (ancestor.dataset.type === TABLE_NODE_TYPE) {
+        addBlock(ancestor)
+      }
+
+      ancestor = getOwnerBlockElement(ancestor.parentElement)
+    }
+  }
+
+  for (let index = 0; index < selection.rangeCount; index += 1) {
+    const selectionRange = selection.getRangeAt(index)
+    const startBlock = resolveEditorBlock(context, selectionRange.startContainer)
+    const endBlock = resolveEditorBlock(context, selectionRange.endContainer)
+    // Without an in-editor start block the selection reaches outside of this editor,
+    // so fall back to walking the whole editor from its root.
+    const walkStart = startBlock ?? context.protyle
+
+    collectBlocksInRange(context.protyle, walkStart, endBlock).forEach(addBlockWithTableAncestors)
+  }
+
+  return candidates
+}
+
+function resolveEditorBlock(context: EditorContext, node: Node | null | undefined) {
+  const blockElement = getOwnerBlockElement(node)
+  return blockElement && context.protyle.contains(blockElement) ? blockElement : null
+}
+
+function getOwnerBlockElement(node: Node | null | undefined) {
+  const element = node instanceof Element ? node : node?.parentElement
+  return element?.closest<HTMLElement>(BLOCK_SELECTOR) ?? null
+}
+
+function collectBlocksInRange(scopeRoot: Element, startBlock: Element, endBlock: Element | null) {
+  const blocks: HTMLElement[] = []
+  const walker = document.createTreeWalker(scopeRoot, NodeFilter.SHOW_ELEMENT, {
+    acceptNode(node) {
+      return node instanceof HTMLElement && node.matches(BLOCK_SELECTOR)
+        ? NodeFilter.FILTER_ACCEPT
+        : NodeFilter.FILTER_SKIP
+    },
+  })
+
+  walker.currentNode = startBlock
+  let currentNode: Node | null = startBlock
+  while (currentNode) {
+    if (currentNode instanceof HTMLElement && currentNode.matches(BLOCK_SELECTOR)) {
+      // Keep walking into the end block: blocks nested inside it can still sit before
+      // the selection's end, such as a nested paragraph ahead of the block's .protyle-attr.
+      if (endBlock && isAfterInDocument(currentNode, endBlock)) {
+        break
+      }
+
+      blocks.push(currentNode)
+    }
+
+    currentNode = walker.nextNode()
+  }
+
+  return blocks
+}
+
+function isAfterInDocument(element: Element, reference: Element) {
+  const position = reference.compareDocumentPosition(element)
+  return Boolean(position & Node.DOCUMENT_POSITION_FOLLOWING)
+    && !(position & Node.DOCUMENT_POSITION_CONTAINED_BY)
 }
 
 function getSelectionScopeFromSelectedBlocks(context: EditorContext): SelectionScope {

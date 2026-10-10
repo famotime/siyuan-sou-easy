@@ -7,7 +7,7 @@ import {
   pickPreferredBlockElement,
   pickPreferredSearchRoot,
 } from './block-selection'
-import { debugElement, debugLog } from '../debug'
+import { debugElement, debugLogLazy } from '../debug'
 import {
   getTableRowCells,
   getTableRowElements,
@@ -41,7 +41,7 @@ export function getBlockElement(context: EditorContext, blockId: string) {
     scrollContainer,
   )
   if (!chosen || primaryCandidates.length + fallbackCandidates.length > 1) {
-    debugLog('get-block-element:resolved', {
+    debugLogLazy('get-block-element:resolved', () => ({
       blockId,
       candidates: (primaryCandidates.length > 0 ? primaryCandidates : fallbackCandidates)
         .map(candidate => debugElement(candidate)),
@@ -50,7 +50,7 @@ export function getBlockElement(context: EditorContext, blockId: string) {
       primaryCandidateCount: primaryCandidates.length,
       rootId: context.rootId,
       usingFallbackCandidates: primaryCandidates.length === 0,
-    })
+    }))
   }
 
   return chosen
@@ -96,12 +96,12 @@ export function resolveEditorSearchRoot(
 
   if (chosen) {
     if (candidates.length > 1) {
-      debugLog('search-root:resolved', {
+      debugLogLazy('search-root:resolved', () => ({
         candidates: candidates.map(candidate => debugElement(candidate)),
         chosen: debugElement(chosen),
         rootId: context.rootId,
         scrollContainer: debugElement(scrollContainer),
-      })
+      }))
     }
 
     return chosen

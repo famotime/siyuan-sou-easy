@@ -8,7 +8,7 @@ import {
   syncSearchDecorations,
 } from '../editor'
 import { searchAttributeViewMatches } from '../attribute-view-search'
-import { debugElement, debugLog } from '../debug'
+import { debugElement, debugLog, debugLogLazy } from '../debug'
 import { findMatches } from '../search-engine'
 import type {
   EditorContext,
@@ -304,14 +304,14 @@ export function createSearchController({
     const scrollContainer = context.protyle instanceof Element
       ? context.protyle.querySelector('.protyle-content')
       : null
-    debugLog('reveal-current-match:start', {
+    debugLogLazy('reveal-current-match:start', () => ({
       currentIndex: state.currentIndex,
       matchId: currentMatch?.id ?? null,
       rootId: context.rootId,
       scrollContainer: debugElement(scrollContainer),
       scrollMode,
       totalMatches: state.matches.length,
-    })
+    }))
     syncSearchDecorations(context, state.matches, currentMatch, {
       largeCodeBlockLineThreshold: state.settings.largeCodeBlockLineThreshold,
       optimizeLargeCodeBlocks: state.settings.optimizeLargeCodeBlocks,

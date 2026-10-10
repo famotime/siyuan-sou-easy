@@ -23,7 +23,7 @@ import {
   getTableRowElements,
   resolveTableRowElementFromCell,
 } from './table-dom'
-import { debugElement, debugLog, debugRect } from '../debug'
+import { debugElement, debugLog, debugLogLazy, debugRect } from '../debug'
 import {
   clearCanvasSearchDecorations,
   isCanvasMatchVisible,
@@ -176,16 +176,16 @@ export function scrollMatchIntoView(
     mode === 'if-needed'
     && isResolvedMatchScrollStateVisible(resolvedState)
   ) {
-    debugLog('match-scroll:visible', {
+    debugLogLazy('match-scroll:visible', () => ({
       matchId: match.id,
       mode,
       target: debugElement(element),
       verticalTarget: debugElement(verticalElement),
-    })
+    }))
     return 'visible'
   }
 
-  debugLog('match-scroll:start', {
+  debugLogLazy('match-scroll:start', () => ({
     inlineRect: debugRect(inlineTarget.getRect()),
     matchId: match.id,
     mode,
@@ -193,7 +193,7 @@ export function scrollMatchIntoView(
     verticalRect: debugRect(verticalTarget.getRect()),
     verticalTarget: debugElement(verticalElement),
     visibilityContainers: visibilityContainers.map(container => debugElement(container)),
-  })
+  }))
 
   if (verticalElement !== element) {
     safeScrollIntoView(verticalElement, {
@@ -224,13 +224,13 @@ export function scrollMatchIntoView(
     })
   }
 
-  debugLog('match-scroll:done', {
+  debugLogLazy('match-scroll:done', () => ({
     inlineRect: debugRect(inlineTarget.getRect()),
     matchId: match.id,
     target: debugElement(element),
     verticalRect: debugRect(verticalTarget.getRect()),
     verticalTarget: debugElement(verticalElement),
-  })
+  }))
 
   return 'scrolled'
 }
@@ -256,14 +256,14 @@ export function isMatchVisible(context: EditorContext, match: SearchMatch | null
 
   const visible = isResolvedMatchScrollStateVisible(resolvedState)
   if (!visible) {
-    debugLog('match-visible:false', {
+    debugLogLazy('match-visible:false', () => ({
       inlineRect: debugRect(resolvedState.inlineTarget.getRect()),
       matchId: match.id,
       target: debugElement(resolvedState.element),
       verticalRect: debugRect(resolvedState.verticalTarget.getRect()),
       verticalTarget: debugElement(resolvedState.verticalElement),
       visibilityContainers: resolvedState.visibilityContainers.map(container => debugElement(container)),
-    })
+    }))
   }
 
   return visible
@@ -315,12 +315,12 @@ function createElementScrollTarget(element: HTMLElement): ScrollTarget {
 function resolveMatchScrollState(context: EditorContext, match: SearchMatch): ResolvedMatchScrollState | null {
   const element = resolveMatchTargetElement(context, match)
   if (!element || !isRenderableScrollElement(element)) {
-    debugLog('match-scroll-state:unrenderable', {
+    debugLogLazy('match-scroll-state:unrenderable', () => ({
       blockId: match.blockId,
       matchId: match.id,
       resolvedElement: debugElement(element),
       rootId: context.rootId,
-    })
+    }))
     return null
   }
 

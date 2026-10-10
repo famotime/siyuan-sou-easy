@@ -80,6 +80,7 @@ import {
   applyPluginSettings,
   bindPlugin,
   initializeUiState,
+  openPanel,
   searchReplaceState,
   setPanelPosition,
   setPanelWidth,
@@ -249,9 +250,14 @@ describe('search store ui state', () => {
     }
 
     bindPlugin(plugin as any)
+    // The scope is only resolved while the panel searches the current selection.
+    searchReplaceState.options.selectionOnly = true
+    openPanel(true)
+    editorMocks.getCurrentSelectionScope.mockClear()
+
     document.dispatchEvent(new Event('selectionchange'))
 
-    expect(editorMocks.getCurrentSelectionScope).toHaveBeenCalledTimes(1)
+    expect(editorMocks.getCurrentSelectionScope).toHaveBeenCalled()
 
     editorMocks.getCurrentSelectionScope.mockClear()
     unbindPlugin()

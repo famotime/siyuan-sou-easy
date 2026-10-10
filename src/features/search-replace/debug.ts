@@ -16,6 +16,20 @@ export function debugLog(...args: unknown[]) {
   console.info('[sfsr]', ...args)
 }
 
+/**
+ * `debugLog` drops its payload when logging is disabled, but the argument itself is
+ * still evaluated by the caller. Use this variant for payloads that read the DOM
+ * (`debugElement`, `debugRect`, `getBoundingClientRect`), which would otherwise cost
+ * layout work on hot paths such as typing, scrolling and match reveal.
+ */
+export function debugLogLazy(event: string, buildPayload: () => Record<string, unknown>) {
+  if (!debugLoggingEnabled) {
+    return
+  }
+
+  console.info('[sfsr]', event, buildPayload())
+}
+
 export function debugRect(rect: DOMRect | DOMRectReadOnly | null | undefined) {
   if (!rect) {
     return null

@@ -301,6 +301,35 @@ describe('selection mode from panel interaction', () => {
     document.dispatchEvent(new Event('selectionchange'))
   }
 
+  it('does not scan the editor DOM on caret changes while the panel is closed', async () => {
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      preloadSelection: false,
+    })
+    searchReplaceState.query = 'foo'
+    searchReplaceState.options.selectionOnly = true
+
+    openPanel(true)
+    await flushPanel()
+    closePanel()
+
+    const textNode = document.querySelector('[data-node-id="block-1"] [contenteditable="true"]')?.firstChild as Text
+    const range = document.createRange()
+    range.setStart(textNode, 0)
+    range.setEnd(textNode, 3)
+    const selection = window.getSelection()!
+    selection.removeAllRanges()
+    selection.addRange(range)
+
+    const treeWalkerSpy = vi.spyOn(document, 'createTreeWalker')
+    const createRangeSpy = vi.spyOn(document, 'createRange')
+
+    document.dispatchEvent(new Event('selectionchange'))
+
+    expect(treeWalkerSpy.mock.calls.filter(call => call[1] === NodeFilter.SHOW_TEXT)).toHaveLength(0)
+    expect(createRangeSpy).not.toHaveBeenCalled()
+  })
+
   function resetState() {
     searchReplaceState.visible = false
     searchReplaceState.replaceVisible = DEFAULT_SETTINGS.defaultReplaceVisible
