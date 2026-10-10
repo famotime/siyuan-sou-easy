@@ -173,20 +173,23 @@ export function createSearchDocumentEventController({
     const selectionContext = createEditorContextFromElement(anchorElement?.closest('.protyle'))
 
     if (selectionContext) {
-      const selectionScope = getCurrentSelectionScope(selectionContext)
       const hasCollapsedCaret = Boolean(selection && selection.rangeCount > 0 && selection.isCollapsed)
       rememberHintedEditorContext(selectionContext)
       rememberEditorContext(selectionContext)
+      // The scope is only consumed while the panel searches the current selection, and
+      // resolving it walks editor DOM, so keep it behind that gate instead of paying
+      // for it on every caret move of every keystroke.
+      if (!state.visible || !state.options.selectionOnly) {
+        return
+      }
+
+      const selectionScope = getCurrentSelectionScope(selectionContext)
       if (selectionScope.size > 0) {
         rememberSelectionScope(selectionContext, selectionScope)
-      }
-      if (state.visible && state.options.selectionOnly) {
-        if (selectionScope.size > 0) {
-          scheduleRefresh(0)
-          scheduleSelectionHighlightReveal(selectionContext)
-        } else if (hasCollapsedCaret) {
-          clearSelectionRevealTimer()
-        }
+        scheduleRefresh(0)
+        scheduleSelectionHighlightReveal(selectionContext)
+      } else if (hasCollapsedCaret) {
+        clearSelectionRevealTimer()
       }
       return
     }

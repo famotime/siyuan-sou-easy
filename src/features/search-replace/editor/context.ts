@@ -3,7 +3,7 @@ import {
   findCanvasSearchContextByRootId,
   getActiveCanvasSearchContext,
 } from '../canvas/context'
-import { debugElement, debugLog } from '../debug'
+import { debugElement, debugLogLazy } from '../debug'
 import type { EditorContext } from '../types'
 
 export function getActiveEditorContext(): EditorContext | null {
@@ -173,7 +173,7 @@ function dedupeAndPreferVisibleContexts(contexts: EditorContext[]) {
     .sort((left, right) => compareContextPreference(left, right))
 
   if (contexts.length > resolvedContexts.length) {
-    debugLog('editor-context:deduped', {
+    debugLogLazy('editor-context:deduped', () => ({
       candidates: contexts.map(context => ({
         protyle: debugElement(context.protyle),
         rect: debugRectSummary(context.protyle),
@@ -186,7 +186,7 @@ function dedupeAndPreferVisibleContexts(contexts: EditorContext[]) {
         rootId: context.rootId,
         title: context.title,
       })),
-    })
+    }))
   }
 
   return resolvedContexts

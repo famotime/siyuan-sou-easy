@@ -1,4 +1,4 @@
-import { debugElement, debugLog } from '../debug'
+import { debugElement, debugLogLazy } from '../debug'
 import type { EditorContext } from '../types'
 
 export function resolveEditorScrollContainer(context: EditorContext) {
@@ -8,12 +8,12 @@ export function resolveEditorScrollContainer(context: EditorContext) {
   const chosenProtyleContent = pickPreferredScrollContainer(protyleContentCandidates)
   if (chosenProtyleContent) {
     if (protyleContentCandidates.length > 1) {
-      debugLog('scroll-container:resolved', {
+      debugLogLazy('scroll-container:resolved', () => ({
         candidates: protyleContentCandidates.map(candidate => debugElement(candidate)),
         chosen: debugElement(chosenProtyleContent),
         rootId: context.rootId,
         selector: '.protyle-content',
-      })
+      }))
     }
     return chosenProtyleContent
   }
@@ -24,12 +24,12 @@ export function resolveEditorScrollContainer(context: EditorContext) {
   const chosenWysiwyg = pickPreferredScrollContainer(wysiwygCandidates)
   if (chosenWysiwyg) {
     if (wysiwygCandidates.length > 1) {
-      debugLog('scroll-container:resolved', {
+      debugLogLazy('scroll-container:resolved', () => ({
         candidates: wysiwygCandidates.map(candidate => debugElement(candidate)),
         chosen: debugElement(chosenWysiwyg),
         rootId: context.rootId,
         selector: '.protyle-wysiwyg',
-      })
+      }))
     }
     return chosenWysiwyg
   }

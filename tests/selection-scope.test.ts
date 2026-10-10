@@ -12,6 +12,16 @@ import {
   getCurrentSelectionScope,
 } from '@/features/search-replace/editor'
 
+function selectText(blockId: string, start: number, end: number) {
+  const textNode = document.querySelector<HTMLElement>(`[data-node-id="${blockId}"] [contenteditable="true"]`)?.firstChild
+  const range = document.createRange()
+  range.setStart(textNode!, start)
+  range.setEnd(textNode!, end)
+  const selection = window.getSelection()!
+  selection.removeAllRanges()
+  selection.addRange(range)
+}
+
 describe('selection search scope', () => {
   afterEach(() => {
     document.body.innerHTML = ''
@@ -84,6 +94,39 @@ describe('selection search scope', () => {
 
     expect(Array.from(scope.entries())).toEqual([
       ['block-1', [{ start: 3, end: 6 }]],
+    ])
+  })
+
+  it('keeps the table block that owns nested cell text in the scope', () => {
+    document.body.innerHTML = `
+      <div class="protyle">
+        <div class="protyle-background" data-node-id="root-1"></div>
+        <div class="protyle-title" data-node-id="root-1"></div>
+        <input class="protyle-title__input" value="Doc 1" />
+        <div class="protyle-wysiwyg">
+          <div data-node-id="block-table" data-type="NodeTable">
+            <div class="table__row">
+              <div data-node-id="cell-1" data-type="NodeTableCell" class="table__cell">
+                <div contenteditable="true">Cell Alpha</div>
+              </div>
+              <div data-node-id="cell-2" data-type="NodeTableCell" class="table__cell">
+                <div contenteditable="true">Cell Beta</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const protyle = document.querySelector<HTMLElement>('.protyle')!
+    selectText('cell-1', 5, 10)
+
+    const context = createEditorContextFromElement(protyle)
+    const scope = getCurrentSelectionScope(context!)
+
+    expect(Array.from(scope.entries())).toEqual([
+      ['cell-1', [{ start: 5, end: 10 }]],
+      ['block-table', [{ start: 5, end: 10 }]],
     ])
   })
 
