@@ -16,6 +16,7 @@ import {
 
 export const globalSearchState = reactive<GlobalSearchStateModel>({
   query: '',
+  searchedQuery: '',
   replacement: '',
   visible: false,
   replaceVisible: false,
@@ -42,6 +43,14 @@ export const globalSearchState = reactive<GlobalSearchStateModel>({
   selectedMatchId: undefined,
 })
 
+export function clearGlobalSearchResults() {
+  globalSearchState.results = []
+  globalSearchState.totalDocCount = 0
+  globalSearchState.totalMatchCount = 0
+  globalSearchState.statusMessage = undefined
+  globalSearchState.error = undefined
+}
+
 export function openGlobalSearch(replace = false) {
   globalSearchState.visible = true
   globalSearchState.replaceVisible = replace
@@ -57,6 +66,9 @@ export function toggleGlobalReplace() {
 
 export function setGlobalQuery(query: string) {
   globalSearchState.query = query
+  if (query.trim() !== globalSearchState.searchedQuery) {
+    clearGlobalSearchResults()
+  }
 }
 
 export function setGlobalReplacement(replacement: string) {
@@ -65,7 +77,8 @@ export function setGlobalReplacement(replacement: string) {
 
 export function toggleGlobalOption(option: keyof GlobalSearchStateModel['options']) {
   globalSearchState.options[option] = !globalSearchState.options[option]
-  if (globalSearchState.query.trim()) {
+  const current = globalSearchState.query.trim()
+  if (current && current === globalSearchState.searchedQuery) {
     executeGlobalSearch()
   }
 }
@@ -397,11 +410,8 @@ export async function navigateToGlobalMatch(match: GlobalMatchSnippet) {
 export async function executeGlobalSearch() {
   const raw = globalSearchState.query.trim()
   if (!raw) {
-    globalSearchState.results = []
-    globalSearchState.totalDocCount = 0
-    globalSearchState.totalMatchCount = 0
-    globalSearchState.error = undefined
-    globalSearchState.statusMessage = undefined
+    globalSearchState.searchedQuery = ''
+    clearGlobalSearchResults()
     return
   }
 
@@ -438,6 +448,7 @@ export async function executeGlobalSearch() {
 
     const sorted = sortDocAggregateNodes(docNodes, globalSearchState.sortMode, keyword)
 
+    globalSearchState.searchedQuery = raw
     globalSearchState.results = sorted
     globalSearchState.totalDocCount = sorted.length
     globalSearchState.totalMatchCount = sorted.reduce((sum, d) => sum + d.totalCount, 0)
@@ -445,6 +456,7 @@ export async function executeGlobalSearch() {
   } catch (err: any) {
     globalSearchState.error = err.message || '搜索执行失败'
     globalSearchState.results = []
+    globalSearchState.searchedQuery = raw
   } finally {
     globalSearchState.searching = false
   }

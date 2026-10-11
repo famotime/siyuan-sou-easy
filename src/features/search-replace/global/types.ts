@@ -108,6 +108,7 @@ export interface ParsedGlobalQuery {
 
 export interface GlobalSearchStateModel {
   query: string
+  searchedQuery: string
   replacement: string
   visible: boolean
   replaceVisible: boolean

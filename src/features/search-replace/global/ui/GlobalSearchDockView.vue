@@ -225,7 +225,7 @@
     </div>
 
     <!-- 结果统计提示 -->
-    <div v-if="state.statusMessage" class="sfsr-dock-status">
+    <div v-if="state.statusMessage && !isDraftQuery" class="sfsr-dock-status">
       {{ state.statusMessage }}
     </div>
 
@@ -237,11 +237,14 @@
       <div v-else-if="state.error" class="sfsr-dock-empty sfsr-dock-empty--error">
         {{ state.error }}
       </div>
-      <div v-else-if="state.results.length === 0 && state.query.trim()" class="sfsr-dock-empty">
-        未找到匹配文档内容
-      </div>
       <div v-else-if="!state.query.trim()" class="sfsr-dock-empty sfsr-dock-empty--hint">
         输入关键词并按 Enter 全库检索
+      </div>
+      <div v-else-if="isDraftQuery" class="sfsr-dock-empty sfsr-dock-empty--draft">
+        按 Enter 检索: {{ displayDraftKeyword }}
+      </div>
+      <div v-else-if="state.results.length === 0" class="sfsr-dock-empty">
+        未找到匹配文档内容
       </div>
       <div v-else class="sfsr-dock-results">
         <DocAggregateItem
@@ -253,105 +256,114 @@
     </div>
 
     <!-- Visual Diff 差异对比视窗 (屏幕居中宽屏 Modal) -->
-    <VisualDiffModal
-      ref="diffModalRef"
-      :visible="showDiffModal"
-      :diff-summary="currentDiffSummary"
-      @cancel="closeDiffModal"
-      @confirm="onConfirmExecuteReplace"
-      @toggle-item="onToggleDiffItem"
-      @toggle-group="onToggleDiffGroup"
-      @toggle-all="onToggleDiffAll"
-    />
+    <Teleport to="body">
+      <VisualDiffModal
+        ref="diffModalRef"
+        :visible="showDiffModal"
+        :diff-summary="currentDiffSummary"
+        @cancel="closeDiffModal"
+        @confirm="onConfirmExecuteReplace"
+        @toggle-item="onToggleDiffItem"
+        @toggle-group="onToggleDiffGroup"
+        @toggle-all="onToggleDiffAll"
+      />
+    </Teleport>
 
     <!-- 事务历史抽屉 -->
-    <TransactionHistoryDrawer
-      :visible="showHistoryDrawer"
-      :transactions="transactionList"
-      @close="closeHistoryDrawer"
-      @reverted="onTransactionReverted"
-    />
+    <Teleport to="body">
+      <TransactionHistoryDrawer
+        :visible="showHistoryDrawer"
+        :transactions="transactionList"
+        @close="closeHistoryDrawer"
+        @reverted="onTransactionReverted"
+      />
+    </Teleport>
 
     <!-- 批量导出弹窗 -->
-    <div v-if="showExportModal" class="sfsr-popup-backdrop" @click.self="showExportModal = false">
-      <div class="sfsr-popup-modal">
-        <div class="sfsr-popup-header">
-          <span class="sfsr-popup-title-wrap">
-            <WireframeIcon name="export" :size="14" />
-            <span>批量导出搜索结果</span>
-          </span>
-          <button class="sfsr-popup-close" type="button" aria-label="关闭弹窗" @click="showExportModal = false">
-            <WireframeIcon name="close" :size="13" />
-          </button>
-        </div>
-        <div class="sfsr-popup-body">
-          <button class="sfsr-popup-btn" type="button" @click="onExportMarkdown">
-            <WireframeIcon name="document" :size="13" />
-            <span>复制为 Markdown 链接列表</span>
-          </button>
-          <button class="sfsr-popup-btn" type="button" @click="onExportBlockRefs">
-            <WireframeIcon name="link" :size="13" />
-            <span>复制为思源块引用列表 ((id '锚文本'))</span>
-          </button>
-          <button class="sfsr-popup-btn" type="button" @click="onExportEmbedSql">
-            <WireframeIcon name="code" :size="13" />
-            <span>复制为思源 SQL 嵌入块</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 常用预设管理弹窗 -->
-    <div v-if="showPresetsModal" class="sfsr-popup-backdrop" @click.self="showPresetsModal = false">
-      <div class="sfsr-popup-modal sfsr-popup-modal--presets">
-        <div class="sfsr-popup-header">
-          <span class="sfsr-popup-title-wrap">
-            <WireframeIcon name="star" :size="14" />
-            <span>常用搜索预设</span>
-          </span>
-          <button class="sfsr-popup-close" type="button" aria-label="关闭弹窗" @click="showPresetsModal = false">
-            <WireframeIcon name="close" :size="13" />
-          </button>
-        </div>
-        <div class="sfsr-popup-body">
-          <div class="sfsr-preset-create-row">
-            <input
-              v-model="newPresetName"
-              class="sfsr-preset-input"
-              type="text"
-              placeholder="输入新预设名称..."
-              @keydown.enter="onSaveCurrentAsPreset"
-            >
-            <button class="sfsr-btn sfsr-btn--primary" type="button" @click="onSaveCurrentAsPreset">
-              保存当前条件
+    <Teleport to="body">
+      <div v-if="showExportModal" class="sfsr-popup-backdrop" @click.self="showExportModal = false">
+        <div class="sfsr-popup-modal">
+          <div class="sfsr-popup-header">
+            <span class="sfsr-popup-title-wrap">
+              <WireframeIcon name="export" :size="14" />
+              <span>批量导出搜索结果</span>
+            </span>
+            <button class="sfsr-popup-close" type="button" aria-label="关闭弹窗" @click="showExportModal = false">
+              <WireframeIcon name="close" :size="13" />
             </button>
           </div>
-          <div class="sfsr-preset-list">
-            <div v-if="presetList.length === 0" class="sfsr-empty-tip">
-              暂无保存的预设
-            </div>
-            <div
-              v-for="p in presetList"
-              :key="p.id"
-              class="sfsr-preset-item"
-            >
-              <span class="sfsr-preset-name" @click="onApplyPreset(p)">
-                <strong>{{ p.name }}</strong> ({{ p.query }})
-              </span>
-              <button class="sfsr-preset-del" type="button" aria-label="删除预设" @click="onDeletePreset(p.id)">
-                <WireframeIcon name="close" :size="12" />
+          <div class="sfsr-popup-body">
+            <button class="sfsr-popup-btn" type="button" @click="onExportMarkdown">
+              <WireframeIcon name="document" :size="13" />
+              <span>复制为 Markdown 链接列表</span>
+            </button>
+            <button class="sfsr-popup-btn" type="button" @click="onExportBlockRefs">
+              <WireframeIcon name="link" :size="13" />
+              <span>复制为思源块引用列表 ((id '锚文本'))</span>
+            </button>
+            <button class="sfsr-popup-btn" type="button" @click="onExportEmbedSql">
+              <WireframeIcon name="code" :size="13" />
+              <span>复制为思源 SQL 嵌入块</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- 常用预设管理弹窗 -->
+    <Teleport to="body">
+      <div v-if="showPresetsModal" class="sfsr-popup-backdrop" @click.self="showPresetsModal = false">
+        <div class="sfsr-popup-modal sfsr-popup-modal--presets">
+          <div class="sfsr-popup-header">
+            <span class="sfsr-popup-title-wrap">
+              <WireframeIcon name="star" :size="14" />
+              <span>常用搜索预设</span>
+            </span>
+            <button class="sfsr-popup-close" type="button" aria-label="关闭弹窗" @click="showPresetsModal = false">
+              <WireframeIcon name="close" :size="13" />
+            </button>
+          </div>
+          <div class="sfsr-popup-body">
+            <div class="sfsr-preset-create-row">
+              <input
+                v-model="newPresetName"
+                class="sfsr-preset-input"
+                type="text"
+                placeholder="输入新预设名称..."
+                @keydown.enter="onSaveCurrentAsPreset"
+              >
+              <button class="sfsr-btn sfsr-btn--primary" type="button" @click="onSaveCurrentAsPreset">
+                保存当前条件
               </button>
+            </div>
+            <div class="sfsr-preset-list">
+              <div v-if="presetList.length === 0" class="sfsr-empty-tip">
+                暂无保存的预设
+              </div>
+              <div
+                v-for="p in presetList"
+                :key="p.id"
+                class="sfsr-preset-item"
+              >
+                <span class="sfsr-preset-name" @click="onApplyPreset(p)">
+                  <strong>{{ p.name }}</strong> ({{ p.query }})
+                </span>
+                <button class="sfsr-preset-del" type="button" aria-label="删除预设" @click="onDeletePreset(p.id)">
+                  <WireframeIcon name="close" :size="12" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import {
+  clearGlobalSearchResults,
   collapseAllDocs,
   executeGlobalSearch,
   expandAllDocs,
@@ -412,6 +424,28 @@ const currentDiffSummary = ref<DiffSummary>({
   groups: [],
 })
 
+const isDraftQuery = computed(() => {
+  const trimmed = state.query.trim()
+  return Boolean(trimmed && trimmed !== state.searchedQuery)
+})
+
+const displayDraftKeyword = computed(() => {
+  const trimmed = state.query.trim()
+  if (trimmed.length > 25) {
+    return trimmed.slice(0, 25) + '...'
+  }
+  return trimmed
+})
+
+watch(
+  () => state.query,
+  (newVal) => {
+    if (newVal.trim() !== state.searchedQuery) {
+      clearGlobalSearchResults()
+    }
+  },
+)
+
 const isAllCollapsed = computed(() => {
   return state.results.length > 0 && state.results.every(d => d.collapsed)
 })
@@ -434,7 +468,10 @@ const canBatchReplace = computed(() => {
   )
 })
 
-function onEnterSearch() {
+function onEnterSearch(event?: KeyboardEvent | MouseEvent) {
+  if ((event as KeyboardEvent)?.isComposing) {
+    return
+  }
   executeGlobalSearch()
 }
 
@@ -444,6 +481,8 @@ function onInputEsc() {
 
 function clearQuery() {
   state.query = ''
+  state.searchedQuery = ''
+  clearGlobalSearchResults()
   nextTick(() => {
     inputRef.value?.focus()
   })
@@ -455,7 +494,10 @@ function onToggleCollapseAll() {
 
 function onFiltersChange(newFilters: GlobalSearchFilters) {
   state.filters = { ...newFilters }
-  executeGlobalSearch()
+  const currentQuery = state.query.trim()
+  if (currentQuery && currentQuery === state.searchedQuery) {
+    executeGlobalSearch()
+  }
 }
 
 function onSortChange(e: Event) {
@@ -667,6 +709,7 @@ onUnmounted(() => {
   color: var(--b3-theme-on-background);
   overflow: hidden;
   font-size: 12px;
+  isolation: isolate;
 }
 
 .sfsr-dock-header {
@@ -930,7 +973,7 @@ onUnmounted(() => {
   padding: 0 6px;
   border: 1px solid var(--b3-border-color, rgba(128, 128, 128, 0.2));
   background: var(--b3-theme-surface, transparent);
-  color: var(--b3-theme-on-surface-light);
+  color: var(--b3-theme-on-surface);
   border-radius: 4px;
   cursor: pointer;
   font-size: 11px;
@@ -1000,7 +1043,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--b3-theme-on-surface-light);
+  color: var(--b3-theme-on-surface);
 }
 
 .sfsr-dock-sort-select {
@@ -1016,7 +1059,7 @@ onUnmounted(() => {
 .sfsr-dock-status {
   padding: 4px 10px;
   font-size: 11px;
-  color: var(--b3-theme-on-surface-light);
+  color: var(--b3-theme-on-surface);
   border-bottom: 1px solid var(--b3-border-color, rgba(128, 128, 128, 0.08));
   background: var(--b3-theme-surface, rgba(128, 128, 128, 0.02));
 }
@@ -1032,7 +1075,7 @@ onUnmounted(() => {
   justify-content: center;
   align-items: center;
   height: 120px;
-  color: var(--b3-theme-on-surface-light);
+  color: var(--b3-theme-on-surface);
   font-size: 12px;
 }
 
@@ -1042,7 +1085,11 @@ onUnmounted(() => {
 
 .sfsr-dock-empty--hint {
   color: var(--b3-theme-on-surface-light);
-  opacity: 0.7;
+}
+
+.sfsr-dock-empty--draft {
+  color: var(--b3-theme-primary);
+  font-weight: 500;
 }
 
 .sfsr-dock-results {

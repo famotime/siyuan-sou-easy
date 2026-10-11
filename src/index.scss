@@ -12,7 +12,7 @@
   --sfsr-text-muted: var(--b3-theme-on-surface-light);
 
   --sfsr-primary: var(--b3-theme-primary);
-  --sfsr-primary-light: var(--b3-theme-primary-light, color-mix(in srgb, var(--b3-theme-primary) 14%, transparent));
+  --sfsr-primary-light: var(--b3-theme-primary-lightest, color-mix(in srgb, var(--b3-theme-primary) 12%, transparent));
 
   --sfsr-diff-del-bg: color-mix(in srgb, var(--b3-theme-error, #f5222d) 14%, transparent);
   --sfsr-diff-del-highlight: color-mix(in srgb, var(--b3-theme-error, #f5222d) 26%, transparent);
@@ -21,6 +21,11 @@
   --sfsr-diff-ins-bg: color-mix(in srgb, var(--b3-theme-success, #52c41a) 14%, transparent);
   --sfsr-diff-ins-highlight: color-mix(in srgb, var(--b3-theme-success, #52c41a) 26%, transparent);
   --sfsr-diff-ins-text: var(--b3-theme-success, #52c41a);
+}
+
+/* 侧栏容器层叠上下文严格隔离：杜绝 Dock 内部任意元素向上溢出遮挡全局菜单和弹窗 */
+.sfsr-dock-container {
+  isolation: isolate;
 }
 
 /* 显式线框图标防护：彻底免疫思源笔记对全局 svg 强加的 fill 属性，确保纯线框展示 */
@@ -68,32 +73,30 @@
   box-sizing: border-box !important;
 }
 
-/* 提升 hover 时 Tooltip 及其宿主元素的层叠优先级，杜绝被相邻按钮遮挡 */
-.sfsr-dock-panel .b3-tooltips:hover,
-.b3-tooltips:hover {
+/* 提升侧栏 hover 时 Tooltip 及其宿主元素的层叠优先级（受 .sfsr-dock-panel isolation 隔离，绝不泄漏至外部菜单） */
+.sfsr-dock-panel .b3-tooltips:hover {
   position: relative;
-  z-index: 9999 !important;
+  z-index: 99 !important;
 }
 
-.sfsr-dock-panel .b3-tooltips:hover::after,
-.b3-tooltips:hover::after {
-  z-index: 99999 !important;
+.sfsr-dock-panel .b3-tooltips:hover::after {
+  z-index: 999 !important;
 }
 
-/* 输入行与选项行的层叠优先级明确管理：输入行永远高于选项行 */
+/* 输入行与选项行的层叠优先级明确管理：输入行高于选项行（局部受控层级） */
 .sfsr-dock-input-row {
   position: relative;
-  z-index: 25;
+  z-index: 3;
 }
 
 .sfsr-dock-replace-row {
   position: relative;
-  z-index: 20;
+  z-index: 2;
 }
 
 .sfsr-dock-options {
   position: relative;
-  z-index: 10;
+  z-index: 1;
 }
 
 /* 针对侧栏右侧按钮的 __sw 方位：右对齐且往左侧展开，严禁右侧溢出截断 */

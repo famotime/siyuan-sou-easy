@@ -160,8 +160,7 @@ function formatBlockType(type: GlobalBlockType, match?: GlobalMatchSnippet): str
 
 .sfsr-doc-item__path {
   font-size: 11px;
-  color: var(--b3-theme-on-surface-light);
-  opacity: 0.8;
+  color: var(--b3-theme-on-surface);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -171,11 +170,18 @@ function formatBlockType(type: GlobalBlockType, match?: GlobalMatchSnippet): str
 
 .sfsr-doc-item__count {
   font-size: 11px;
-  padding: 1px 6px;
-  border-radius: 10px;
-  background: var(--sfsr-primary-light, var(--b3-theme-primary-light, rgba(66, 133, 244, 0.15)));
-  color: var(--b3-theme-primary);
+  min-width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--b3-theme-primary);
+  color: var(--b3-theme-on-primary, #ffffff) !important;
   font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .sfsr-doc-item__matches {
@@ -199,7 +205,7 @@ function formatBlockType(type: GlobalBlockType, match?: GlobalMatchSnippet): str
 }
 
 .sfsr-match-item--selected {
-  background-color: var(--sfsr-primary-light, var(--b3-theme-primary-light, rgba(66, 133, 244, 0.15)));
+  background-color: var(--sfsr-primary-light, var(--b3-theme-primary-lightest, rgba(66, 133, 244, 0.15)));
 }
 
 .sfsr-match-item__type-badge {
@@ -207,7 +213,7 @@ function formatBlockType(type: GlobalBlockType, match?: GlobalMatchSnippet): str
   padding: 1px 5px;
   border-radius: 3px;
   background: var(--b3-theme-surface-lighter, rgba(128, 128, 128, 0.12));
-  color: var(--b3-theme-on-surface-light);
+  color: var(--b3-theme-on-surface);
   white-space: nowrap;
   font-family: var(--sfsr-font-family-base, inherit);
 }
@@ -232,7 +238,7 @@ function formatBlockType(type: GlobalBlockType, match?: GlobalMatchSnippet): str
 
 .sfsr-match-item__highlight {
   background-color: var(--sfsr-highlight-bg, var(--b3-theme-secondary-light, #ffe58f));
-  color: inherit;
+  color: var(--b3-theme-on-background, #222222);
   font-weight: 600;
   padding: 0 2px;
   border-radius: 2px;
