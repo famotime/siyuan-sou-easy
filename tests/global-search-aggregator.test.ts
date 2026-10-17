@@ -44,7 +44,7 @@ describe('doc-aggregator', () => {
   })
 
   describe('findMatchesInBlock', () => {
-    it('finds all occurrences in a block', () => {
+    it('finds all occurrences in a block and returns single consolidated match snippet', () => {
       const block: RawBlockRecord = {
         id: 'block-1',
         root_id: 'doc-1',
@@ -58,13 +58,18 @@ describe('doc-aggregator', () => {
       }
 
       const matches = findMatchesInBlock(block, '思源')
-      expect(matches).toHaveLength(2)
-      expect(matches[0].matchedText).toBe('思源')
-      expect(matches[1].matchedText).toBe('思源')
+      // 同一内容块仅返回 1 条结果项，避免重复展示
+      expect(matches).toHaveLength(1)
       expect(matches[0].blockId).toBe('block-1')
+      expect(matches[0].occurrences).toHaveLength(2)
+      expect(matches[0].occurrences![0].text).toBe('思源')
+      expect(matches[0].occurrences![1].text).toBe('思源')
+      // 同时在该条目内高亮所有命中关键词
+      const matchedSegments = matches[0].segments.filter(s => s.isMatch)
+      expect(matchedSegments).toHaveLength(2)
     })
 
-    it('supports regex and wholeWord options', () => {
+    it('supports regex and wholeWord options with block-level deduplication', () => {
       const block: RawBlockRecord = {
         id: 'block-2',
         root_id: 'doc-1',
@@ -78,10 +83,33 @@ describe('doc-aggregator', () => {
       }
 
       const wholeWordMatches = findMatchesInBlock(block, 'apple', { wholeWord: true })
-      expect(wholeWordMatches).toHaveLength(2)
+      expect(wholeWordMatches).toHaveLength(1)
+      expect(wholeWordMatches[0].occurrences).toHaveLength(2)
 
       const regexMatches = findMatchesInBlock(block, 'apple[s]?', { useRegex: true })
-      expect(regexMatches).toHaveLength(3)
+      expect(regexMatches).toHaveLength(1)
+      expect(regexMatches[0].occurrences).toHaveLength(3)
+    })
+
+    it('returns only 1 item for document title containing multiple keywords', () => {
+      const docBlock: RawBlockRecord = {
+        id: 'doc-phone',
+        root_id: 'doc-phone',
+        box: 'box-1',
+        path: '/phone.sy',
+        hpath: '/测试/海信双屏手机A2 PRO和海信双屏手机A6',
+        content: '海信双屏手机A2 PRO和海信双屏手机A6',
+        type: 'd',
+        created: '20261005120000',
+        updated: '20261005120000',
+      }
+
+      const matches = findMatchesInBlock(docBlock, '手机')
+      expect(matches).toHaveLength(1)
+      expect(matches[0].occurrences).toHaveLength(2)
+      const highlights = matches[0].segments.filter(s => s.isMatch)
+      expect(highlights).toHaveLength(2)
+      expect(highlights.every(h => h.text === '手机')).toBe(true)
     })
   })
 
@@ -288,9 +316,10 @@ describe('doc-aggregator', () => {
       const docs = aggregateBlocksToDocs(blocks, 'sz', { pinyin: true })
       expect(docs).toHaveLength(1)
       expect(docs[0].docTitle).toBe('深圳介绍')
-      // doc block has 1 '深圳', p block has 2 '深圳' => total 3
-      expect(docs[0].totalCount).toBe(3)
-      expect(docs[0].matches.every(m => m.matchedText === '深圳')).toBe(true)
+      // doc block 有 1 处，p block 有 2 处，按块去重后共 2 个匹配块条目
+      expect(docs[0].totalCount).toBe(2)
+      expect(docs[0].matches).toHaveLength(2)
+      expect(docs[0].matches[1].occurrences).toHaveLength(2)
     })
   })
 })

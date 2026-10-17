@@ -1,7 +1,9 @@
 import type {
+  ContextSnippetSegment,
   DocAggregateNode,
   GlobalMatchSnippet,
   GlobalSearchSortMode,
+  MatchOccurrence,
   RawBlockRecord,
 } from './types'
 import {
@@ -151,57 +153,57 @@ export function parseTableRowsFromBlock(block: RawBlockRecord): ParsedTableRow[]
 }
 
 /**
- * 为表格单行生成行内切片与高亮片段（严格限制在当前行内截取，绝不跨行）
+ * 提取多处关键词命中的上下文切片与高亮片段（支持同一块/行内多次匹配同时高亮，并智能居中截取）
  */
-export function extractTableRowSnippet(
-  lineText: string,
-  matchesInLine: { start: number; end: number; text: string }[],
-  maxLineLength = 80,
+export function extractMultiMatchSnippet(
+  fullText: string,
+  matches: MatchOccurrence[],
+  maxLength = 80,
 ): {
   prefixText: string
   matchedText: string
   suffixText: string
   previewText: string
-  segments: { text: string; isMatch: boolean }[]
+  segments: ContextSnippetSegment[]
 } {
-  if (!matchesInLine.length) {
+  if (!matches.length) {
     return {
       prefixText: '',
       matchedText: '',
       suffixText: '',
-      previewText: lineText,
-      segments: [{ text: lineText, isMatch: false }],
+      previewText: fullText,
+      segments: [{ text: fullText, isMatch: false }],
     }
   }
 
-  const minStart = matchesInLine[0].start
-  const maxEnd = matchesInLine[matchesInLine.length - 1].end
+  const minStart = matches[0].start
+  const maxEnd = matches[matches.length - 1].end
 
   let prefixStart = 0
-  let suffixEnd = lineText.length
+  let suffixEnd = fullText.length
   let hasLeadingEllipsis = false
   let hasTrailingEllipsis = false
 
-  if (lineText.length > maxLineLength) {
+  if (fullText.length > maxLength) {
     const matchedSpan = maxEnd - minStart
-    const surrounding = Math.max(16, Math.floor((maxLineLength - matchedSpan) / 2))
+    const surrounding = Math.max(16, Math.floor((maxLength - matchedSpan) / 2))
     prefixStart = Math.max(0, minStart - surrounding)
-    suffixEnd = Math.min(lineText.length, maxEnd + surrounding)
+    suffixEnd = Math.min(fullText.length, maxEnd + surrounding)
     hasLeadingEllipsis = prefixStart > 0
-    hasTrailingEllipsis = suffixEnd < lineText.length
+    hasTrailingEllipsis = suffixEnd < fullText.length
   }
 
-  const segments: { text: string; isMatch: boolean }[] = []
+  const segments: ContextSnippetSegment[] = []
   let cur = prefixStart
 
   if (hasLeadingEllipsis) {
     segments.push({ text: '...', isMatch: false })
   }
 
-  for (const lm of matchesInLine) {
+  for (const lm of matches) {
     if (lm.start > cur) {
       segments.push({
-        text: lineText.slice(cur, lm.start),
+        text: fullText.slice(cur, lm.start),
         isMatch: false,
       })
     }
@@ -214,7 +216,7 @@ export function extractTableRowSnippet(
 
   if (cur < suffixEnd) {
     segments.push({
-      text: lineText.slice(cur, suffixEnd),
+      text: fullText.slice(cur, suffixEnd),
       isMatch: false,
     })
   }
@@ -224,7 +226,7 @@ export function extractTableRowSnippet(
   }
 
   const previewText = segments.map(s => s.text).join('')
-  const matchedText = matchesInLine.map(m => m.text).join(', ')
+  const matchedText = matches.map(m => m.text).join(', ')
 
   return {
     prefixText: hasLeadingEllipsis ? '...' : '',
@@ -233,6 +235,17 @@ export function extractTableRowSnippet(
     previewText,
     segments,
   }
+}
+
+/**
+ * 为表格单行生成行内切片与高亮片段（严格限制在当前行内截取，绝不跨行）
+ */
+export function extractTableRowSnippet(
+  lineText: string,
+  matchesInLine: MatchOccurrence[],
+  maxLineLength = 80,
+) {
+  return extractMultiMatchSnippet(lineText, matchesInLine, maxLineLength)
 }
 
 /**
@@ -272,7 +285,7 @@ export function findMatchesInTableBlock(
 
   for (const row of tableRows) {
     const lineText = row.lineText
-    const lineMatches: { start: number; end: number; text: string }[] = []
+    const lineMatches: MatchOccurrence[] = []
 
     if (regex) {
       regex.lastIndex = 0
@@ -341,6 +354,7 @@ export function findMatchesInTableBlock(
         tableRowIndex: row.rowIndex,
         tableRowText: lineText,
         matchedCellText: matchedCell,
+        occurrences: lineMatches,
       })
     }
   }
@@ -349,7 +363,7 @@ export function findMatchesInTableBlock(
 }
 
 /**
- * 在块文本中寻找所有匹配，并转换为 MatchSnippet 列表
+ * 在块文本中寻找匹配，按块合并展示为单一 MatchSnippet（包含块内所有高亮片段）
  */
 export function findMatchesInBlock(
   block: RawBlockRecord,
@@ -377,8 +391,6 @@ export function findMatchesInBlock(
     return []
   }
 
-  const results: GlobalMatchSnippet[] = []
-
   let regex: RegExp
   try {
     if (options.useRegex) {
@@ -394,47 +406,19 @@ export function findMatchesInBlock(
     return []
   }
 
-  let match: RegExpExecArray | null
-  let matchSeq = 0
+  const allMatches: MatchOccurrence[] = []
 
+  let match: RegExpExecArray | null
   while ((match = regex.exec(content)) !== null) {
     if (match[0].length === 0) {
       regex.lastIndex++
       continue
     }
 
-    const startOffset = match.index
-    const endOffset = startOffset + match[0].length
-    const { prefixText, matchedText, suffixText, previewText } = extractContextSnippet(
-      content,
-      startOffset,
-      endOffset,
-    )
-
-    results.push({
-      matchId: `${block.id}:${startOffset}:${matchSeq++}`,
-      blockId: block.id,
-      rootId: block.root_id,
-      blockType: block.type,
-      subType: block.subtype || block.sub_type,
-      matchedText,
-      prefixText,
-      suffixText,
-      previewText,
-      segments: [
-        { text: prefixText, isMatch: false },
-        { text: matchedText, isMatch: true },
-        { text: suffixText, isMatch: false },
-      ],
-      fullContent: content,
-      sort: block.sort ?? 0,
-      updated: block.updated || '',
-      created: block.created || '',
-      hpath: block.hpath || '',
-      box: block.box || '',
-      selectedForReplace: true,
-      startOffset,
-      endOffset,
+    allMatches.push({
+      start: match.index,
+      end: match.index + match[0].length,
+      text: match[0],
     })
   }
 
@@ -443,44 +427,48 @@ export function findMatchesInBlock(
     const pinyinMatches = findAllPinyinMatches(content, query)
     for (const pm of pinyinMatches) {
       const { start, end, matchedText } = pm
-      const overlapped = results.some(r => !(end <= r.startOffset || start >= r.endOffset))
-      if (overlapped) continue
-
-      const { prefixText, suffixText, previewText } = extractContextSnippet(
-        content,
-        start,
-        end,
-      )
-      results.push({
-        matchId: `${block.id}:${start}:py:${matchSeq++}`,
-        blockId: block.id,
-        rootId: block.root_id,
-        blockType: block.type,
-        subType: block.subtype || block.sub_type,
-        matchedText,
-        prefixText,
-        suffixText,
-        previewText,
-        segments: [
-          { text: prefixText, isMatch: false },
-          { text: matchedText, isMatch: true },
-          { text: suffixText, isMatch: false },
-        ],
-        fullContent: content,
-        sort: block.sort ?? 0,
-        updated: block.updated || '',
-        created: block.created || '',
-        hpath: block.hpath || '',
-        box: block.box || '',
-        selectedForReplace: true,
-        startOffset: start,
-        endOffset: end,
-      })
+      const overlapped = allMatches.some(r => !(end <= r.start || start >= r.end))
+      if (!overlapped) {
+        allMatches.push({
+          start,
+          end,
+          text: matchedText,
+        })
+      }
     }
-    results.sort((a, b) => a.startOffset - b.startOffset)
   }
 
-  return results
+  if (allMatches.length === 0) {
+    return []
+  }
+
+  // 按出现先后位置排序
+  allMatches.sort((a, b) => a.start - b.start)
+
+  const snippet = extractMultiMatchSnippet(content, allMatches)
+
+  return [{
+    matchId: `${block.id}:${allMatches[0].start}`,
+    blockId: block.id,
+    rootId: block.root_id,
+    blockType: block.type,
+    subType: block.subtype || block.sub_type,
+    matchedText: snippet.matchedText,
+    prefixText: snippet.prefixText,
+    suffixText: snippet.suffixText,
+    previewText: snippet.previewText,
+    segments: snippet.segments,
+    fullContent: content,
+    sort: block.sort ?? 0,
+    updated: block.updated || '',
+    created: block.created || '',
+    hpath: block.hpath || '',
+    box: block.box || '',
+    selectedForReplace: true,
+    startOffset: allMatches[0].start,
+    endOffset: allMatches[allMatches.length - 1].end,
+    occurrences: allMatches,
+  }]
 }
 
 /**
@@ -519,11 +507,17 @@ export function aggregateBlocksToDocs(
     }
   }
 
+  const seenBlockIds = new Set<string>()
+
   for (const block of targetBlocks) {
+    if (seenBlockIds.has(block.id)) {
+      continue
+    }
     const matches = findMatchesInBlock(block, query, options)
     if (!matches.length) {
       continue
     }
+    seenBlockIds.add(block.id)
 
     let doc = docMap.get(block.root_id)
     if (!doc) {

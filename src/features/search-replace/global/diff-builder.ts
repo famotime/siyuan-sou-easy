@@ -2,6 +2,7 @@ import type {
   DocAggregateNode,
   GlobalMatchSnippet,
 } from './types'
+import { extractContextSnippet } from './doc-aggregator'
 
 export interface DiffItem {
   matchId: string
@@ -101,36 +102,45 @@ export function buildVisualDiff(
     const items: DiffItem[] = []
 
     for (const match of doc.matches) {
-      const replacedText = computeReplacement(match.matchedText, replacement, options)
-      const full = match.fullContent
-      const newContent = `${full.slice(0, match.startOffset)}${replacedText}${full.slice(match.endOffset)}`
-      const isExcluded = !match.selectedForReplace
+      const occurrences = match.occurrences && match.occurrences.length > 0
+        ? match.occurrences
+        : [{ start: match.startOffset, end: match.endOffset, text: match.matchedText }]
 
-      totalCount++
-      if (isExcluded) {
-        excludedCount++
-      } else {
-        includedCount++
+      for (let occIdx = 0; occIdx < occurrences.length; occIdx++) {
+        const occ = occurrences[occIdx]
+        const replacedText = computeReplacement(occ.text, replacement, options)
+        const full = match.fullContent
+        const newContent = `${full.slice(0, occ.start)}${replacedText}${full.slice(occ.end)}`
+        const isExcluded = !match.selectedForReplace
+
+        totalCount++
+        if (isExcluded) {
+          excludedCount++
+        } else {
+          includedCount++
+        }
+
+        const snippet = extractContextSnippet(full, occ.start, occ.end)
+
+        items.push({
+          matchId: occurrences.length > 1 ? `${match.matchId}:${occ.start}:${occIdx}` : match.matchId,
+          blockId: match.blockId,
+          rootId: match.rootId,
+          docTitle: doc.docTitle,
+          hpath: doc.hpath,
+          blockType: match.blockType,
+          originalSnippet: snippet.previewText,
+          prefixText: snippet.prefixText,
+          matchedText: occ.text,
+          replacedText,
+          suffixText: snippet.suffixText,
+          fullContent: match.fullContent,
+          newContent,
+          excluded: isExcluded,
+          startOffset: occ.start,
+          endOffset: occ.end,
+        })
       }
-
-      items.push({
-        matchId: match.matchId,
-        blockId: match.blockId,
-        rootId: match.rootId,
-        docTitle: doc.docTitle,
-        hpath: doc.hpath,
-        blockType: match.blockType,
-        originalSnippet: match.previewText,
-        prefixText: match.prefixText,
-        matchedText: match.matchedText,
-        replacedText,
-        suffixText: match.suffixText,
-        fullContent: match.fullContent,
-        newContent,
-        excluded: isExcluded,
-        startOffset: match.startOffset,
-        endOffset: match.endOffset,
-      })
     }
 
     if (items.length > 0) {

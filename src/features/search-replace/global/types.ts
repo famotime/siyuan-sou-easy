@@ -58,6 +58,12 @@ export interface ContextSnippetSegment {
   isMatch: boolean
 }
 
+export interface MatchOccurrence {
+  start: number
+  end: number
+  text: string
+}
+
 export interface GlobalMatchSnippet {
   matchId: string
   blockId: string
@@ -81,6 +87,7 @@ export interface GlobalMatchSnippet {
   tableRowIndex?: number
   tableRowText?: string
   matchedCellText?: string
+  occurrences?: MatchOccurrence[]
 }
 
 export interface DocAggregateNode {
