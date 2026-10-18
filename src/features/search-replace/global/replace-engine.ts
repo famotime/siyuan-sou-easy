@@ -112,16 +112,24 @@ export async function executeBatchReplace(
           await updateDomBlock(blockId, updatedDom)
           replacedCount += itemsInBlock.length
 
-          transactionItems.push({
-            blockId,
-            rootId: itemsInBlock[0].rootId,
-            docTitle: itemsInBlock[0].docTitle,
-            hpath: itemsInBlock[0].hpath,
-            originalContent: itemsInBlock[0].fullContent,
-            newContent: itemsInBlock[0].newContent,
-            originalDom,
-            newDom: updatedDom,
-          })
+          for (const it of itemsInBlock) {
+            transactionItems.push({
+              blockId,
+              rootId: it.rootId,
+              docTitle: it.docTitle,
+              hpath: it.hpath,
+              blockType: it.blockType,
+              originalSnippet: it.originalSnippet,
+              prefixText: it.prefixText,
+              matchedText: it.matchedText,
+              replacedText: it.replacedText,
+              suffixText: it.suffixText,
+              fullContent: it.fullContent,
+              newContent: it.newContent,
+              originalDom,
+              newDom: updatedDom,
+            })
+          }
         } catch {
           skippedCount += itemsInBlock.length
         }
@@ -132,16 +140,24 @@ export async function executeBatchReplace(
         try {
           await updateDomBlock(blockId, fallbackDom)
           replacedCount += itemsInBlock.length
-          transactionItems.push({
-            blockId,
-            rootId: it.rootId,
-            docTitle: it.docTitle,
-            hpath: it.hpath,
-            originalContent: it.fullContent,
-            newContent: it.newContent,
-            originalDom: `<div data-node-id="${blockId}" data-type="NodeParagraph" class="p"><div contenteditable="true" spellcheck="false">${it.fullContent}</div></div>`,
-            newDom: fallbackDom,
-          })
+          for (const it of itemsInBlock) {
+            transactionItems.push({
+              blockId,
+              rootId: it.rootId,
+              docTitle: it.docTitle,
+              hpath: it.hpath,
+              blockType: it.blockType,
+              originalSnippet: it.originalSnippet,
+              prefixText: it.prefixText,
+              matchedText: it.matchedText,
+              replacedText: it.replacedText,
+              suffixText: it.suffixText,
+              fullContent: it.fullContent,
+              newContent: it.newContent,
+              originalDom: `<div data-node-id="${blockId}" data-type="NodeParagraph" class="p"><div contenteditable="true" spellcheck="false">${it.fullContent}</div></div>`,
+              newDom: fallbackDom,
+            })
+          }
         } catch {
           skippedCount += itemsInBlock.length
         }

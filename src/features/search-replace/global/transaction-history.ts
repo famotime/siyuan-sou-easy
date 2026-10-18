@@ -1,3 +1,4 @@
+import { openTab } from 'siyuan'
 import { getPluginInstance } from '@/plugin-instance'
 import { updateDomBlock } from '../kernel'
 
@@ -6,8 +7,14 @@ export interface ReplaceTransactionItem {
   rootId: string
   docTitle?: string
   hpath?: string
-  originalContent: string
-  newContent: string
+  blockType?: string
+  originalSnippet?: string
+  prefixText?: string
+  matchedText?: string
+  replacedText?: string
+  suffixText?: string
+  fullContent?: string
+  newContent?: string
   originalDom?: string
   newDom?: string
 }
@@ -129,3 +136,23 @@ export async function revertTransaction(txId: string): Promise<{ success: boolea
 export function clearTransactionsMemoryForTesting(): void {
   transactionsMemoryCache = []
 }
+
+/**
+ * 跨文档跳转并聚焦定位指定块
+ */
+export async function navigateToBlock(blockId: string): Promise<void> {
+  const plugin = getPluginInstance()
+  if (!plugin?.app) return
+  try {
+    await openTab({
+      app: plugin.app,
+      doc: {
+        id: blockId,
+        action: ['cb-get-hl', 'cb-get-focus'],
+      },
+    })
+  } catch (err) {
+    console.error('Failed to navigate to block:', err)
+  }
+}
+

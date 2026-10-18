@@ -227,4 +227,86 @@ describe('Diff Modal, History Drawer & Filter Pills UI Redesign (阶段三测试
 
     app.unmount()
   })
+
+  it('TransactionHistoryDrawer expands card and displays documents and paragraph Visual Diff details', async () => {
+    const detailedTx: ReplaceTransaction[] = [
+      {
+        id: 'tx-detail-1',
+        timestamp: Date.now(),
+        formattedTime: '2026-10-18 21:09:39',
+        query: '深圳',
+        replacement: '广州',
+        itemCount: 2,
+        reverted: false,
+        items: [
+          {
+            blockId: 'b-1',
+            rootId: 'doc-1',
+            docTitle: '深圳地铁全景',
+            hpath: '/travel/sz',
+            matchedText: '深圳',
+            replacedText: '广州',
+            prefixText: '好玩的',
+            suffixText: '地铁6号线',
+            fullContent: '好玩的深圳地铁6号线',
+            newContent: '好玩的广州地铁6号线',
+          },
+          {
+            blockId: 'b-2',
+            rootId: 'doc-1',
+            docTitle: '深圳地铁全景',
+            hpath: '/travel/sz',
+            matchedText: '深圳',
+            replacedText: '广州',
+            prefixText: '逛逛',
+            suffixText: '美术馆',
+            fullContent: '逛逛深圳美术馆',
+            newContent: '逛逛广州美术馆',
+          },
+        ],
+      },
+    ]
+
+    const container = document.createElement('div')
+    const app = createApp(TransactionHistoryDrawer, {
+      visible: true,
+      transactions: detailedTx,
+    })
+    app.mount(container)
+
+    // 1. 初始状态：明细区域未展开
+    expect(container.querySelector('.sfsr-history-card-body')).toBeNull()
+
+    // 2. 点击卡片头部：展开明细
+    const cardHeader = container.querySelector<HTMLElement>('.sfsr-history-card-header')
+    expect(cardHeader).not.toBeNull()
+    cardHeader?.click()
+    await new Promise(r => setTimeout(r, 10))
+
+    const cardBody = container.querySelector('.sfsr-history-card-body')
+    expect(cardBody).not.toBeNull()
+
+    // 3. 文档分组检验
+    const docHeader = container.querySelector('.sfsr-history-doc-header')
+    expect(docHeader).not.toBeNull()
+    expect(container.querySelector('.sfsr-history-doc-title')?.textContent).toBe('深圳地铁全景')
+    expect(container.querySelector('.sfsr-history-doc-count')?.textContent).toBe('2 处')
+
+    // 4. 段落 Visual Diff 渲染检验
+    const diffItems = container.querySelectorAll('.sfsr-history-diff-item')
+    expect(diffItems.length).toBe(2)
+    expect(container.querySelector('.sfsr-del-highlight')?.textContent).toBe('深圳')
+    expect(container.querySelector('.sfsr-ins-highlight')?.textContent).toBe('广州')
+
+    // 5. 文档单篇折叠检验
+    const docItemsContainer = container.querySelector<HTMLElement>('.sfsr-history-doc-items')
+    expect(docItemsContainer?.style.display).not.toBe('none')
+
+    const docHeaderEl = container.querySelector<HTMLElement>('.sfsr-history-doc-header')
+    docHeaderEl?.click()
+    await new Promise(r => setTimeout(r, 10))
+    expect(docItemsContainer?.style.display).toBe('none')
+
+    app.unmount()
+  })
 })
