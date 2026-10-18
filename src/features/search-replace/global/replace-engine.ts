@@ -39,8 +39,16 @@ export async function executeBatchReplace(
   diffSummary: DiffSummary,
   query: string,
   replacement: string,
+  optionsOrProgress?: unknown,
   onProgress?: (processed: number, total: number) => void,
 ): Promise<ReplaceExecutionResult> {
+  let progressCb: ((processed: number, total: number) => void) | undefined
+  if (typeof optionsOrProgress === 'function') {
+    progressCb = optionsOrProgress as (processed: number, total: number) => void
+  } else if (typeof onProgress === 'function') {
+    progressCb = onProgress
+  }
+
   const activeItems: DiffItem[] = []
   for (const group of diffSummary.groups) {
     for (const item of group.items) {
@@ -140,7 +148,7 @@ export async function executeBatchReplace(
       }
     }
 
-    onProgress?.(Math.min(i + batchSize, totalBlocks), totalBlocks)
+    progressCb?.(Math.min(i + batchSize, totalBlocks), totalBlocks)
     // 批次间隔微延迟，让主线程与内核喘息
     await delay(50)
   }

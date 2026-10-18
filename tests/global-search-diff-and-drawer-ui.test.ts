@@ -89,6 +89,100 @@ describe('Diff Modal, History Drawer & Filter Pills UI Redesign (阶段三测试
     app.unmount()
   })
 
+  it('VisualDiffModal supports collapsing documents individually and in batch', async () => {
+    const multiDocSummary: DiffSummary = {
+      totalCount: 2,
+      includedCount: 2,
+      excludedCount: 0,
+      affectedDocCount: 2,
+      groups: [
+        {
+          rootId: 'doc-1',
+          docTitle: 'Doc 1',
+          hpath: '/path/1',
+          allExcluded: false,
+          items: [
+            {
+              matchId: 'm-1',
+              rootId: 'doc-1',
+              blockId: 'b-1',
+              matchedText: 'apple',
+              replacedText: 'orange',
+              prefixText: 'a ',
+              suffixText: ' b',
+              excluded: false,
+            },
+          ],
+        },
+        {
+          rootId: 'doc-2',
+          docTitle: 'Doc 2',
+          hpath: '/path/2',
+          allExcluded: false,
+          items: [
+            {
+              matchId: 'm-2',
+              rootId: 'doc-2',
+              blockId: 'b-2',
+              matchedText: 'cat',
+              replacedText: 'dog',
+              prefixText: 'c ',
+              suffixText: ' d',
+              excluded: false,
+            },
+          ],
+        },
+      ],
+    }
+
+    const container = document.createElement('div')
+    const app = createApp(VisualDiffModal, {
+      visible: true,
+      diffSummary: multiDocSummary,
+    })
+    app.mount(container)
+
+    const groupHeaders = container.querySelectorAll<HTMLElement>('.sfsr-diff-group-header')
+    const itemsLists = container.querySelectorAll<HTMLElement>('.sfsr-diff-items-list')
+    expect(groupHeaders.length).toBe(2)
+    expect(itemsLists.length).toBe(2)
+
+    // 初始状态：全部展开
+    expect(itemsLists[0].style.display).not.toBe('none')
+    expect(itemsLists[1].style.display).not.toBe('none')
+
+    // 1. 点击第一个文档头部：折叠该文档
+    groupHeaders[0].click()
+    await new Promise(r => setTimeout(r, 10))
+    expect(itemsLists[0].style.display).toBe('none')
+    expect(itemsLists[1].style.display).not.toBe('none')
+
+    // 再次点击：展开
+    groupHeaders[0].click()
+    await new Promise(r => setTimeout(r, 10))
+    expect(itemsLists[0].style.display).not.toBe('none')
+
+    // 2. 全部折叠
+    const quickBtns = Array.from(container.querySelectorAll<HTMLButtonElement>('.sfsr-diff-text-btn'))
+    const collapseAllBtn = quickBtns.find(b => b.textContent?.trim() === '全部折叠')
+    const expandAllBtn = quickBtns.find(b => b.textContent?.trim() === '全部展开')
+    expect(collapseAllBtn).toBeDefined()
+    expect(expandAllBtn).toBeDefined()
+
+    collapseAllBtn?.click()
+    await new Promise(r => setTimeout(r, 10))
+    expect(itemsLists[0].style.display).toBe('none')
+    expect(itemsLists[1].style.display).toBe('none')
+
+    // 3. 全部展开
+    expandAllBtn?.click()
+    await new Promise(r => setTimeout(r, 10))
+    expect(itemsLists[0].style.display).not.toBe('none')
+    expect(itemsLists[1].style.display).not.toBe('none')
+
+    app.unmount()
+  })
+
   it('TransactionHistoryDrawer uses WireframeIcon and eliminates emojis and native title', () => {
     const dummyTransactions: ReplaceTransaction[] = [
       {

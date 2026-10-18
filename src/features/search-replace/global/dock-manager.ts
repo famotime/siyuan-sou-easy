@@ -62,6 +62,9 @@ export function isGlobalSearchInputFocused(): boolean {
  * 将焦点全选放入搜索框
  */
 export function focusAndSelectGlobalSearchInput() {
+  if (typeof document === 'undefined') {
+    return
+  }
   if (!searchInputElement) {
     // 降级兜底查询
     searchInputElement = document.querySelector<HTMLInputElement>('.sfsr-dock-input')

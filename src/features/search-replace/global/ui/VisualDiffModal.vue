@@ -22,6 +22,9 @@
         <div class="sfsr-diff-quick-actions">
           <button class="sfsr-diff-text-btn" type="button" @click="toggleIncludeAll(true)">全部包含</button>
           <button class="sfsr-diff-text-btn" type="button" @click="toggleIncludeAll(false)">全部排除</button>
+          <span class="sfsr-divider">|</span>
+          <button class="sfsr-diff-text-btn" type="button" @click="toggleCollapseAll(true)">全部折叠</button>
+          <button class="sfsr-diff-text-btn" type="button" @click="toggleCollapseAll(false)">全部展开</button>
         </div>
       </div>
 
@@ -30,22 +33,37 @@
           v-for="group in diffSummary.groups"
           :key="group.rootId"
           class="sfsr-diff-group"
+          :class="{ 'sfsr-diff-group--collapsed': isGroupCollapsed(group.rootId) }"
         >
-          <div class="sfsr-diff-group-header">
-            <label class="sfsr-group-checkbox-label">
-              <input
-                type="checkbox"
-                :checked="!group.allExcluded"
-                @change="onToggleGroup(group)"
+          <div
+            class="sfsr-diff-group-header"
+            @click="toggleGroupCollapse(group.rootId)"
+          >
+            <div class="sfsr-diff-group-header-left">
+              <span
+                class="sfsr-diff-group-arrow"
+                :class="{ 'sfsr-diff-group-arrow--expanded': !isGroupCollapsed(group.rootId) }"
+                aria-label="折叠或展开文档"
               >
+                <WireframeIcon name="chevron" :size="11" />
+              </span>
+
+              <label class="sfsr-group-checkbox-label" @click.stop>
+                <input
+                  type="checkbox"
+                  :checked="!group.allExcluded"
+                  @change="onToggleGroup(group)"
+                >
+              </label>
+
               <WireframeIcon name="document" :size="13" class="sfsr-group-icon" />
               <span class="sfsr-group-title">{{ group.docTitle }}</span>
-              <span class="sfsr-group-path">({{ group.hpath }})</span>
-            </label>
+              <span v-if="group.hpath" class="sfsr-group-path">({{ group.hpath }})</span>
+            </div>
             <span class="sfsr-group-count">{{ group.items.length }} 处</span>
           </div>
 
-          <div class="sfsr-diff-items-list">
+          <div v-show="!isGroupCollapsed(group.rootId)" class="sfsr-diff-items-list">
             <div
               v-for="item in group.items"
               :key="item.matchId"
@@ -102,7 +120,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { DiffDocumentGroup, DiffItem, DiffSummary } from '../diff-builder'
 import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
 
@@ -122,6 +140,38 @@ const emit = defineEmits<{
 const executing = ref(false)
 const processedBlocks = ref(0)
 const totalBlocks = ref(0)
+const collapsedDocIds = ref<Set<string>>(new Set())
+
+watch(
+  () => props.visible,
+  (val) => {
+    if (!val) {
+      collapsedDocIds.value = new Set()
+    }
+  },
+)
+
+function isGroupCollapsed(rootId: string): boolean {
+  return collapsedDocIds.value.has(rootId)
+}
+
+function toggleGroupCollapse(rootId: string) {
+  const next = new Set(collapsedDocIds.value)
+  if (next.has(rootId)) {
+    next.delete(rootId)
+  } else {
+    next.add(rootId)
+  }
+  collapsedDocIds.value = next
+}
+
+function toggleCollapseAll(collapse: boolean) {
+  if (collapse) {
+    collapsedDocIds.value = new Set(props.diffSummary.groups.map(g => g.rootId))
+  } else {
+    collapsedDocIds.value = new Set()
+  }
+}
 
 const progressPercent = computed(() => {
   if (totalBlocks.value === 0) return 0
@@ -286,28 +336,71 @@ defineExpose({
   background: var(--b3-theme-surface, rgba(128, 128, 128, 0.05));
   font-size: 13px;
   font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease;
+}
+
+.sfsr-diff-group-header:hover {
+  background: var(--b3-theme-surface-hover, var(--b3-list-hover, rgba(128, 128, 128, 0.08)));
+}
+
+.sfsr-diff-group-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sfsr-diff-group-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: var(--b3-theme-on-surface-light);
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.sfsr-diff-group-arrow--expanded {
+  transform: rotate(90deg);
 }
 
 .sfsr-group-checkbox-label {
   display: flex;
   align-items: center;
-  gap: 6px;
   cursor: pointer;
+  margin: 0;
+  padding: 0;
 }
 
 .sfsr-group-icon {
   color: var(--b3-theme-primary);
+  flex-shrink: 0;
+}
+
+.sfsr-group-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sfsr-group-path {
   font-size: 11px;
   font-weight: normal;
   color: var(--b3-theme-on-surface-light);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sfsr-group-count {
   font-size: 11px;
   color: var(--b3-theme-primary);
+  flex-shrink: 0;
+  margin-left: 8px;
 }
 
 .sfsr-diff-items-list {

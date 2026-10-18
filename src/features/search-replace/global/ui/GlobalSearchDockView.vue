@@ -574,7 +574,7 @@ function recalculateDiffSummary() {
 async function onConfirmExecuteReplace() {
   diffModalRef.value?.setExecuting(true)
   try {
-    const success = await executeBatchReplace(
+    const result = await executeBatchReplace(
       currentDiffSummary.value,
       state.query,
       state.replacement,
@@ -587,7 +587,7 @@ async function onConfirmExecuteReplace() {
         diffModalRef.value?.setProgress(processed, total)
       },
     )
-    if (success) {
+    if (result.success) {
       showDiffModal.value = false
       await executeGlobalSearch()
     }

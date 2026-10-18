@@ -29,6 +29,7 @@ export interface DiffDocumentGroup {
   hpath: string
   items: DiffItem[]
   allExcluded: boolean
+  collapsed?: boolean
 }
 
 export interface DiffSummary {
@@ -39,24 +40,29 @@ export interface DiffSummary {
   groups: DiffDocumentGroup[]
 }
 
+export interface VisualDiffOptions {
+  useRegex?: boolean
+  preserveCase?: boolean
+  matchCase?: boolean
+  wholeWord?: boolean
+  query?: string
+}
+
 /**
  * 计算单个命中项替换后的文本
  */
 export function computeReplacement(
   matchedText: string,
   replacement: string,
-  options: {
-    useRegex?: boolean
-    preserveCase?: boolean
-    query?: string
-  } = {},
+  options: VisualDiffOptions = {},
 ): string {
   let result = replacement
 
   // 正则捕获组反向引用支持 ($1, $2 等)
   if (options.useRegex && options.query) {
     try {
-      const reg = new RegExp(options.query)
+      const flags = options.matchCase ? '' : 'i'
+      const reg = new RegExp(options.query, flags)
       result = matchedText.replace(reg, replacement)
     } catch {
       result = replacement
@@ -87,12 +93,38 @@ export function computeReplacement(
 export function buildVisualDiff(
   docNodes: DocAggregateNode[],
   replacement: string,
-  options: {
-    useRegex?: boolean
-    preserveCase?: boolean
-    query?: string
-  } = {},
+  options?: VisualDiffOptions,
+): DiffSummary
+export function buildVisualDiff(
+  docNodes: DocAggregateNode[],
+  query: string,
+  replacement: string,
+  options?: VisualDiffOptions,
+): DiffSummary
+export function buildVisualDiff(
+  docNodes: DocAggregateNode[],
+  arg2: string,
+  arg3?: string | VisualDiffOptions,
+  arg4?: VisualDiffOptions,
 ): DiffSummary {
+  let query: string | undefined
+  let replacement: string
+  let options: VisualDiffOptions
+
+  if (typeof arg3 === 'string') {
+    query = arg2
+    replacement = arg3
+    options = arg4 || {}
+  } else {
+    replacement = arg2
+    options = arg3 || {}
+    query = options.query
+  }
+
+  const effectiveOptions: VisualDiffOptions = {
+    ...options,
+    query: options.query ?? query,
+  }
   const groups: DiffDocumentGroup[] = []
   let totalCount = 0
   let includedCount = 0
@@ -108,7 +140,7 @@ export function buildVisualDiff(
 
       for (let occIdx = 0; occIdx < occurrences.length; occIdx++) {
         const occ = occurrences[occIdx]
-        const replacedText = computeReplacement(occ.text, replacement, options)
+        const replacedText = computeReplacement(occ.text, replacement, effectiveOptions)
         const full = match.fullContent
         const newContent = `${full.slice(0, occ.start)}${replacedText}${full.slice(occ.end)}`
         const isExcluded = !match.selectedForReplace
@@ -150,6 +182,7 @@ export function buildVisualDiff(
         hpath: doc.hpath,
         items,
         allExcluded: items.every(i => i.excluded),
+        collapsed: false,
       })
     }
   }

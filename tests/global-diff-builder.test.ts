@@ -139,5 +139,56 @@ describe('diff-builder', () => {
       expect(diff.groups[0].items[1].matchedText).toBe('手机')
       expect(diff.groups[0].items[1].replacedText).toBe('PAD')
     })
+
+    it('correctly replaces text when called with query and replacement as separate arguments', () => {
+      const docNodes: DocAggregateNode[] = [
+        {
+          rootId: 'doc-sz',
+          boxId: 'b1',
+          hpath: '/test/sz',
+          docTitle: '被低估的深圳地铁6号线',
+          updated: '20261005120000',
+          created: '20261005120000',
+          collapsed: false,
+          totalCount: 1,
+          matches: [
+            {
+              matchId: 'm-sz',
+              blockId: 'b-sz',
+              rootId: 'doc-sz',
+              blockType: 'p',
+              matchedText: '深圳',
+              prefixText: '被低估的',
+              suffixText: '地铁6号线',
+              previewText: '被低估的深圳地铁6号线',
+              segments: [],
+              fullContent: '被低估的深圳地铁6号线',
+              sort: 0,
+              updated: '',
+              created: '',
+              hpath: '/test/sz',
+              box: 'b1',
+              selectedForReplace: true,
+              startOffset: 4,
+              endOffset: 6,
+            },
+          ],
+        },
+      ]
+
+      // 模拟 GlobalSearchDockView 中的调用方式：(docNodes, query, replacement, options)
+      const diff = buildVisualDiff(docNodes, '深圳', '广州', {
+        useRegex: false,
+        matchCase: false,
+        wholeWord: false,
+      })
+
+      expect(diff.totalCount).toBe(1)
+      expect(diff.includedCount).toBe(1)
+      const item = diff.groups[0].items[0]
+      expect(item.matchedText).toBe('深圳')
+      expect(item.replacedText).toBe('广州')
+      expect(item.newContent).toBe('被低估的广州地铁6号线')
+    })
   })
 })
