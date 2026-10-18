@@ -69,6 +69,11 @@ import {
   initGlobalSearchDock,
   toggleGlobalSearchDock,
 } from '@/features/search-replace/global/dock-manager'
+import {
+  REPLACE_HISTORY_TAB_TYPE,
+  destroyReplaceHistoryTab,
+  initReplaceHistoryTab,
+} from '@/features/search-replace/global/history-tab-manager'
 import { UI_STATE_STORAGE } from '@/features/search-replace/store/ui-state'
 import { createEditorContextFromProtyleLike } from '@/features/search-replace/editor'
 import { setKeymap } from '@/features/search-replace/kernel'
@@ -251,6 +256,22 @@ export default class FriendlySearchReplacePlugin extends Plugin {
           }
         },
         type: 'siyuan-sou-easy-dock-tab',
+      })
+    }
+
+    if (!this.isMobile && typeof (this as any).addTab === 'function') {
+      this.addTab({
+        type: REPLACE_HISTORY_TAB_TYPE,
+        init: (custom: any) => {
+          if (custom?.element) {
+            initReplaceHistoryTab(custom.element as HTMLElement)
+          }
+        },
+        destroy: (custom: any) => {
+          if (custom?.element) {
+            destroyReplaceHistoryTab(custom.element as HTMLElement)
+          }
+        },
       })
     }
 

@@ -29,10 +29,9 @@
         </button>
         <button
           class="sfsr-dock-action-btn b3-tooltips b3-tooltips__sw"
-          :class="{ 'sfsr-dock-action-btn--active': showHistoryDrawer }"
           type="button"
-          aria-label="替换事务历史与回退"
-          @click="openHistoryDrawer"
+          aria-label="替换事务历史与回退（分屏页签打开）"
+          @click="openHistoryTab"
         >
           <WireframeIcon name="history" :size="13" />
         </button>
@@ -269,15 +268,6 @@
       />
     </Teleport>
 
-    <!-- 事务历史抽屉 -->
-    <Teleport to="body">
-      <TransactionHistoryDrawer
-        :visible="showHistoryDrawer"
-        :transactions="transactionList"
-        @close="closeHistoryDrawer"
-        @reverted="onTransactionReverted"
-      />
-    </Teleport>
 
     <!-- 批量导出弹窗 -->
     <Teleport to="body">
@@ -404,7 +394,7 @@ import {
 import DocAggregateItem from './DocAggregateItem.vue'
 import FilterPillsBar from './FilterPillsBar.vue'
 import VisualDiffModal from './VisualDiffModal.vue'
-import TransactionHistoryDrawer from './TransactionHistoryDrawer.vue'
+import { openReplaceHistoryTab } from '../history-tab-manager'
 import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
 
 const inputRef = ref<HTMLInputElement>()
@@ -413,8 +403,6 @@ const diffModalRef = ref<InstanceType<typeof VisualDiffModal>>()
 const notebooks = ref<NotebookInfo[]>([])
 const showAdvancedDrawer = ref(false)
 const showDiffModal = ref(false)
-const showHistoryDrawer = ref(false)
-const transactionList = ref<ReplaceTransaction[]>([])
 
 const currentDiffSummary = ref<DiffSummary>({
   totalCount: 0,
@@ -596,19 +584,8 @@ async function onConfirmExecuteReplace() {
   }
 }
 
-async function openHistoryDrawer() {
-  await loadTransactions()
-  transactionList.value = getTransactions()
-  showHistoryDrawer.value = true
-}
-
-function closeHistoryDrawer() {
-  showHistoryDrawer.value = false
-}
-
-async function onTransactionReverted() {
-  transactionList.value = getTransactions()
-  await executeGlobalSearch()
+async function openHistoryTab() {
+  await openReplaceHistoryTab('right')
 }
 
 // 导出与预设弹窗
