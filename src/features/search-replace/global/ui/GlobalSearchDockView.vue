@@ -177,11 +177,16 @@
             \b
           </button>
           <button
-            class="sfsr-dock-opt-btn b3-tooltips b3-tooltips__s"
-            :class="{ 'sfsr-dock-opt-btn--active': state.options.useRegex }"
+            class="sfsr-dock-opt-btn"
+            :class="{
+              'sfsr-dock-opt-btn--active': state.options.useRegex,
+              'b3-tooltips b3-tooltips__s': !state.options.useRegex,
+            }"
             type="button"
-            :aria-label="state.options.useRegex ? '正则表达式（已开启）' : '正则表达式 (Regex)'"
-            @click="toggleGlobalOption('useRegex')"
+            :aria-label="state.options.useRegex ? undefined : '正则表达式 (Regex)'"
+            @mouseenter="onRegexBtnMouseEnter"
+            @mouseleave="onRegexBtnMouseLeave"
+            @click="onToggleRegexOption"
           >
             .*
           </button>
@@ -222,6 +227,15 @@
           <WireframeIcon :name="isAllCollapsed ? 'expand-all' : 'collapse-all'" :size="12" />
         </button>
       </div>
+
+      <!-- 正则表达式语法与样例卡片 -->
+      <RegexHelpPopover
+        v-if="showRegexHelpPopover"
+        @mouseenter="onRegexHelpMouseEnter"
+        @mouseleave="onRegexHelpMouseLeave"
+        @select-example="onSelectRegexHelpExample"
+        @close="closeRegexHelpPopover"
+      />
     </div>
 
     <!-- 高级筛选与排序抽屉 (折叠展示) -->
@@ -420,6 +434,7 @@ import DocAggregateItem from './DocAggregateItem.vue'
 import FilterPillsBar from './FilterPillsBar.vue'
 import VisualDiffModal from './VisualDiffModal.vue'
 import SearchHelpPopover from './SearchHelpPopover.vue'
+import RegexHelpPopover from './RegexHelpPopover.vue'
 import { openReplaceHistoryTab } from '../history-tab-manager'
 import { parseGlobalQuery } from '../query-parser'
 import { t } from '@/i18n/runtime'
@@ -498,11 +513,96 @@ const replaceBtnTooltip = computed(() => {
 const showHelpPopover = ref(false)
 let hideHelpTimer: ReturnType<typeof setTimeout> | null = null
 
+const showRegexHelpPopover = ref(false)
+let hoverRegexTimer: ReturnType<typeof setTimeout> | null = null
+let hideRegexTimer: ReturnType<typeof setTimeout> | null = null
+
+function clearRegexTimers() {
+  if (hoverRegexTimer) {
+    clearTimeout(hoverRegexTimer)
+    hoverRegexTimer = null
+  }
+  if (hideRegexTimer) {
+    clearTimeout(hideRegexTimer)
+    hideRegexTimer = null
+  }
+}
+
+function onRegexBtnMouseEnter() {
+  if (!state.options.useRegex) {
+    return
+  }
+  if (hideRegexTimer) {
+    clearTimeout(hideRegexTimer)
+    hideRegexTimer = null
+  }
+  if (showRegexHelpPopover.value) {
+    return
+  }
+  if (hoverRegexTimer) {
+    clearTimeout(hoverRegexTimer)
+  }
+  hoverRegexTimer = setTimeout(() => {
+    showHelpPopover.value = false
+    showRegexHelpPopover.value = true
+    hoverRegexTimer = null
+  }, 250)
+}
+
+function onRegexBtnMouseLeave() {
+  if (hoverRegexTimer) {
+    clearTimeout(hoverRegexTimer)
+    hoverRegexTimer = null
+  }
+  if (showRegexHelpPopover.value) {
+    hideRegexTimer = setTimeout(() => {
+      showRegexHelpPopover.value = false
+      hideRegexTimer = null
+    }, 160)
+  }
+}
+
+function onRegexHelpMouseEnter() {
+  if (hideRegexTimer) {
+    clearTimeout(hideRegexTimer)
+    hideRegexTimer = null
+  }
+  showRegexHelpPopover.value = true
+}
+
+function onRegexHelpMouseLeave() {
+  hideRegexTimer = setTimeout(() => {
+    showRegexHelpPopover.value = false
+    hideRegexTimer = null
+  }, 160)
+}
+
+function closeRegexHelpPopover() {
+  clearRegexTimers()
+  showRegexHelpPopover.value = false
+}
+
+function onToggleRegexOption() {
+  clearRegexTimers()
+  showRegexHelpPopover.value = false
+  toggleGlobalOption('useRegex')
+}
+
+function onSelectRegexHelpExample(example: string) {
+  state.query = example
+  closeRegexHelpPopover()
+  nextTick(() => {
+    inputRef.value?.focus()
+    executeGlobalSearch()
+  })
+}
+
 function onHelpMouseEnter() {
   if (hideHelpTimer) {
     clearTimeout(hideHelpTimer)
     hideHelpTimer = null
   }
+  closeRegexHelpPopover()
   showHelpPopover.value = true
 }
 
@@ -513,6 +613,7 @@ function onHelpMouseLeave() {
 }
 
 function toggleHelpPopover() {
+  closeRegexHelpPopover()
   showHelpPopover.value = !showHelpPopover.value
 }
 
@@ -533,6 +634,11 @@ function onEnterSearch(event?: KeyboardEvent | MouseEvent) {
 }
 
 function onInputEsc() {
+  if (showHelpPopover.value || showRegexHelpPopover.value) {
+    showHelpPopover.value = false
+    closeRegexHelpPopover()
+    return
+  }
   closeGlobalSearchDockAndReturnFocus()
 }
 
@@ -741,7 +847,17 @@ onMounted(async () => {
   }
 })
 
+watch(
+  () => state.options.useRegex,
+  (val) => {
+    if (!val) {
+      closeRegexHelpPopover()
+    }
+  },
+)
+
 onUnmounted(() => {
+  clearRegexTimers()
   registerGlobalSearchInput(null)
 })
 </script>
