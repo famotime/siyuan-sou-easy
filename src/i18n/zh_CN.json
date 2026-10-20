@@ -74,5 +74,18 @@
   "extractSuccess": "已成功提取 {0} 个块到剪贴板",
   "extractLimitWarning": "达到提取上限。仅提取了前 {0} 个块。",
   "settingExtractAsBlockRefTitle": "提取为块引",
-  "settingExtractAsBlockRefDesc": "将提取结果格式化为思源块引用的形式，以便在其他文档中点击跳转，而不是纯文本。"
+  "settingExtractAsBlockRefDesc": "将提取结果格式化为思源块引用的形式，以便在其他文档中点击跳转，而不是纯文本。",
+  "searchHelpTitle": "Google 风格搜索语法与样例",
+  "searchHelpNote": "支持多关键词组合检索，点击下方任意样例可直接填入搜索框体验：",
+  "searchHelpExampleAnd": "思源 插件",
+  "searchHelpDescAnd": "包含所有关键词（同块优先，跨块次之）",
+  "searchHelpExamplePhrase": "\"siyuan note\"",
+  "searchHelpDescPhrase": "精确短语匹配（保留内部空格，不分词）",
+  "searchHelpExampleExclude": "读书笔记 -草稿",
+  "searchHelpDescExclude": "排除包含该词的内容（NOT 逻辑）",
+  "searchHelpExampleOr": "方案A OR 方案B",
+  "searchHelpDescOr": "满足其中任一关键词（支持大写 OR 或竖线 |）",
+  "searchHelpExampleFilter": "#工作 type:p 总结",
+  "searchHelpDescFilter": "结合标签与块类型等高级行内过滤",
+  "multiTermReplaceDisabled": "多关键词组合仅支持检索，批量替换请使用单个关键词或精确短语"
 }

@@ -68,21 +68,37 @@
           <input
             ref="inputRef"
             v-model="state.query"
-            class="sfsr-dock-input"
+            class="sfsr-dock-input sfsr-dock-input--search"
             type="text"
             placeholder="搜索全库... (Enter 搜, Esc 关)"
             @keydown.enter="onEnterSearch"
             @keydown.esc.stop="onInputEsc"
           >
-          <button
-            v-if="state.query"
-            class="sfsr-dock-clear-btn b3-tooltips b3-tooltips__s"
-            type="button"
-            aria-label="清空搜索词"
-            @click="clearQuery"
-          >
-            <WireframeIcon name="clear" :size="12" />
-          </button>
+          <div class="sfsr-dock-input-actions">
+            <button
+              v-if="state.query"
+              class="sfsr-dock-clear-btn b3-tooltips b3-tooltips__s"
+              type="button"
+              aria-label="清空搜索词"
+              @click="clearQuery"
+            >
+              <WireframeIcon name="clear" :size="12" />
+            </button>
+            <div
+              class="sfsr-dock-help-wrap"
+              @mouseenter="onHelpMouseEnter"
+              @mouseleave="onHelpMouseLeave"
+            >
+              <button
+                class="sfsr-dock-help-btn"
+                type="button"
+                aria-label="搜索语法与样例"
+                @click.stop="toggleHelpPopover"
+              >
+                <WireframeIcon name="help" :size="12" />
+              </button>
+            </div>
+          </div>
         </div>
 
         <button
@@ -95,6 +111,15 @@
           <WireframeIcon :name="state.searching ? 'history' : 'enter'" :size="13" />
         </button>
       </div>
+
+      <!-- 搜索语法与样例卡片 (直接以 search-box 为定位容器，狭窄侧栏下自动限制在容器内，左侧绝不遮挡) -->
+      <SearchHelpPopover
+        v-if="showHelpPopover"
+        @mouseenter="onHelpMouseEnter"
+        @mouseleave="onHelpMouseLeave"
+        @select-example="onSelectHelpExample"
+        @close="showHelpPopover = false"
+      />
 
       <!-- 替换输入行 (折叠展开) -->
       <div v-if="state.replaceVisible" class="sfsr-dock-replace-row">
@@ -123,7 +148,7 @@
           class="sfsr-dock-preview-btn b3-tooltips b3-tooltips__w"
           type="button"
           :disabled="!canBatchReplace"
-          aria-label="差异预览与替换"
+          :aria-label="replaceBtnTooltip"
           @click="openBatchReplaceDiff"
         >
           <WireframeIcon name="diff" :size="13" />
@@ -394,7 +419,10 @@ import {
 import DocAggregateItem from './DocAggregateItem.vue'
 import FilterPillsBar from './FilterPillsBar.vue'
 import VisualDiffModal from './VisualDiffModal.vue'
+import SearchHelpPopover from './SearchHelpPopover.vue'
 import { openReplaceHistoryTab } from '../history-tab-manager'
+import { parseGlobalQuery } from '../query-parser'
+import { t } from '@/i18n/runtime'
 import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
 
 const inputRef = ref<HTMLInputElement>()
@@ -448,13 +476,54 @@ const hasActiveFilters = computed(() => {
   )
 })
 
+const parsedCurrentQuery = computed(() => parseGlobalQuery(state.query))
+const isMultiTermQuery = computed(() => parsedCurrentQuery.value.isMultiTermQuery)
+
 const canBatchReplace = computed(() => {
   return (
     state.query.trim().length > 0
     && state.results.length > 0
     && !state.searching
+    && !isMultiTermQuery.value
   )
 })
+
+const replaceBtnTooltip = computed(() => {
+  if (isMultiTermQuery.value) {
+    return t('multiTermReplaceDisabled')
+  }
+  return '差异预览与替换'
+})
+
+const showHelpPopover = ref(false)
+let hideHelpTimer: ReturnType<typeof setTimeout> | null = null
+
+function onHelpMouseEnter() {
+  if (hideHelpTimer) {
+    clearTimeout(hideHelpTimer)
+    hideHelpTimer = null
+  }
+  showHelpPopover.value = true
+}
+
+function onHelpMouseLeave() {
+  hideHelpTimer = setTimeout(() => {
+    showHelpPopover.value = false
+  }, 160)
+}
+
+function toggleHelpPopover() {
+  showHelpPopover.value = !showHelpPopover.value
+}
+
+function onSelectHelpExample(example: string) {
+  state.query = example
+  showHelpPopover.value = false
+  nextTick(() => {
+    inputRef.value?.focus()
+    executeGlobalSearch()
+  })
+}
 
 function onEnterSearch(event?: KeyboardEvent | MouseEvent) {
   if ((event as KeyboardEvent)?.isComposing) {
@@ -498,7 +567,8 @@ function openBatchReplaceDiff() {
   if (!canBatchReplace.value) {
     return
   }
-  const summary = buildVisualDiff(state.results, state.query, state.replacement, {
+  const keywordForReplace = parsedCurrentQuery.value.singleKeyword || state.query
+  const summary = buildVisualDiff(state.results, keywordForReplace, state.replacement, {
     useRegex: state.options.useRegex,
     matchCase: state.options.matchCase,
     wholeWord: state.options.wholeWord,
@@ -777,6 +847,7 @@ onUnmounted(() => {
 }
 
 .sfsr-dock-search-box {
+  position: relative;
   padding: 6px 10px;
   display: flex;
   flex-direction: column;
@@ -835,12 +906,58 @@ onUnmounted(() => {
   transition: border-color 0.15s ease;
 }
 
+.sfsr-dock-input--search {
+  padding-right: 44px;
+}
+
 .sfsr-dock-input:focus {
   border-color: var(--b3-theme-primary);
 }
 
 .sfsr-dock-input--replace {
   background: var(--b3-theme-surface, rgba(128, 128, 128, 0.04));
+}
+
+.sfsr-dock-input-actions {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  z-index: 2;
+}
+
+.sfsr-dock-input-actions .sfsr-dock-clear-btn {
+  position: static;
+  transform: none;
+}
+
+.sfsr-dock-help-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.sfsr-dock-help-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--b3-theme-on-surface-light);
+  cursor: pointer;
+  opacity: 0.65;
+  transition: opacity 0.12s ease, color 0.12s ease;
+}
+
+.sfsr-dock-help-btn:hover {
+  opacity: 1;
+  color: var(--b3-theme-primary);
 }
 
 .sfsr-dock-clear-btn {

@@ -436,6 +436,7 @@ export async function executeGlobalSearch() {
       limit: queryLimit,
       useRegex: globalSearchState.options.useRegex || globalSearchState.options.pinyin,
       docOnly: globalSearchState.options.docOnly,
+      parsedQuery: globalSearchState.options.pinyin ? undefined : parsed,
     })
 
     const docNodes = aggregateBlocksToDocs(blocks, keyword, {
@@ -444,6 +445,7 @@ export async function executeGlobalSearch() {
       useRegex: globalSearchState.options.useRegex,
       pinyin: globalSearchState.options.pinyin,
       docOnly: globalSearchState.options.docOnly,
+      parsedQuery: parsed,
     })
 
     const sorted = sortDocAggregateNodes(docNodes, globalSearchState.sortMode, keyword)

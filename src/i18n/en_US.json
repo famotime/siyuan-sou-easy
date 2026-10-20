@@ -74,5 +74,18 @@
   "extractSuccess": "Extracted {0} blocks to clipboard",
   "extractLimitWarning": "Extraction limit reached. Only the first {0} blocks were extracted.",
   "settingExtractAsBlockRefTitle": "Extract as block reference",
-  "settingExtractAsBlockRefDesc": "Format extracted results as a list of dynamic block references rather than plain text."
+  "settingExtractAsBlockRefDesc": "Format extracted results as a list of dynamic block references rather than plain text.",
+  "searchHelpTitle": "Google-style Search Syntax & Examples",
+  "searchHelpNote": "Supports multi-keyword logical search. Click any example below to fill into the search box:",
+  "searchHelpExampleAnd": "siyuan plugin",
+  "searchHelpDescAnd": "Contains all terms (exact-block first, cross-block second)",
+  "searchHelpExamplePhrase": "\"siyuan note\"",
+  "searchHelpDescPhrase": "Exact phrase match (keeps spaces, no word splitting)",
+  "searchHelpExampleExclude": "notes -draft",
+  "searchHelpDescExclude": "Exclude items containing this term (NOT logic)",
+  "searchHelpExampleOr": "planA OR planB",
+  "searchHelpDescOr": "Matches either term (uppercase OR or pipe |)",
+  "searchHelpExampleFilter": "#work type:p summary",
+  "searchHelpDescFilter": "Combine with tags, block types, and path filters",
+  "multiTermReplaceDisabled": "Multi-term combination only supports search. Batch replace requires a single keyword or exact phrase."
 }

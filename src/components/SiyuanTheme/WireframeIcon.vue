@@ -136,6 +136,13 @@
       <path d="M20 4v7a4 4 0 0 1-4 4H4" />
     </template>
 
+    <!-- 19. 帮助/问号 Help / Question -->
+    <template v-else-if="props.name === 'help' || props.name === 'question'">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </template>
+
     <!-- 兜底通用圆圈 -->
     <template v-else>
       <circle cx="12" cy="12" r="8" />

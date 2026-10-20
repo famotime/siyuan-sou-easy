@@ -321,5 +321,99 @@ describe('doc-aggregator', () => {
       expect(docs[0].matches).toHaveLength(2)
       expect(docs[0].matches[1].occurrences).toHaveLength(2)
     })
+
+    it('supports multi-keyword intelligent dual-layer matching and exclude terms', () => {
+      const blocks: RawBlockRecord[] = [
+        // 文档 1: 单块内包含全部关键词 (exact-block)
+        {
+          id: 'b-doc1-1',
+          root_id: 'doc-1',
+          box: 'box-1',
+          path: '/d1.sy',
+          hpath: '/技术/文档1',
+          content: '思源笔记的插件开发非常强大',
+          type: 'p',
+          created: '20261005100000',
+          updated: '20261005100000',
+        },
+        // 文档 2: 跨块分别包含关键词 (cross-block)
+        {
+          id: 'b-doc2-1',
+          root_id: 'doc-2',
+          box: 'box-1',
+          path: '/d2.sy',
+          hpath: '/技术/文档2',
+          content: '思源笔记支持本地离线运行',
+          type: 'p',
+          created: '20261005100000',
+          updated: '20261005100000',
+        },
+        {
+          id: 'b-doc2-2',
+          root_id: 'doc-2',
+          box: 'box-1',
+          path: '/d2.sy',
+          hpath: '/技术/文档2',
+          content: '官方提供了丰富的插件API接口',
+          type: 'p',
+          created: '20261005100000',
+          updated: '20261005100000',
+        },
+        // 文档 3: 仅包含“思源”，不包含“插件”，应被丢弃
+        {
+          id: 'b-doc3-1',
+          root_id: 'doc-3',
+          box: 'box-1',
+          path: '/d3.sy',
+          hpath: '/技术/文档3',
+          content: '思源笔记是一款注重隐私的工具',
+          type: 'p',
+          created: '20261005100000',
+          updated: '20261005100000',
+        },
+        // 文档 4: 包含关键词但同时包含排除词“-草稿”，应被过滤
+        {
+          id: 'b-doc4-1',
+          root_id: 'doc-4',
+          box: 'box-1',
+          path: '/d4.sy',
+          hpath: '/技术/文档4草稿',
+          content: '思源笔记开发草稿插件',
+          type: 'p',
+          created: '20261005100000',
+          updated: '20261005100000',
+        },
+      ]
+
+      const parsedQuery = {
+        rawQuery: '思源 插件 -草稿',
+        textQuery: '思源 插件',
+        mustInclude: ['思源', '插件'],
+        orGroups: [],
+        exclude: ['草稿'],
+        isMultiTermQuery: true,
+        tags: [],
+        types: [],
+      }
+
+      const docs = aggregateBlocksToDocs(blocks, '思源 插件', { parsedQuery })
+      expect(docs).toHaveLength(2)
+
+      const doc1 = docs.find(d => d.rootId === 'doc-1')
+      const doc2 = docs.find(d => d.rootId === 'doc-2')
+      expect(doc1).toBeDefined()
+      expect(doc2).toBeDefined()
+      expect(doc1?.matchType).toBe('exact-block')
+      expect(doc2?.matchType).toBe('cross-block')
+
+      // 文档 3 (缺词) 与 文档 4 (含排除词) 均被过滤
+      expect(docs.find(d => d.rootId === 'doc-3')).toBeUndefined()
+      expect(docs.find(d => d.rootId === 'doc-4')).toBeUndefined()
+
+      // 相关度排序时，exact-block 必定排在 cross-block 前面
+      const sorted = sortDocAggregateNodes(docs, 'relevance', '思源 插件')
+      expect(sorted[0].rootId).toBe('doc-1')
+      expect(sorted[1].rootId).toBe('doc-2')
+    })
   })
 })

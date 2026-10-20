@@ -4,15 +4,23 @@ import type {
   GlobalMatchSnippet,
   GlobalSearchSortMode,
   MatchOccurrence,
+  ParsedGlobalQuery,
   RawBlockRecord,
 } from './types'
 import {
   findAllPinyinMatches,
-  matchFullPinyin,
-  matchPinyinInitials,
 } from './pinyin-match'
 
 const PUNCTUATION_REGEX = /[。！？!?；;\n]/
+
+export interface AggregateBlocksOptions {
+  matchCase?: boolean
+  wholeWord?: boolean
+  useRegex?: boolean
+  pinyin?: boolean
+  docOnly?: boolean
+  parsedQuery?: ParsedGlobalQuery
+}
 
 /**
  * 提取上下文切片
@@ -249,114 +257,196 @@ export function extractTableRowSnippet(
 }
 
 /**
- * 针对表格块（type === 't'）按行检索并聚合生成各行的 MatchSnippet
+ * 校验文本是否包含特定词（支持区分大小写）
  */
-export function findMatchesInTableBlock(
-  block: RawBlockRecord,
-  query: string,
-  options: {
-    matchCase?: boolean
-    wholeWord?: boolean
-    useRegex?: boolean
-    pinyin?: boolean
-  } = {},
-): GlobalMatchSnippet[] {
-  const tableRows = parseTableRowsFromBlock(block)
-  if (!tableRows.length) {
-    return []
+function containsNegativeTerm(text: string, term: string, matchCase = false): boolean {
+  if (!text || !term) return false
+  if (matchCase) {
+    return text.includes(term)
   }
+  return text.toLowerCase().includes(term.toLowerCase())
+}
 
-  let regex: RegExp | null = null
-  try {
-    if (options.useRegex) {
-      regex = new RegExp(query, options.matchCase ? 'g' : 'gi')
-    } else {
-      let escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      if (options.wholeWord) {
-        escaped = `\\b${escaped}\\b`
+/**
+ * 从文本中收集各目标词的所有匹配 Occurrence 与命中的词集合
+ */
+function collectOccurrencesForTerms(
+  content: string,
+  terms: string[],
+  options: AggregateBlocksOptions = {},
+): {
+  occurrences: MatchOccurrence[]
+  matchedTerms: Set<string>
+} {
+  const allMatches: MatchOccurrence[] = []
+  const matchedTerms = new Set<string>()
+
+  for (const term of terms) {
+    if (!term) continue
+    let regex: RegExp | null = null
+    try {
+      if (options.useRegex) {
+        regex = new RegExp(term, options.matchCase ? 'g' : 'gi')
+      } else {
+        let escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        if (options.wholeWord) {
+          escaped = `\\b${escaped}\\b`
+        }
+        regex = new RegExp(escaped, options.matchCase ? 'g' : 'gi')
       }
-      regex = new RegExp(escaped, options.matchCase ? 'g' : 'gi')
+    } catch {
+      regex = null
     }
-  } catch {
-    regex = null
-  }
 
-  const results: GlobalMatchSnippet[] = []
-
-  for (const row of tableRows) {
-    const lineText = row.lineText
-    const lineMatches: MatchOccurrence[] = []
+    let termMatched = false
 
     if (regex) {
       regex.lastIndex = 0
-      let match: RegExpExecArray | null
-      while ((match = regex.exec(lineText)) !== null) {
-        if (match[0].length === 0) {
+      let m: RegExpExecArray | null
+      while ((m = regex.exec(content)) !== null) {
+        if (m[0].length === 0) {
           regex.lastIndex++
           continue
         }
-        lineMatches.push({
-          start: match.index,
-          end: match.index + match[0].length,
-          text: match[0],
+        termMatched = true
+        allMatches.push({
+          start: m.index,
+          end: m.index + m[0].length,
+          text: m[0],
         })
       }
     }
 
     // 拼音搜索
     if (options.pinyin) {
-      const pinyinMatches = findAllPinyinMatches(lineText, query)
-      for (const pm of pinyinMatches) {
-        const overlapped = lineMatches.some(m => !(pm.end <= m.start || pm.start >= m.end))
-        if (!overlapped) {
-          lineMatches.push({
-            start: pm.start,
-            end: pm.end,
-            text: pm.matchedText,
-          })
+      const pinyinMatches = findAllPinyinMatches(content, term)
+      if (pinyinMatches.length > 0) {
+        termMatched = true
+        for (const pm of pinyinMatches) {
+          const overlapped = allMatches.some(r => !(pm.end <= r.start || pm.start >= r.end))
+          if (!overlapped) {
+            allMatches.push({
+              start: pm.start,
+              end: pm.end,
+              text: pm.matchedText,
+            })
+          }
         }
       }
-      lineMatches.sort((a, b) => a.start - b.start)
     }
 
-    if (lineMatches.length > 0) {
-      // 找出关键词命中了哪些单元格，提取第一个命中的单元格作为特征指纹
-      const matchedCell = row.cells.find(cell => {
-        if (!cell) return false
-        if (regex) {
-          regex.lastIndex = 0
-          return regex.test(cell)
+    if (termMatched) {
+      matchedTerms.add(term)
+    }
+  }
+
+  // 按起始偏移升序并消除重叠区间
+  allMatches.sort((a, b) => a.start - b.start)
+  const deduped: MatchOccurrence[] = []
+  for (const occ of allMatches) {
+    if (!deduped.length) {
+      deduped.push(occ)
+      continue
+    }
+    const last = deduped[deduped.length - 1]
+    if (occ.start >= last.end) {
+      deduped.push(occ)
+    }
+  }
+
+  return { occurrences: deduped, matchedTerms }
+}
+
+/**
+ * 针对表格块（type === 't'）按行检索并聚合生成各行的 MatchSnippet
+ */
+export function findMatchesInTableBlock(
+  block: RawBlockRecord,
+  query: string,
+  options: AggregateBlocksOptions = {},
+): GlobalMatchSnippet[] {
+  const tableRows = parseTableRowsFromBlock(block)
+  if (!tableRows.length) {
+    return []
+  }
+
+  // 提取待检索的关键词列表
+  const parsed = options.parsedQuery
+  const targetTerms: string[] = parsed
+    ? Array.from(new Set([...(parsed.mustInclude || []), ...(parsed.orGroups?.flat() || [])])).filter(Boolean)
+    : [query].filter(Boolean)
+
+  if (!targetTerms.length) {
+    return []
+  }
+
+  const excludeTerms = parsed?.exclude || []
+  const mustInclude = parsed?.mustInclude || []
+  const orGroups = parsed?.orGroups || []
+
+  const results: GlobalMatchSnippet[] = []
+
+  for (const row of tableRows) {
+    const lineText = row.lineText
+
+    // 排除词过滤：行内包含任一排除词则忽略此行
+    if (excludeTerms.some(ex => containsNegativeTerm(lineText, ex, options.matchCase))) {
+      continue
+    }
+
+    const { occurrences, matchedTerms } = collectOccurrencesForTerms(lineText, targetTerms, options)
+    if (!occurrences.length) {
+      continue
+    }
+
+    // 检查此表格单行是否达到“同块/同行完全包含”
+    const isFullMatch =
+      mustInclude.length > 0 &&
+      mustInclude.every(t => matchedTerms.has(t)) &&
+      (orGroups.length === 0 || orGroups.every(g => g.some(t => matchedTerms.has(t))))
+
+    // 找出关键词命中了哪些单元格，提取第一个命中的单元格作为特征指纹
+    const matchedCell = row.cells.find(cell => {
+      if (!cell) return false
+      return targetTerms.some(term => {
+        if (options.useRegex) {
+          try {
+            return new RegExp(term, options.matchCase ? 'g' : 'gi').test(cell)
+          } catch {
+            return false
+          }
         }
-        return cell.includes(query)
-      }) || ''
-
-      const snippet = extractTableRowSnippet(lineText, lineMatches)
-      results.push({
-        matchId: `${block.id}:tr:${row.rowIndex}`,
-        blockId: block.id,
-        rootId: block.root_id,
-        blockType: block.type,
-        subType: block.subtype || block.sub_type,
-        matchedText: snippet.matchedText,
-        prefixText: snippet.prefixText,
-        suffixText: snippet.suffixText,
-        previewText: snippet.previewText,
-        segments: snippet.segments,
-        fullContent: lineText,
-        sort: block.sort ?? 0,
-        updated: block.updated || '',
-        created: block.created || '',
-        hpath: block.hpath || '',
-        box: block.box || '',
-        selectedForReplace: true,
-        startOffset: lineMatches[0].start,
-        endOffset: lineMatches[lineMatches.length - 1].end,
-        tableRowIndex: row.rowIndex,
-        tableRowText: lineText,
-        matchedCellText: matchedCell,
-        occurrences: lineMatches,
+        return cell.includes(term)
       })
-    }
+    }) || ''
+
+    const snippet = extractTableRowSnippet(lineText, occurrences)
+    results.push({
+      matchId: `${block.id}:tr:${row.rowIndex}`,
+      blockId: block.id,
+      rootId: block.root_id,
+      blockType: block.type,
+      subType: block.subtype || block.sub_type,
+      matchedText: snippet.matchedText,
+      prefixText: snippet.prefixText,
+      suffixText: snippet.suffixText,
+      previewText: snippet.previewText,
+      segments: snippet.segments,
+      fullContent: lineText,
+      sort: block.sort ?? 0,
+      updated: block.updated || '',
+      created: block.created || '',
+      hpath: block.hpath || '',
+      box: block.box || '',
+      selectedForReplace: true,
+      startOffset: occurrences[0].start,
+      endOffset: occurrences[occurrences.length - 1].end,
+      tableRowIndex: row.rowIndex,
+      tableRowText: lineText,
+      matchedCellText: matchedCell,
+      occurrences,
+      isFullBlockMatch: isFullMatch,
+    })
   }
 
   return results
@@ -368,12 +458,7 @@ export function findMatchesInTableBlock(
 export function findMatchesInBlock(
   block: RawBlockRecord,
   query: string,
-  options: {
-    matchCase?: boolean
-    wholeWord?: boolean
-    useRegex?: boolean
-    pinyin?: boolean
-  } = {},
+  options: AggregateBlocksOptions = {},
 ): GlobalMatchSnippet[] {
   // 如果是表格块，优先按表格行检索，展现同行的完整信息并支持定位具体行
   if (block.type === 't') {
@@ -387,68 +472,43 @@ export function findMatchesInBlock(
   if (!content && block.type === 'd' && block.hpath) {
     content = extractDocTitleFromHpath(block.hpath)
   }
-  if (!content || !query) {
+  if (!content) {
     return []
   }
 
-  let regex: RegExp
-  try {
-    if (options.useRegex) {
-      regex = new RegExp(query, options.matchCase ? 'g' : 'gi')
-    } else {
-      let escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      if (options.wholeWord) {
-        escaped = `\\b${escaped}\\b`
-      }
-      regex = new RegExp(escaped, options.matchCase ? 'g' : 'gi')
-    }
-  } catch {
+  const parsed = options.parsedQuery
+  const targetTerms: string[] = parsed
+    ? Array.from(new Set([...(parsed.mustInclude || []), ...(parsed.orGroups?.flat() || [])])).filter(Boolean)
+    : [query].filter(Boolean)
+
+  if (!targetTerms.length) {
     return []
   }
 
-  const allMatches: MatchOccurrence[] = []
+  const excludeTerms = parsed?.exclude || []
+  const mustInclude = parsed?.mustInclude || []
+  const orGroups = parsed?.orGroups || []
 
-  let match: RegExpExecArray | null
-  while ((match = regex.exec(content)) !== null) {
-    if (match[0].length === 0) {
-      regex.lastIndex++
-      continue
-    }
-
-    allMatches.push({
-      start: match.index,
-      end: match.index + match[0].length,
-      text: match[0],
-    })
-  }
-
-  // 拼音首字母或全拼匹配
-  if (options.pinyin) {
-    const pinyinMatches = findAllPinyinMatches(content, query)
-    for (const pm of pinyinMatches) {
-      const { start, end, matchedText } = pm
-      const overlapped = allMatches.some(r => !(end <= r.start || start >= r.end))
-      if (!overlapped) {
-        allMatches.push({
-          start,
-          end,
-          text: matchedText,
-        })
-      }
-    }
-  }
-
-  if (allMatches.length === 0) {
+  // 排除词过滤：块内包含任一排除词则直接排除
+  if (excludeTerms.some(ex => containsNegativeTerm(content, ex, options.matchCase))) {
     return []
   }
 
-  // 按出现先后位置排序
-  allMatches.sort((a, b) => a.start - b.start)
+  const { occurrences, matchedTerms } = collectOccurrencesForTerms(content, targetTerms, options)
+  if (!occurrences.length) {
+    return []
+  }
 
-  const snippet = extractMultiMatchSnippet(content, allMatches)
+  // 判定是否单块全包含所有必需关键词
+  const isFullMatch =
+    mustInclude.length > 0 &&
+    mustInclude.every(t => matchedTerms.has(t)) &&
+    (orGroups.length === 0 || orGroups.every(g => g.some(t => matchedTerms.has(t))))
+
+  const snippet = extractMultiMatchSnippet(content, occurrences)
 
   return [{
-    matchId: `${block.id}:${allMatches[0].start}`,
+    matchId: `${block.id}:${occurrences[0].start}`,
     blockId: block.id,
     rootId: block.root_id,
     blockType: block.type,
@@ -465,25 +525,20 @@ export function findMatchesInBlock(
     hpath: block.hpath || '',
     box: block.box || '',
     selectedForReplace: true,
-    startOffset: allMatches[0].start,
-    endOffset: allMatches[allMatches.length - 1].end,
-    occurrences: allMatches,
+    startOffset: occurrences[0].start,
+    endOffset: occurrences[occurrences.length - 1].end,
+    occurrences,
+    isFullBlockMatch: isFullMatch,
   }]
 }
 
 /**
- * 将平铺的块记录按 root_id 聚合为文档维度的树状节点
+ * 将平铺的块记录按 root_id 聚合为文档维度的树状节点，并支持智能双层匹配
  */
 export function aggregateBlocksToDocs(
   blocks: RawBlockRecord[],
   query: string,
-  options: {
-    matchCase?: boolean
-    wholeWord?: boolean
-    useRegex?: boolean
-    pinyin?: boolean
-    docOnly?: boolean
-  } = {},
+  options: AggregateBlocksOptions = {},
 ): DocAggregateNode[] {
   const targetBlocks = options.docOnly
     ? blocks.filter(b => b.type === 'd')
@@ -540,14 +595,71 @@ export function aggregateBlocksToDocs(
     }
   }
 
+  const parsed = options.parsedQuery
+  const excludeTerms = parsed?.exclude || []
+  const mustInclude = parsed?.mustInclude || []
+  const orGroups = parsed?.orGroups || []
+  const isMultiTerm = Boolean(parsed?.isMultiTermQuery)
+
   const nodes: DocAggregateNode[] = []
+
   for (const item of docMap.values()) {
+    // 1. 文档级排除词检查：文档标题若包含排除词，则直接剔除整篇文档
+    if (excludeTerms.some(ex => containsNegativeTerm(item.docTitle, ex, options.matchCase))) {
+      continue
+    }
+
+    // 2. 智能双层匹配校验
+    let matchType: 'exact-block' | 'cross-block' = 'exact-block'
+
+    if (isMultiTerm) {
+      const hasExactBlockMatch = item.matches.some(m => m.isFullBlockMatch)
+
+      if (hasExactBlockMatch) {
+        matchType = 'exact-block'
+      } else {
+        // 跨块联合匹配校验：收集该文档所有命中块涵盖的所有关键词
+        const allDocMatchedTerms = new Set<string>()
+        for (const m of item.matches) {
+          if (m.occurrences) {
+            for (const occ of m.occurrences) {
+              const text = occ.text.toLowerCase()
+              for (const must of mustInclude) {
+                if (text.includes(must.toLowerCase())) {
+                  allDocMatchedTerms.add(must)
+                }
+              }
+              for (const group of orGroups) {
+                for (const word of group) {
+                  if (text.includes(word.toLowerCase())) {
+                    allDocMatchedTerms.add(word)
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        const coversAllMust = mustInclude.every(t => allDocMatchedTerms.has(t))
+        const coversAllOr = orGroups.length === 0 || orGroups.every(g => g.some(t => allDocMatchedTerms.has(t)))
+
+        if (coversAllMust && coversAllOr) {
+          matchType = 'cross-block'
+        } else {
+          // 不满足多词组合逻辑，丢弃该文档
+          continue
+        }
+      }
+    }
+
     // 块内部按 reading order (sort) 排序
     item.matches.sort((a, b) => a.sort - b.sort || a.startOffset - b.startOffset)
+
     nodes.push({
       ...item,
       collapsed: false,
       totalCount: item.matches.length,
+      matchType,
     })
   }
 
@@ -555,7 +667,7 @@ export function aggregateBlocksToDocs(
 }
 
 /**
- * 对 Doc-First 聚合节点进行多维排序
+ * 对 Doc-First 聚合节点进行多维排序（同块完全命中优先，跨块次之）
  */
 export function sortDocAggregateNodes(
   nodes: DocAggregateNode[],
@@ -581,11 +693,17 @@ export function sortDocAggregateNodes(
     default: {
       const q = (query || '').toLowerCase()
       sorted.sort((a, b) => {
-        // 标题命中加分
+        // 同块完全匹配大幅优先（+100分），跨块匹配降级排在后面
+        const aBlockTypeScore = a.matchType === 'exact-block' ? 100 : 0
+        const bBlockTypeScore = b.matchType === 'exact-block' ? 100 : 0
+
+        // 标题命中加分 (+50分)
         const aTitleMatch = q && a.docTitle.toLowerCase().includes(q) ? 50 : 0
         const bTitleMatch = q && b.docTitle.toLowerCase().includes(q) ? 50 : 0
-        const aScore = aTitleMatch + a.totalCount
-        const bScore = bTitleMatch + b.totalCount
+
+        const aScore = aBlockTypeScore + aTitleMatch + a.totalCount
+        const bScore = bBlockTypeScore + bTitleMatch + b.totalCount
+
         if (bScore !== aScore) {
           return bScore - aScore
         }

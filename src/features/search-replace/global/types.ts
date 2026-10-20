@@ -88,6 +88,7 @@ export interface GlobalMatchSnippet {
   tableRowText?: string
   matchedCellText?: string
   occurrences?: MatchOccurrence[]
+  isFullBlockMatch?: boolean
 }
 
 export interface DocAggregateNode {
@@ -101,11 +102,17 @@ export interface DocAggregateNode {
   matches: GlobalMatchSnippet[]
   collapsed: boolean
   totalCount: number
+  matchType?: 'exact-block' | 'cross-block'
 }
 
 export interface ParsedGlobalQuery {
   rawQuery: string
   textQuery: string
+  mustInclude: string[]
+  orGroups: string[][]
+  exclude: string[]
+  isMultiTermQuery: boolean
+  singleKeyword?: string
   notebook?: string
   path?: string
   tags: string[]

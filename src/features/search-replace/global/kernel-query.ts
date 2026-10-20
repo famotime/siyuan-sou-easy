@@ -1,11 +1,19 @@
 import { querySql } from '../kernel'
-import type { GlobalSearchFilters, RawBlockRecord } from './types'
+import type { GlobalSearchFilters, ParsedGlobalQuery, RawBlockRecord } from './types'
 
 export interface NotebookInfo {
   id: string
   name: string
   icon?: string
   closed?: boolean
+}
+
+export interface BuildGlobalSearchSqlOptions {
+  limit?: number
+  offset?: number
+  useRegex?: boolean
+  docOnly?: boolean
+  parsedQuery?: ParsedGlobalQuery
 }
 
 /**
@@ -21,19 +29,40 @@ export function escapeSqlString(str: string): string {
 export function buildGlobalSearchSql(
   keyword: string,
   filters: GlobalSearchFilters = {},
-  options: {
-    limit?: number
-    offset?: number
-    useRegex?: boolean
-    docOnly?: boolean
-  } = {},
+  options: BuildGlobalSearchSqlOptions = {},
 ): string {
   const whereClauses: string[] = []
 
   // 关键词过滤（当非正则时在 SQL 中使用 LIKE 初筛提升性能）
-  if (keyword && !options.useRegex) {
-    const escaped = escapeSqlString(keyword)
-    whereClauses.push(`(content LIKE '%${escaped}%' OR fcontent LIKE '%${escaped}%')`)
+  if (!options.useRegex) {
+    if (options.parsedQuery) {
+      const { mustInclude = [], orGroups = [], exclude = [] } = options.parsedQuery
+
+      // 1. 包含项初筛 (mustInclude 和 orGroups 中的任意候选词进行初筛拉取)
+      const positiveTerms: string[] = [
+        ...mustInclude,
+        ...orGroups.flat(),
+      ].filter(Boolean)
+
+      if (positiveTerms.length > 0) {
+        const orClauses = positiveTerms.map(term => {
+          const escaped = escapeSqlString(term)
+          return `(content LIKE '%${escaped}%' OR fcontent LIKE '%${escaped}%')`
+        })
+        whereClauses.push(`(${orClauses.join(' OR ')})`)
+      }
+
+      // 2. 排除词初筛 (NOT LIKE)
+      if (exclude.length > 0) {
+        for (const neg of exclude) {
+          const escaped = escapeSqlString(neg)
+          whereClauses.push(`(content NOT LIKE '%${escaped}%' AND fcontent NOT LIKE '%${escaped}%')`)
+        }
+      }
+    } else if (keyword) {
+      const escaped = escapeSqlString(keyword)
+      whereClauses.push(`(content LIKE '%${escaped}%' OR fcontent LIKE '%${escaped}%')`)
+    }
   }
 
   // 笔记本过滤
@@ -84,12 +113,7 @@ export function buildGlobalSearchSql(
 export async function executeGlobalBlockQuery(
   keyword: string,
   filters: GlobalSearchFilters = {},
-  options: {
-    limit?: number
-    offset?: number
-    useRegex?: boolean
-    docOnly?: boolean
-  } = {},
+  options: BuildGlobalSearchSqlOptions = {},
 ): Promise<RawBlockRecord[]> {
   const sql = buildGlobalSearchSql(keyword, filters, options)
   try {

@@ -40,5 +40,44 @@ describe('parseGlobalQuery', () => {
     expect(res.textQuery).toBe('响应式原理')
     expect(res.tags).toEqual(['前端', 'Vue'])
     expect(res.dateFilter).toBe('7d')
+    expect(res.isMultiTermQuery).toBe(false)
+    expect(res.singleKeyword).toBe('响应式原理')
+  })
+
+  it('supports multiple keywords with space (AND logic)', () => {
+    const res = parseGlobalQuery('思源 插件 开发')
+    expect(res.mustInclude).toEqual(['思源', '插件', '开发'])
+    expect(res.isMultiTermQuery).toBe(true)
+    expect(res.singleKeyword).toBeUndefined()
+  })
+
+  it('supports exact phrase with quotes', () => {
+    const res = parseGlobalQuery('"siyuan note" 插件')
+    expect(res.mustInclude).toEqual(['siyuan note', '插件'])
+    expect(res.isMultiTermQuery).toBe(true)
+
+    // 单个双引号短语应允许作为单个关键词用于替换
+    const singleRes = parseGlobalQuery('"siyuan note"')
+    expect(singleRes.mustInclude).toEqual(['siyuan note'])
+    expect(singleRes.isMultiTermQuery).toBe(false)
+    expect(singleRes.singleKeyword).toBe('siyuan note')
+  })
+
+  it('supports exclude keywords with minus sign (NOT logic)', () => {
+    const res = parseGlobalQuery('读书笔记 -草稿 -"临时 文档"')
+    expect(res.mustInclude).toEqual(['读书笔记'])
+    expect(res.exclude).toEqual(['草稿', '临时 文档'])
+    expect(res.isMultiTermQuery).toBe(true)
+  })
+
+  it('supports OR logic operator with uppercase OR or pipe |', () => {
+    const res1 = parseGlobalQuery('方案A OR 方案B')
+    expect(res1.orGroups).toEqual([['方案A', '方案B']])
+    expect(res1.isMultiTermQuery).toBe(true)
+
+    const res2 = parseGlobalQuery('苹果 | 香蕉 | 橙子 水果')
+    expect(res2.orGroups).toEqual([['苹果', '香蕉', '橙子']])
+    expect(res2.mustInclude).toEqual(['水果'])
+    expect(res2.isMultiTermQuery).toBe(true)
   })
 })
