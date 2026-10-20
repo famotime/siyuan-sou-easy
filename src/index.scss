@@ -73,6 +73,31 @@
   box-sizing: border-box !important;
 }
 
+/* 侧栏 Tooltips 高对比度实心纯色背景：完美适配亮色 (Light) 与暗色 (Dark) 主题，杜绝透视重影与白底白字 */
+.sfsr-dock-panel .b3-tooltips::after {
+  background-color: #2b2a30 !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
+  opacity: 1 !important;
+  font-weight: 500 !important;
+  -webkit-font-smoothing: antialiased !important;
+}
+
+:root[data-theme-mode="light"] .sfsr-dock-panel .b3-tooltips::after {
+  background-color: #2b2a30 !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28) !important;
+}
+
+:root[data-theme-mode="dark"] .sfsr-dock-panel .b3-tooltips::after {
+  background-color: #141418 !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
+}
+
 /* 提升侧栏 hover 时 Tooltip 及其宿主元素的层叠优先级（受 .sfsr-dock-panel isolation 隔离，绝不泄漏至外部菜单） */
 .sfsr-dock-panel .b3-tooltips:hover {
   position: relative;
@@ -111,6 +136,23 @@
   left: 0 !important;
   right: auto !important;
   transform: none !important;
+}
+
+/* 替换预览按钮 Tooltip：向左居中单行展开，停留于第 2 行，绝不下沉遮挡选项栏按钮，绝不透底重叠 */
+.sfsr-dock-panel .sfsr-dock-preview-btn.b3-tooltips::after {
+  white-space: nowrap !important;
+  width: max-content !important;
+  max-width: 170px !important;
+  line-height: normal !important;
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+  right: 100% !important;
+  left: auto !important;
+  top: 50% !important;
+  bottom: auto !important;
+  transform: translateY(-50%) !important;
+  margin-right: 6px !important;
+  margin-top: 0 !important;
 }
 
 /* 侧栏顶部操作按钮高对比度激活态：如筛选漏斗按钮激活时实心主题色底+纯白线框图标 */

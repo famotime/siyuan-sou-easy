@@ -87,5 +87,5 @@
   "searchHelpDescOr": "满足其中任一关键词（支持大写 OR 或竖线 |）",
   "searchHelpExampleFilter": "#工作 type:p 总结",
   "searchHelpDescFilter": "结合标签与块类型等高级行内过滤",
-  "multiTermReplaceDisabled": "多关键词组合仅支持检索，批量替换请使用单个关键词或精确短语"
+  "multiTermReplaceDisabled": "组合搜索不支持批量替换"
 }

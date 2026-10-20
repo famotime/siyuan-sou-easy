@@ -87,5 +87,5 @@
   "searchHelpDescOr": "Matches either term (uppercase OR or pipe |)",
   "searchHelpExampleFilter": "#work type:p summary",
   "searchHelpDescFilter": "Combine with tags, block types, and path filters",
-  "multiTermReplaceDisabled": "Multi-term combination only supports search. Batch replace requires a single keyword or exact phrase."
+  "multiTermReplaceDisabled": "Multi-term search cannot batch replace"
 }

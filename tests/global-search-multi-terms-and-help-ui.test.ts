@@ -84,7 +84,8 @@ describe('Global Search Multi-terms and Help UI', () => {
     await nextTick()
 
     expect(replaceBtn.disabled).toBe(true)
-    expect(replaceBtn.getAttribute('aria-label')).toContain('多关键词组合仅支持检索')
+    expect(replaceBtn.getAttribute('aria-label')).toBe('组合搜索不支持批量替换')
+    expect(replaceBtn.classList.contains('b3-tooltips__w')).toBe(true)
 
     // 5. 当输入单精确短语（双引号包裹）时，支持作为整体替换
     globalSearchState.query = '"精确 短语"'
