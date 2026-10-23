@@ -16,6 +16,7 @@ import {
   bindPlugin,
   closePanel,
   openPanel,
+  resetSearchReplaceState,
   searchReplaceState,
   toggleReplaceVisible,
   unbindPlugin,
@@ -34,14 +35,7 @@ describe('mobile UI simplified controls', () => {
   }
 
   function resetState() {
-    searchReplaceState.visible = false
-    searchReplaceState.replaceVisible = false
-    searchReplaceState.query = ''
-    searchReplaceState.replacement = ''
-    searchReplaceState.matches = []
-    searchReplaceState.currentIndex = 0
-    searchReplaceState.error = null
-    searchReplaceState.options = { ...DEFAULT_SETTINGS.defaultOptions }
+    resetSearchReplaceState()
   }
 
   beforeEach(() => {

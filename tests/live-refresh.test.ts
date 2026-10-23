@@ -248,7 +248,7 @@ describe('search store live refresh', () => {
     searchReplaceState.options.selectionOnly = true
 
     const selectionScope = new Map([
-      ['block-1', [{ start: 0, occ: 0, end: 3, occ: 0 }]],
+      ['block-1', [{ start: 0, end: 3, occ: 0 }]],
     ])
 
     editorMocks.getCurrentSelectionScope

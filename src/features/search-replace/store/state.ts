@@ -47,7 +47,7 @@ export interface SearchReplaceState {
   searching: boolean
 }
 
-function createInitialSearchReplaceState(): SearchReplaceState {
+export function createInitialSearchReplaceState(): SearchReplaceState {
   return {
     visible: false,
     replaceVisible: DEFAULT_SETTINGS.defaultReplaceVisible,
@@ -74,6 +74,10 @@ function createInitialSearchReplaceState(): SearchReplaceState {
     busy: false,
     searching: false,
   }
+}
+
+export function resetSearchReplaceState(target: SearchReplaceState = searchReplaceState): SearchReplaceState {
+  return Object.assign(target, createInitialSearchReplaceState())
 }
 
 export const searchReplaceState = reactive(createInitialSearchReplaceState()) as SearchReplaceState

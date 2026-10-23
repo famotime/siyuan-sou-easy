@@ -640,7 +640,7 @@ describe('search store editor context fallback', () => {
     ;(searchReplaceState.options as any).selectionOnly = true
 
     const selectionScope = new Map([
-      ['block-1', [{ start: 4, occ: 0, end: 11, occ: 0 }]],
+      ['block-1', [{ start: 4, end: 11, occ: 0 }]],
     ])
     editorMocks.getCurrentSelectionScope.mockReturnValue(selectionScope)
 
@@ -4808,7 +4808,7 @@ describe('search store editor context fallback', () => {
     })
 
     const selectionScope = new Map([
-      ['block-1', [{ start: 0, occ: 0, end: 3, occ: 0 }]],
+      ['block-1', [{ start: 0, end: 3, occ: 0 }]],
     ])
 
     editorMocks.getCurrentSelectionScope
@@ -4872,7 +4872,7 @@ describe('search store editor context fallback', () => {
     })
 
     const selectionScope = new Map([
-      ['block-1', [{ start: 0, occ: 0, end: 3, occ: 0 }]],
+      ['block-1', [{ start: 0, end: 3, occ: 0 }]],
     ])
 
     editorMocks.getCurrentSelectionScope
@@ -4928,7 +4928,7 @@ describe('search store editor context fallback', () => {
     })
 
     const selectionScope = new Map([
-      ['block-1', [{ start: 0, occ: 0, end: 3, occ: 0 }]],
+      ['block-1', [{ start: 0, end: 3, occ: 0 }]],
     ])
 
     editorMocks.getCurrentSelectionScope

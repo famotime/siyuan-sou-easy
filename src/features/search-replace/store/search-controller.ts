@@ -7,7 +7,7 @@ import {
   scrollMatchIntoView,
   syncSearchDecorations,
 } from '../editor'
-import { searchAttributeViewMatches } from '../attribute-view-search'
+import { searchAttributeViewMatches } from '../attribute-view'
 import { debugElement, debugLog, debugLogLazy } from '../debug'
 import { findMatches } from '../search-engine'
 import type {

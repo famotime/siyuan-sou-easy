@@ -58,11 +58,7 @@ import {
   openPanel,
   searchReplaceState,
 } from '@/features/search-replace/store'
-import {
-  closeGlobalSearch,
-  globalSearchState,
-  openGlobalSearch,
-} from '@/features/search-replace/global/store'
+import { closeGlobalSearch } from '@/features/search-replace/global/store'
 import {
   closeGlobalSearchDockAndReturnFocus,
   destroyGlobalSearchDock,

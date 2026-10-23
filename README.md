@@ -16,6 +16,23 @@ A SiYuan plugin that brings a VS Code style find-and-replace experience.
 - Top bar entry, command palette entry, and configurable hotkeys.
 - Draggable, resizable panel with remembered position.
 - Document minimap with live match synchronization.
+- Global vault search and replace dock with diff preview and transaction history.
+
+## Development
+
+```bash
+# Install dependencies
+pnpm install
+
+# Run tests
+pnpm test
+
+# Build for development
+pnpm dev
+
+# Build production bundle and package
+pnpm build
+```
 
 ![Plugin preview](assets/preview_eng.png)
 

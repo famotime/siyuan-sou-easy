@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 
 import {
   afterEach,
@@ -79,7 +79,9 @@ vi.mock('@/features/search-replace/kernel', () => kernelMocks)
 import {
   applyPluginSettings,
   bindPlugin,
+  createInitialSearchReplaceState,
   initializeUiState,
+  resetSearchReplaceState,
   openPanel,
   searchReplaceState,
   setPanelPosition,
@@ -282,26 +284,28 @@ describe('search store ui state', () => {
     expect(warnSpy).not.toHaveBeenCalled()
     warnSpy.mockRestore()
   })
+
+  it('correctly creates initial state and resets modified state', () => {
+    const initial = createInitialSearchReplaceState()
+    expect(initial.visible).toBe(false)
+    expect(initial.query).toBe('')
+    expect(initial.options.matchCase).toBe(false)
+    expect(initial.options.wholeWord).toBe(false)
+
+    searchReplaceState.visible = true
+    searchReplaceState.query = 'test query'
+    searchReplaceState.currentIndex = 5
+    searchReplaceState.options.matchCase = true
+
+    resetSearchReplaceState()
+
+    expect(searchReplaceState.visible).toBe(false)
+    expect(searchReplaceState.query).toBe('')
+    expect(searchReplaceState.currentIndex).toBe(0)
+    expect(searchReplaceState.options.matchCase).toBe(false)
+  })
 })
 
 function resetState() {
-  searchReplaceState.visible = false
-  searchReplaceState.replaceVisible = DEFAULT_SETTINGS.defaultReplaceVisible
-  searchReplaceState.minimapVisible = false
-  searchReplaceState.preserveCase = false
-  searchReplaceState.panelPosition = null
-  searchReplaceState.panelWidth = null
-  searchReplaceState.settings = { ...DEFAULT_SETTINGS }
-  searchReplaceState.query = ''
-  searchReplaceState.replacement = ''
-  searchReplaceState.options = createSearchOptionsFromSettings(DEFAULT_SETTINGS)
-  searchReplaceState.currentRootId = ''
-  searchReplaceState.currentTitle = ''
-  searchReplaceState.navigationHint = ''
-  searchReplaceState.minimapBlocks = []
-  searchReplaceState.matches = []
-  searchReplaceState.currentIndex = 0
-  searchReplaceState.error = ''
-  searchReplaceState.busy = false
-  searchReplaceState.searchableBlockCount = 0
+  resetSearchReplaceState()
 }

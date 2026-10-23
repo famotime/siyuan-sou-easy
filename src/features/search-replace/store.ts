@@ -51,7 +51,7 @@ import {
 import { mapTerminalSearchResult } from './terminal/adapter'
 import type { TerminalSearchSurface } from './terminal/registry'
 
-export { searchReplaceState } from './store/state'
+export { createInitialSearchReplaceState, resetSearchReplaceState, searchReplaceState } from './store/state'
 export { normalizePanelWidth } from './store/ui-state'
 const searchController = createSearchController({
   getCurrentMatch: () => getCurrentMatch(),

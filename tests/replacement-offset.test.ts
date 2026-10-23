@@ -24,8 +24,8 @@ describe('applyReplacementsToClone', () => {
       block,
       [
         { end: 3, matchedText: 'foo', start: 0, occ: 0 },
-        { end: 7, matchedText: 'foo', start: 4, occ: 0, occ: 1 },
-        { end: 11, matchedText: 'foo', start: 8, occ: 0, occ: 2 },
+        { end: 7, matchedText: 'foo', start: 4, occ: 1 },
+        { end: 11, matchedText: 'foo', start: 8, occ: 2 },
       ],
       'bar',
     )
