@@ -29,6 +29,12 @@ export async function unfoldBlock(id: string) {
   })
 }
 
+export async function checkBlockFold(id: string) {
+  return requestApi<{ isFolded: boolean; isRoot: boolean }>('/api/block/checkBlockFold', {
+    id,
+  })
+}
+
 export async function getDocumentContent(id: string) {
   return requestApi<DocumentContentSnapshot>('/api/filetree/getDoc', {
     id,

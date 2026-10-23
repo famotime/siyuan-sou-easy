@@ -148,7 +148,7 @@ export async function navigateToBlock(blockId: string): Promise<void> {
       app: plugin.app,
       doc: {
         id: blockId,
-        action: ['cb-get-hl', 'cb-get-focus'],
+        action: ['cb-get-hl', 'cb-get-focus', 'cb-get-context', 'cb-get-rootscroll'],
       },
     })
   } catch (err) {

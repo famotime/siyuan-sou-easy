@@ -1,6 +1,7 @@
 import { reactive } from 'vue'
 import { openTab, type TProtyleAction } from 'siyuan'
 import { getPluginInstance } from '@/plugin-instance'
+import { checkBlockFold, unfoldBlock } from '@/features/search-replace/kernel'
 import type {
   DocAggregateNode,
   GlobalMatchSnippet,
@@ -348,7 +349,32 @@ export function scrollAndHighlightTableRow(
 }
 
 /**
- * 跨文档跳转并聚焦命中块
+ * 在当前活动编辑器中，平滑滚动定位并高亮目标常规块（段落/标题/列表项等）
+ */
+export function scrollAndHighlightBlock(blockElement: HTMLElement, shouldFocus = true) {
+  // 1. 平滑滚动使目标块居中显示
+  blockElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+
+  // 2. 将光标聚焦到其可编辑区域（若需要）
+  if (shouldFocus) {
+    const editable = blockElement.querySelector<HTMLElement>('[contenteditable="true"]') || blockElement
+    editable.focus()
+  }
+
+  // 3. 注入动态高亮闪烁样式
+  const HIGHLIGHT_CLASS = 'sfsr-block-target-highlight'
+  blockElement.classList.remove(HIGHLIGHT_CLASS)
+  // 触发重绘以确保多次点击同一块时能重新播放动画
+  void blockElement.offsetWidth
+  blockElement.classList.add(HIGHLIGHT_CLASS)
+
+  setTimeout(() => {
+    blockElement.classList.remove(HIGHLIGHT_CLASS)
+  }, 2200)
+}
+
+/**
+ * 跨文档跳转并聚焦命中块（支持展示文档全文并高亮提示命中段落）
  */
 export async function navigateToGlobalMatch(match: GlobalMatchSnippet) {
   globalSearchState.selectedMatchId = match.matchId
@@ -356,11 +382,20 @@ export async function navigateToGlobalMatch(match: GlobalMatchSnippet) {
 
   try {
     if (plugin?.app) {
-      // 1. 若为表格命中，检查目标表格是否已存在于当前活动编辑器中
-      if (match.blockType === 't' && (typeof match.tableRowIndex === 'number' || match.tableRowText)) {
-        const visibleTable = isBlockVisibleInActiveEditor(match.blockId)
-        if (visibleTable) {
-          // 目标表格已在当前活动页面可见！直接在当前视图执行行定位，绝对不调用 openTab 重复聚焦整个表格块
+      // 1. 若目标块位于折叠标题下方，预先自动展开折叠标题，确保定位后段落不被隐藏
+      try {
+        const foldStatus = await checkBlockFold(match.blockId)
+        if (foldStatus?.isFolded) {
+          await unfoldBlock(match.blockId)
+        }
+      } catch {
+        // 忽略折叠检测异常，不阻断主跳转链路
+      }
+
+      // 2. 检查目标块是否已存在于当前可见的活动编辑器中（如同一文档内快速切换）
+      const visibleBlock = isBlockVisibleInActiveEditor(match.blockId)
+      if (visibleBlock) {
+        if (match.blockType === 't' && (typeof match.tableRowIndex === 'number' || match.tableRowText)) {
           scrollAndHighlightTableRow(
             match.blockId,
             match.tableRowIndex,
@@ -368,15 +403,19 @@ export async function navigateToGlobalMatch(match: GlobalMatchSnippet) {
             match.matchedText,
             match.matchedCellText,
           )
-          return
+        } else {
+          scrollAndHighlightBlock(visibleBlock, true)
         }
+        return
       }
 
-      // 2. 目标块未在当前活动编辑器中（跨文档或未打开）：调用 openTab 打开文档
-      // 表格块不传入 cb-get-focus，避免思源内核把光标死锁在表格第 1 单元格并强制回滚到表格头部
+      // 3. 目标块未在当前活动编辑器中（跨文档或未渲染）：调用 openTab 打开文档全文
+      // 核心规范：传入 cb-get-context 和 cb-get-rootscroll，指示思源内核以 Mode 3 载入整篇文档上下文与标题，
+      // 严禁传入 cb-get-all（否则会导致 protyle.block.showAll=true 退化为单块 ZoomIn 缩放模式）。
+      // 表格块不传入 cb-get-focus，避免光标锁死首个单元格导致表格被强制拉回头部。
       const action: TProtyleAction[] = match.blockType === 't'
-        ? ['cb-get-hl']
-        : ['cb-get-hl', 'cb-get-focus']
+        ? ['cb-get-hl', 'cb-get-context', 'cb-get-rootscroll']
+        : ['cb-get-hl', 'cb-get-focus', 'cb-get-context', 'cb-get-rootscroll']
 
       await openTab({
         app: plugin.app,
@@ -386,9 +425,9 @@ export async function navigateToGlobalMatch(match: GlobalMatchSnippet) {
         },
       })
 
-      // 3. 打开后定位表格行（初次打开 Tab 需等待 Protyle 渲染就绪）
-      if (match.blockType === 't' && (typeof match.tableRowIndex === 'number' || match.tableRowText)) {
-        setTimeout(() => {
+      // 4. 打开后初次等待 Protyle 挂载就绪，补充强化高亮提示动画
+      setTimeout(() => {
+        if (match.blockType === 't' && (typeof match.tableRowIndex === 'number' || match.tableRowText)) {
           scrollAndHighlightTableRow(
             match.blockId,
             match.tableRowIndex,
@@ -396,8 +435,13 @@ export async function navigateToGlobalMatch(match: GlobalMatchSnippet) {
             match.matchedText,
             match.matchedCellText,
           )
-        }, 150)
-      }
+        } else {
+          const renderedBlock = isBlockVisibleInActiveEditor(match.blockId)
+          if (renderedBlock) {
+            scrollAndHighlightBlock(renderedBlock, false)
+          }
+        }
+      }, 180)
     }
   } catch (error) {
     console.error('Failed to open tab for match:', error)

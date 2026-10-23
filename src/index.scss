@@ -876,3 +876,26 @@ body.sfsr-resizing {
   }
 }
 
+/* 全库搜索目标块（段落/标题/列表等）定位高亮闪烁效果 */
+@keyframes sfsr-block-target-flash {
+  0% {
+    background-color: var(--b3-theme-secondary-light, rgba(255, 229, 143, 0.75));
+    box-shadow: 0 0 0 2px var(--b3-theme-primary, #4285f4);
+    border-radius: var(--b3-border-radius, 4px);
+  }
+  65% {
+    background-color: var(--b3-theme-secondary-light, rgba(255, 229, 143, 0.45));
+    box-shadow: 0 0 0 2px var(--b3-theme-primary, #4285f4);
+    border-radius: var(--b3-border-radius, 4px);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.sfsr-block-target-highlight {
+  animation: sfsr-block-target-flash 2.2s ease-out forwards !important;
+  transition: background-color 0.3s ease;
+}
+
