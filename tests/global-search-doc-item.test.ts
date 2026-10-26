@@ -194,4 +194,104 @@ describe('DocAggregateItem badge rendering', () => {
     // 未特别细分的普通/其它块 -> 块
     expect(badges[2].textContent?.trim()).toBe('块')
   })
+
+  it('renders bold file name and smaller font path in tooltip separated by br', async () => {
+    const docData: DocAggregateNode = {
+      rootId: 'doc-tooltip-1',
+      boxId: 'box-1',
+      hpath: '/知识库/前端架构/设计规范',
+      docTitle: '2026年度业务组件重构方案与详细设计指南',
+      updated: '20261005120000',
+      created: '20261005120000',
+      collapsed: false,
+      totalCount: 1,
+      matches: [],
+    }
+
+    app = createApp(DocAggregateItem, { doc: docData })
+    app.mount(host!)
+    await nextTick()
+
+    const expectedTooltip = '<b>2026年度业务组件重构方案与详细设计指南</b><br><small class="ft__on-surface" style="font-size: 11px;">/知识库/前端架构/设计规范</small>'
+
+    const titleEl = host!.querySelector('.sfsr-doc-item__title')
+    expect(titleEl).not.toBeNull()
+    expect(titleEl?.classList.contains('ariaLabel')).toBe(true)
+    expect(titleEl?.getAttribute('data-position')).toBe('parentE')
+    expect(titleEl?.getAttribute('aria-label')).toBe(expectedTooltip)
+
+    const pathEl = host!.querySelector('.sfsr-doc-item__path')
+    expect(pathEl).not.toBeNull()
+    expect(pathEl?.classList.contains('ariaLabel')).toBe(true)
+    expect(pathEl?.getAttribute('data-position')).toBe('parentE')
+    expect(pathEl?.getAttribute('aria-label')).toBe(expectedTooltip)
+
+    // 严禁原生 title 属性以根除 Chrome 原生双重提示冲突
+    expect(host!.querySelectorAll('[title]').length).toBe(0)
+  })
+
+  it('escapes special characters in bold file name and path', async () => {
+    const docData: DocAggregateNode = {
+      rootId: 'doc-tooltip-special',
+      boxId: 'box-1',
+      hpath: '/知识库/<前端>/Vue & React "入门"',
+      docTitle: 'Vue & React <实战指南> "2026"',
+      updated: '20261005120000',
+      created: '20261005120000',
+      collapsed: false,
+      totalCount: 0,
+      matches: [],
+    }
+
+    app = createApp(DocAggregateItem, { doc: docData })
+    app.mount(host!)
+    await nextTick()
+
+    const titleEl = host!.querySelector('.sfsr-doc-item__title')
+    const expected = '<b>Vue &amp; React &lt;实战指南&gt; &quot;2026&quot;</b><br><small class="ft__on-surface" style="font-size: 11px;">/知识库/&lt;前端&gt;/Vue &amp; React &quot;入门&quot;</small>'
+    expect(titleEl?.getAttribute('aria-label')).toBe(expected)
+  })
+
+  it('renders only bold docTitle when hpath is absent or empty', async () => {
+    const docData: DocAggregateNode = {
+      rootId: 'doc-tooltip-2',
+      boxId: 'box-1',
+      hpath: '',
+      docTitle: '仅有标题的文档',
+      updated: '20261005120000',
+      created: '20261005120000',
+      collapsed: false,
+      totalCount: 0,
+      matches: [],
+    }
+
+    app = createApp(DocAggregateItem, { doc: docData })
+    app.mount(host!)
+    await nextTick()
+
+    const titleEl = host!.querySelector('.sfsr-doc-item__title')
+    expect(titleEl?.getAttribute('aria-label')).toBe('<b>仅有标题的文档</b>')
+    expect(host!.querySelector('.sfsr-doc-item__path')).toBeNull()
+  })
+
+  it('avoids duplicated lines when docTitle and hpath are identical', async () => {
+    const docData: DocAggregateNode = {
+      rootId: 'doc-tooltip-3',
+      boxId: 'box-1',
+      hpath: '/相同标题与路径',
+      docTitle: '/相同标题与路径',
+      updated: '20261005120000',
+      created: '20261005120000',
+      collapsed: false,
+      totalCount: 0,
+      matches: [],
+    }
+
+    app = createApp(DocAggregateItem, { doc: docData })
+    app.mount(host!)
+    await nextTick()
+
+    const titleEl = host!.querySelector('.sfsr-doc-item__title')
+    expect(titleEl?.getAttribute('aria-label')).toBe('<b>/相同标题与路径</b>')
+  })
 })

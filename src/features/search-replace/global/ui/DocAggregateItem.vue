@@ -15,11 +15,20 @@
         <WireframeIcon name="document" :size="13" />
       </span>
 
-      <span class="sfsr-doc-item__title">
+      <span
+        class="sfsr-doc-item__title ariaLabel"
+        data-position="parentE"
+        :aria-label="docTooltip || undefined"
+      >
         {{ doc.docTitle }}
       </span>
 
-      <span v-if="doc.hpath" class="sfsr-doc-item__path">
+      <span
+        v-if="doc.hpath"
+        class="sfsr-doc-item__path ariaLabel"
+        data-position="parentE"
+        :aria-label="docTooltip || undefined"
+      >
         {{ doc.hpath }}
       </span>
 
@@ -55,6 +64,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { DocAggregateNode, GlobalBlockType, GlobalMatchSnippet } from '../types'
 import {
   globalSearchState,
@@ -66,6 +76,28 @@ import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
 const props = defineProps<{
   doc: DocAggregateNode
 }>()
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+const docTooltip = computed(() => {
+  const rawTitle = props.doc.docTitle?.trim() || ''
+  const rawPath = props.doc.hpath?.trim() || ''
+
+  const titleHtml = rawTitle ? `<b>${escapeHtml(rawTitle)}</b>` : ''
+  const pathHtml = rawPath ? `<small class="ft__on-surface" style="font-size: 11px;">${escapeHtml(rawPath)}</small>` : ''
+
+  if (rawTitle && rawPath && rawTitle !== rawPath) {
+    return `${titleHtml}<br>${pathHtml}`
+  }
+  return titleHtml || pathHtml
+})
 
 function onToggleCollapse() {
   toggleDocCollapse(props.doc.rootId)
