@@ -8,8 +8,8 @@ import {
 import type { PanelPosition } from '../store/state'
 
 const PANEL_MARGIN = 8
-const DEFAULT_PANEL_WIDTH = 648
-const MIN_PANEL_WIDTH = 420
+const DEFAULT_PANEL_WIDTH = 480
+const MIN_PANEL_WIDTH = 360
 const NON_DRAG_SELECTOR = [
   'input',
   'textarea',

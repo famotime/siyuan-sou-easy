@@ -328,7 +328,7 @@ describe('search panel replace toggle', () => {
 
     const panel = getPanelElement()
 
-    expect(panel.style.width).toBe('648px')
+    expect(panel.style.width).toBe('480px')
   })
 
   it('expands the panel width by dragging the left resize handle', async () => {
@@ -342,7 +342,7 @@ describe('search panel replace toggle', () => {
 
     expect(resizeHandle).not.toBeNull()
 
-    stubPanelRect(panel, { width: 648 })
+    stubPanelRect(panel, { width: 480 })
 
     resizeHandle?.dispatchEvent(createPointerEvent('pointerdown', {
       button: 0,
@@ -358,12 +358,12 @@ describe('search panel replace toggle', () => {
     await nextTick()
     window.dispatchEvent(createPointerEvent('pointerup', { pointerId: 2 }))
 
-    expect(panel.style.width).toBe('708px')
+    expect(panel.style.width).toBe('540px')
     expect(searchReplaceState.panelPosition).toEqual({
       left: 40,
       top: 20,
     })
-    expect(searchReplaceState.panelWidth).toBe(708)
+    expect(searchReplaceState.panelWidth).toBe(540)
   })
 
   it('renders panel with stored panelWidth on mount', async () => {
@@ -465,7 +465,7 @@ describe('search panel replace toggle', () => {
 
     Object.defineProperty(window, 'innerWidth', {
       configurable: true,
-      value: 520,
+      value: 420,
     })
     Object.defineProperty(window, 'innerHeight', {
       configurable: true,
@@ -479,7 +479,7 @@ describe('search panel replace toggle', () => {
     window.dispatchEvent(new Event('resize'))
     await nextTick()
 
-    expect(panel.style.width).toBe('504px')
+    expect(panel.style.width).toBe('404px')
     expect(searchReplaceState.panelPosition).toEqual({
       left: 8,
       top: 20,

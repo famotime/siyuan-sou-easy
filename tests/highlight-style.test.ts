@@ -31,8 +31,8 @@ describe('search highlight styling', () => {
   it('uses a compact vscode-like two-row toolbar when replace is expanded', () => {
     const stylesheet = readFileSync(resolve(__dirname, '../src/index.scss'), 'utf-8')
 
-    expect(stylesheet).toContain('--sfsr-toolbar-gap: 6px;')
-    expect(stylesheet).toContain('--sfsr-control-height: 30px;')
+    expect(stylesheet).toContain('--sfsr-toolbar-gap: 4px;')
+    expect(stylesheet).toContain('--sfsr-control-height: 24px;')
 
     expect(stylesheet).toContain('.sfsr-layout--replace-visible {')
     expect(stylesheet).toContain('align-items: stretch;')
