@@ -73,6 +73,8 @@ import {
 import { UI_STATE_STORAGE } from '@/features/search-replace/store/ui-state'
 import { createEditorContextFromProtyleLike } from '@/features/search-replace/editor'
 import { setKeymap } from '@/features/search-replace/kernel'
+import { executeGlobalBlockQuery } from '@/features/search-replace/global/kernel-query'
+import { extractDocTitleFromHpath } from '@/features/search-replace/global/doc-aggregator'
 import {
   destroy,
   init,
@@ -108,6 +110,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
   public platform: SyFrontendTypes
   public readonly version = version
   private settingsData: PluginSettings = { ...DEFAULT_SETTINGS }
+  private _onLunariaBusReady: (() => void) | null = null
 
   private readonly handleEditorEvent = (event?: CustomEvent<{
     protyle?: IProtyle
@@ -273,9 +276,19 @@ export default class FriendlySearchReplacePlugin extends Plugin {
 
     bindEditorContextEvents(this.eventBus, this.handleEditorEvent)
     window.addEventListener('keydown', this.handleDocumentKeydown, true)
+    this.registerToLunariaBus()
   }
 
   onunload() {
+    if (this._onLunariaBusReady) {
+      window.removeEventListener('lunaria-bus-ready', this._onLunariaBusReady)
+      this._onLunariaBusReady = null
+    }
+    if ((window as any).siyuanLunariaBus?.unregister) {
+      try {
+        (window as any).siyuanLunariaBus.unregister(this.name || 'siyuan-sou-easy')
+      } catch {}
+    }
     closeGlobalSearchDockAndReturnFocus()
     closeGlobalSearch()
     destroyGlobalSearchDock()
@@ -469,5 +482,87 @@ export default class FriendlySearchReplacePlugin extends Plugin {
       this.i18n.settingSearchHighlightColorReset,
       onChange,
     )
+  }
+
+  public registerToLunariaBus(): void {
+    if (typeof window === 'undefined') return
+    const register = () => {
+      const bus = (window as any).siyuanLunariaBus
+      if (bus && typeof bus.register === 'function') {
+        bus.register({
+          id: this.name || 'siyuan-sou-easy',
+          name: '搜 easy',
+          version: this.version || '2.0.0',
+          category: 'editor',
+          tools: [
+            {
+              name: 'searchNotesByKeywords',
+              description: '根据关键词列表检索知识库相关笔记及段落片段',
+              parameters: {
+                type: 'object',
+                properties: {
+                  keywords: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: '待检索的关键词列表',
+                  },
+                  limit: {
+                    type: 'number',
+                    description: '最大返回文档数量，默认 5',
+                  },
+                },
+                required: ['keywords'],
+              },
+            },
+          ],
+          execute: async (toolName: string, params: any) => {
+            if (toolName === 'searchNotesByKeywords') {
+              const keywords: string[] = Array.isArray(params?.keywords) ? params.keywords : []
+              const limit = typeof params?.limit === 'number' ? params.limit : 5
+              if (keywords.length === 0) {
+                return { success: true, code: 200, data: [] }
+              }
+              const searchKeyword = keywords[0] || ''
+              const records = await executeGlobalBlockQuery(searchKeyword, {}, {
+                limit: 100,
+                parsedQuery: {
+                  mustInclude: keywords,
+                  orGroups: [],
+                  exclude: [],
+                },
+              })
+              const docMap = new Map<string, { docId: string; title: string; snippet: string; score: number }>()
+              for (const record of records) {
+                const docId = record.root_id || record.id
+                if (!docId) continue
+                const docTitle = extractDocTitleFromHpath(record.hpath || '') || '未命名笔记'
+                const content = (record.content || record.fcontent || '').trim()
+                if (!docMap.has(docId)) {
+                  docMap.set(docId, {
+                    docId,
+                    title: docTitle,
+                    snippet: content.slice(0, 120),
+                    score: 0.9,
+                  })
+                }
+                if (docMap.size >= limit) break
+              }
+              return {
+                success: true,
+                code: 200,
+                data: Array.from(docMap.values()),
+              }
+            }
+            throw new Error(`未知工具: ${toolName}`)
+          },
+        })
+      }
+    }
+
+    register()
+    if (!this._onLunariaBusReady) {
+      this._onLunariaBusReady = () => register()
+      window.addEventListener('lunaria-bus-ready', this._onLunariaBusReady)
+    }
   }
 }
