@@ -48,7 +48,6 @@ describe('transaction-history', () => {
         originalContent: 'original text',
         newContent: 'modified text',
         originalDom: '<div>original text</div>',
-        newDom: '<div>modified text</div>',
       },
     ])
 
@@ -74,13 +73,11 @@ describe('transaction-history', () => {
         blockId: 'b1',
         rootId: 'd1',
         originalDom: '<div>original one</div>',
-        newDom: '<div>replaced one</div>',
       },
       {
         blockId: 'b2',
         rootId: 'd1',
         // 缺少 originalDom：不允许伪造内容回退
-        newDom: '<div>replaced two</div>',
       },
     ])
 
@@ -108,7 +105,6 @@ describe('transaction-history', () => {
         blockId: 'b1',
         rootId: 'd1',
         originalDom: '<div>original one</div>',
-        newDom: '<div>replaced one</div>',
       },
     ])
 

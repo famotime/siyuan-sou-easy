@@ -49,7 +49,6 @@
   "replaceAction": "Replace",
   "skipAction": "Skip",
   "replaceAllAction": "Replace all",
-  "matchCounter": "{current} / {total}",
   "currentDocumentLabel": "Current document",
   "replaceCurrentUnsupported": "The current match spans complex formatting and cannot be replaced directly yet.",
   "replaceAttributeViewUnsupported": "Database results support search, highlight, and navigation only. Replacement is not supported.",

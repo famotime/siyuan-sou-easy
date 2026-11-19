@@ -122,7 +122,7 @@
                 v-for="(item, idx) in group.items"
                 :key="`${item.blockId}_${idx}`"
                 class="sfsr-history-diff-item"
-                title="点击在主编辑区定位该块"
+                aria-label="点击在主编辑区定位该块"
                 @click="onNavigateToItem(item)"
               >
                 <div class="sfsr-diff-comparison">

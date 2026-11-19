@@ -196,7 +196,6 @@ export async function executeBatchReplace(
               fullContent: it.fullContent,
               newContent: it.newContent,
               originalDom,
-              newDom: updatedDom,
             })
           }
         } catch {

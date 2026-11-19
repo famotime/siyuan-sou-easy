@@ -35,7 +35,6 @@ describe('search panel canvas replacement controls', () => {
       i18n: {
         closePanel: 'Close',
         findPlaceholder: 'Find',
-        matchCounter: '{current} / {total}',
         nextMatch: 'Next match',
         previousMatch: 'Previous match',
         replaceAction: 'Replace',

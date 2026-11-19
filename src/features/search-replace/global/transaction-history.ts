@@ -16,7 +16,6 @@ export interface ReplaceTransactionItem {
   fullContent?: string
   newContent?: string
   originalDom?: string
-  newDom?: string
 }
 
 export interface ReplaceTransaction {

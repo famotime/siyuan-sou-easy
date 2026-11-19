@@ -111,8 +111,7 @@ siyuan-sou-easy/
 │   │           ├── VisualDiffModal.vue      # 替换前后对比浮层
 │   │           ├── RegexHelpPopover.vue     # 全库搜索正则语法气泡
 │   │           ├── SearchHelpPopover.vue    # 搜索语法帮助气泡
-│   │           ├── ReplaceHistoryTabView.vue# 替换历史分屏页签视图
-│   │           └── TransactionHistoryDrawer.vue # 历史记录抽屉 (遗留，待与页签视图合并)
+│   │           └── ReplaceHistoryTabView.vue# 替换历史分屏页签视图
 │   ├── i18n/                         # 国际化语言包 (zh_CN.json, en_US.json)
 │   └── types/                        # 全局 TypeScript 类型声明
 ├── tests/                            # 自动化测试套件 (484 Vitest 用例 / 87 个文件)

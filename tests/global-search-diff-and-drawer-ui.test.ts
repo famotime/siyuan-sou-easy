@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { createApp } from 'vue'
 import FilterPillsBar from '@/features/search-replace/global/ui/FilterPillsBar.vue'
 import VisualDiffModal from '@/features/search-replace/global/ui/VisualDiffModal.vue'
-import TransactionHistoryDrawer from '@/features/search-replace/global/ui/TransactionHistoryDrawer.vue'
+import ReplaceHistoryTabView from '@/features/search-replace/global/ui/ReplaceHistoryTabView.vue'
 import type { DiffSummary } from '@/features/search-replace/global/diff-builder'
 import type { ReplaceTransaction } from '@/features/search-replace/global/transaction-history'
 
@@ -183,7 +183,7 @@ describe('Diff Modal, History Drawer & Filter Pills UI Redesign (阶段三测试
     app.unmount()
   })
 
-  it('TransactionHistoryDrawer uses WireframeIcon and eliminates emojis and native title', () => {
+  it('ReplaceHistoryTabView eliminates emojis and native title (migrated from drawer)', () => {
     const dummyTransactions: ReplaceTransaction[] = [
       {
         id: 'tx-1',
@@ -199,13 +199,12 @@ describe('Diff Modal, History Drawer & Filter Pills UI Redesign (阶段三测试
     ]
 
     const container = document.createElement('div')
-    const app = createApp(TransactionHistoryDrawer, {
-      visible: true,
-      transactions: dummyTransactions,
+    const app = createApp(ReplaceHistoryTabView, {
+      initialTransactions: dummyTransactions,
     })
     app.mount(container)
 
-    // 1. 无任何原生 title 属性
+    // 1. 无任何原生 title 属性（统一使用 aria-label）
     expect(container.querySelectorAll('[title]').length).toBe(0)
 
     // 2. 无 Emoji
@@ -213,14 +212,7 @@ describe('Diff Modal, History Drawer & Filter Pills UI Redesign (阶段三测试
     expect(container.innerHTML).not.toContain('✕')
     expect(container.innerHTML).not.toContain('➔')
 
-    // 3. 线框图标检验
-    const svgs = container.querySelectorAll('svg.sfsr-wireframe-icon')
-    expect(svgs.length).toBeGreaterThan(0)
-    for (const svg of svgs) {
-      expect(svg.getAttribute('style')).toContain('fill: none !important')
-    }
-
-    // 4. 卡片内容检验
+    // 3. 卡片内容检验
     expect(container.querySelector('.sfsr-tx-query')?.textContent).toContain('searchWord')
     expect(container.querySelector('.sfsr-tx-repl')?.textContent).toContain('replaceWord')
     expect(container.querySelector('.sfsr-revert-btn')?.textContent?.trim()).toBe('一键回退')
@@ -228,7 +220,7 @@ describe('Diff Modal, History Drawer & Filter Pills UI Redesign (阶段三测试
     app.unmount()
   })
 
-  it('TransactionHistoryDrawer expands card and displays documents and paragraph Visual Diff details', async () => {
+  it('ReplaceHistoryTabView expands card and displays documents and paragraph Visual Diff details (migrated from drawer)', async () => {
     const detailedTx: ReplaceTransaction[] = [
       {
         id: 'tx-detail-1',
@@ -268,9 +260,8 @@ describe('Diff Modal, History Drawer & Filter Pills UI Redesign (阶段三测试
     ]
 
     const container = document.createElement('div')
-    const app = createApp(TransactionHistoryDrawer, {
-      visible: true,
-      transactions: detailedTx,
+    const app = createApp(ReplaceHistoryTabView, {
+      initialTransactions: detailedTx,
     })
     app.mount(container)
 
