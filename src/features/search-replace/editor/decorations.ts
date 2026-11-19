@@ -110,8 +110,12 @@ export function syncSearchDecorations(
   })
 
   if (currentMatch) {
-    applyCurrentTextHighlight(context, currentMatch, textHighlightState.rangesByMatchId)
-    const usesTableTextHighlight = currentMatch.blockType === TABLE_NODE_TYPE && textHighlightedMatchIds.has(currentMatch.id)
+    const currentTextHighlightApplied = applyCurrentTextHighlight(context, currentMatch, textHighlightState.rangesByMatchId)
+    // 表格匹配以文本强调作为"当前"标识（不再叠加块级/单元格 class）；
+    // 当文本强调注册意外失败时回退为块级标识，避免"当前"提示完全丢失。
+    const usesTableTextHighlight = currentMatch.blockType === TABLE_NODE_TYPE
+      && textHighlightedMatchIds.has(currentMatch.id)
+      && currentTextHighlightApplied
     if (!usesTableTextHighlight && !tableCellHighlightedMatchIds.has(currentMatch.id)) {
       getBlockElement(context, currentMatch.blockId)?.classList.add(CURRENT_MATCH_CLASS)
     }
@@ -124,7 +128,12 @@ export function clearSearchDecorations(context?: EditorContext | null) {
     return
   }
 
-  clearTextHighlights()
+  // 全局文本高亮注册表是 document 级单例：带 context 的清除只应作用于该编辑器
+  // 自身的高亮。若缓存的注册方是其他编辑器，保留注册项，避免擦掉对方正在显示的
+  // 文本高亮（分屏双编辑器场景）。无 context 时为全局清理，始终删除。
+  if (!context || textHighlightCache?.context === context.protyle) {
+    clearTextHighlights()
+  }
 
   const root = context?.protyle ?? document
   root.querySelectorAll(`.${ATTRIBUTE_VIEW_CELL_MATCH_CLASS}`).forEach((element) => {
@@ -763,7 +772,7 @@ function resolveTextHighlightCache(
     && textHighlightCache.context === context.protyle
     && textHighlightCache.matches === matches
     && textHighlightCache.optionsKey === optionsKey
-    && areCachedRangesReusable(context, textHighlightCache.ranges)
+    && areCachedRangesReusable(context, textHighlightCache)
   ) {
     return textHighlightCache
   }
@@ -837,8 +846,33 @@ function getReusableMatchRange(
   return isReusableRange(context, range) ? range : null
 }
 
-function areCachedRangesReusable(context: EditorContext, ranges: Range[]) {
-  return ranges.every(range => isReusableRange(context, range))
+function areCachedRangesReusable(context: EditorContext, entry: TextHighlightCacheEntry) {
+  if (!entry.ranges.every(range => isReusableRange(context, range))) {
+    return false
+  }
+
+  // 引用相等无法感知编辑器的原地文本编辑：普通输入会就地改写 Text.nodeValue
+  // 且节点保持 connected，此时连接性检查全部通过。必须逐 match 校验缓存 Range
+  // 内的文本仍与 matchedText 一致，否则整批判定失效并重建。
+  return entry.matches.every((match) => {
+    const range = entry.rangesByMatchId.get(match.id)
+    if (!range) {
+      return true
+    }
+
+    return isRangeTextUnchanged(range, match.matchedText)
+  })
+}
+
+function isRangeTextUnchanged(range: Range, matchedText: string) {
+  const rangeText = range.toString()
+  if (rangeText === matchedText) {
+    return true
+  }
+
+  // 大小写不敏感搜索 + 就近回退定位时，Range 文本可能与 matchedText 存在大小写差异，
+  // 属于合法降级而非内容漂移，按相等处理。
+  return rangeText.toLowerCase() === matchedText.toLowerCase()
 }
 
 function isReusableRange(context: EditorContext, range: Range | null | undefined) {
