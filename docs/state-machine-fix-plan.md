@@ -42,32 +42,32 @@
 
 | ID | 优先级 | 问题 | 涉及文件 | 修复方向 | 风险 | 状态 |
 | --- | --- | --- | --- | --- | --- | --- |
-| SM-001 | P0 | 高亮缓存失效谓词漏检原地文本编辑：编辑器输入后、防抖刷新完成前导航/替换会以同引用命中过期缓存，"当前匹配"高亮落在错误文本 | `editor/decorations.ts` | 缓存复用前逐 match 校验 `range.toString()` 与 `matchedText` 一致 | 低 | pending |
-| SM-002 | P0 | 事务回退兜底引用不存在的 `item.originalContent`（会把 `undefined` 写进文档）；replace-engine 拿不到 DOM 时伪造段落 `originalDom`，回退将覆盖块真实结构 | `global/transaction-history.ts`、`global/replace-engine.ts` | 删除伪造兜底与幽灵字段路径：无真实 `originalDom` 的事务项禁止回退、原块记为 skipped | 低 | pending |
-| SM-003 | P1 | `executeGlobalSearch` 无 revision 过期防护：连续搜索竞态覆盖、spinner 提前消失、结果与输入框错位 | `global/store.ts` | 新建 `store/revision.ts` 统一 revision guard 并接入 | 低 | pending |
-| SM-004 | P1 | `replaceCurrentMatch` 的 busy 互斥存在 TOCTOU 窗口（await 后才置位），快速双击并发替换 | `store/replacement.ts` | busy 在任何 await 之前同步置位（`withBusy` 原语） | 低 | pending |
-| SM-005 | P1 | `replaceAllMatches` 在事务提交前累加计数，事务失败仍提示"替换成功 N 处" | `store/replacement.ts` | 事务提交成功后再计数，失败给出明确错误 | 低 | pending |
-| SM-006 | P1 | Dock 热键在"可见-激活-未聚焦"态点击已激活 tab → 面板被误关而非聚焦 | `global/dock-manager.ts` | 维护显式 JS 可见状态，处理第四态（聚焦而非点击） | 中 | pending |
-| SM-007 | P1 | `globalSearchHotkey` 修改后命令通道（`openGlobalSearch`）不同步，旧热键成幽灵热键 | `plugin-command-config.ts` | `syncPanelCommandHotkeys` 纳入 `openGlobalSearch` 命令；dock `config.hotkey` 无法热更新，文档注明重载生效 | 低 | pending |
-| SM-008 | P1 | `executeBatchReplace` 不可取消，插件卸载后仍继续写内核 | `global/replace-engine.ts` | 接入 revision guard 作为取消令牌，批次间与块间检查 | 低 | pending |
-| SM-009 | P1 | `replaceTextInDom` 对整段 HTML 裸字符串替换：`$&`/`$'` 被二次解释、匹配文本出现在属性中会改坏属性、同块多次出现盲替换首处 | `global/replace-engine.ts` | 函数替换器消除 `$` 解释；仅替换首个文本内容位置并校验结果；无匹配时记为 skipped | 中 | pending |
-| SM-010 | P2 | AV 搜索循环不可取消（过期循环打满内核 API）、`blocks.push` 在成功前、`catch` 静默 | `attribute-view/search-service.ts`、`store/search-controller.ts` | 传入 `isStale` 回调每轮检查；push 移入成功分支；catch 记录 debug 日志 | 低 | pending |
-| SM-011 | P2 | `canTriggerNativeMatchNavigation` 未过滤 `terminal`/`canvas` 合成块 id，假 id 可经 `openTab(removeCurrentTab:true)` 打开并移除当前页签 | `native-navigation.ts` | sourceKind 白名单（仅真实 protyle 块） | 低 | pending |
-| SM-012 | P2 | `beginPendingNavigation` 不清旧重试定时器（双链交错计数）；unfold Promise 链无超时（hint 卡死）；`void .then()` 无 catch | `store/search-pending-navigation.ts` | begin 首行 clearTimeout；unfold 加超时竞速；then 链补 catch | 低 | pending |
-| SM-013 | P2 | `clearSearchDecorations(context)` 无条件删除 document 级全局文本高亮，擦掉其他编辑器正在显示的高亮 | `editor/decorations.ts` | 缓存归属不属于当前 context 时跳过全局高亮清除 | 低 | pending |
-| SM-014 | P2 | 表格当前匹配在当前文本高亮注册失败时，单元格 class、块 class、文本强调三者全空，"当前"标识静默丢失 | `editor/decorations.ts` | 以 `applyCurrentTextHighlight` 返回值门控 `usesTableTextHighlight`，失败回退块级 class | 低 | pending |
-| SM-015 | P2 | 预设缓存读写竞态：`savePreset` await 期间重开菜单触发 load 磁盘旧态覆盖缓存，新预设消失并被固化丢失 | `global/saved-presets.ts` | dirty 标志：缓存脏时 load 跳过磁盘覆盖 | 低 | pending |
-| SM-016 | P2 | `initReplaceHistoryTab` 重复初始化时旧 Vue app 从不 unmount（对照组 dock-manager 有正确先卸载） | `global/history-tab-manager.ts` | 重建前卸载 WeakMap 中旧 app | 低 | pending |
-| SM-017 | P2 | 卸载期持久化静默丢失：`unbindUiStatePlugin` 直接 clearTimeout 不 flush；`setPluginInstance(null)` 后 in-flight 写盘静默丢弃；`applyPluginSettings` 在 `bindUiStatePlugin` 之前执行导致清盘写入丢失 | `store/ui-state.ts`、`index.ts`、`store.ts` | 提供 `flushPendingUiState()` 于卸载路径 await；onload 先 init 再 applyPluginSettings | 低 | pending |
-| SM-018 | P2 | `uninstall()` 未清理 `saved_searches.json`（含搜索历史）与 `replace_transactions.json` | `index.ts` | 卸载时补删两类存储 | 低 | pending |
-| SM-019 | P2 | 设置复选框 onChange 的 rejection 无人捕获、写盘失败无视觉回退（颜色/数字输入有 `accepted` 反馈，复选框独缺） | `plugin-setting-elements.ts` | onChange 契约升级为返回 boolean，失败回退 checked 并捕获 rejection | 低 | pending |
-| SM-020 | P3 | `destroy()` 不复位会话状态，禁用再启用后查询词/替换词跨生命周期存活 | `main.ts` | 卸载路径调用 `resetSearchReplaceState()` | 低 | pending |
-| SM-021 | P3 | `persistTransactions` 仅磁盘截断 50 条，内存缓存无界增长 | `global/transaction-history.ts` | 记录时同步截断内存缓存 | 低 | pending |
-| SM-022 | P3 | `scrollAndHighlightTableRow` 等定时器链无取消句柄，卸载后仍执行 | `global/store.ts`、`global/dock-manager.ts` | 定时器句柄集中登记，Dock 销毁时统一清除 | 低 | pending |
-| SM-023 | P3 | Dock 视图 `hideHelpTimer` 卸载未清理 | `global/ui/GlobalSearchDockView.vue` | onUnmounted 补清 | 低 | pending |
-| SM-024 | P2 | 双历史视图（Drawer/Tab）并发回退无互斥、`reverted` 状态各自为政 | `global/transaction-history.ts` | revertTransaction 模块级 in-flight 互斥；并发调用返回"回滚进行中" | 低 | pending |
-| SM-025 | P3 | `fetchNotebooks` 用 `LIMIT 500` SQL 采样且笔记本名显示为 box id | `global/kernel-query.ts` | 改用内核 `lsNotebooks` API（以 siyuan-note 源码核对） | 中 | pending |
-| SM-026 | P3 | window capture Escape 拦截先于热键捕获框检查，捕获框内按 Escape 无法取消捕获反而关闭面板 | `index.ts` | `isHotkeyCaptureTarget` 检查前移 | 低 | pending |
+| SM-001 | P0 | 高亮缓存失效谓词漏检原地文本编辑：编辑器输入后、防抖刷新完成前导航/替换会以同引用命中过期缓存，"当前匹配"高亮落在错误文本 | `editor/decorations.ts` | 缓存复用前逐 match 校验 `range.toString()` 与 `matchedText` 一致 | 低 | done（69a6954） |
+| SM-002 | P0 | 事务回退兜底引用不存在的 `item.originalContent`（会把 `undefined` 写进文档）；replace-engine 拿不到 DOM 时伪造段落 `originalDom`，回退将覆盖块真实结构 | `global/transaction-history.ts`、`global/replace-engine.ts` | 删除伪造兜底与幽灵字段路径：无真实 `originalDom` 的事务项禁止回退、原块记为 skipped | 低 | done（e2a4c69） |
+| SM-003 | P1 | `executeGlobalSearch` 无 revision 过期防护：连续搜索竞态覆盖、spinner 提前消失、结果与输入框错位 | `global/store.ts` | 新建 `store/revision.ts` 统一 revision guard 并接入 | 低 | done（06184f9） |
+| SM-004 | P1 | `replaceCurrentMatch` 的 busy 互斥存在 TOCTOU 窗口（await 后才置位），快速双击并发替换 | `store/replacement.ts` | busy 在任何 await 之前同步置位（`withBusy` 原语） | 低 | done（c180480） |
+| SM-005 | P1 | `replaceAllMatches` 在事务提交前累加计数，事务失败仍提示"替换成功 N 处" | `store/replacement.ts` | 事务提交成功后再计数，失败给出明确错误 | 低 | done（c180480） |
+| SM-006 | P1 | Dock 热键在"可见-激活-未聚焦"态点击已激活 tab → 面板被误关而非聚焦 | `global/dock-manager.ts` | 维护显式 JS 可见状态，处理第四态（聚焦而非点击） | 中 | done（eef70ed） |
+| SM-007 | P1 | `globalSearchHotkey` 修改后命令通道（`openGlobalSearch`）不同步，旧热键成幽灵热键 | `plugin-command-config.ts` | `syncPanelCommandHotkeys` 纳入 `openGlobalSearch` 命令；dock `config.hotkey` 无法热更新，文档注明重载生效 | 低 | done（eef70ed） |
+| SM-008 | P1 | `executeBatchReplace` 不可取消，插件卸载后仍继续写内核 | `global/replace-engine.ts` | 接入 revision guard 作为取消令牌，批次间与块间检查 | 低 | done（caefb3d） |
+| SM-009 | P1 | `replaceTextInDom` 对整段 HTML 裸字符串替换：`$&`/`$'` 被二次解释、匹配文本出现在属性中会改坏属性、同块多次出现盲替换首处 | `global/replace-engine.ts` | 函数替换器消除 `$` 解释；仅替换首个文本内容位置并校验结果；无匹配时记为 skipped | 中 | done（caefb3d） |
+| SM-010 | P2 | AV 搜索循环不可取消（过期循环打满内核 API）、`blocks.push` 在成功前、`catch` 静默 | `attribute-view/search-service.ts`、`store/search-controller.ts` | 传入 `isStale` 回调每轮检查；push 移入成功分支；catch 记录 debug 日志 | 低 | done（06184f9） |
+| SM-011 | P2 | `canTriggerNativeMatchNavigation` 未过滤 `terminal`/`canvas` 合成块 id，假 id 可经 `openTab(removeCurrentTab:true)` 打开并移除当前页签 | `native-navigation.ts` | sourceKind 白名单（仅真实 protyle 块） | 低 | done（036cb87） |
+| SM-012 | P2 | `beginPendingNavigation` 不清旧重试定时器（双链交错计数）；unfold Promise 链无超时（hint 卡死）；`void .then()` 无 catch | `store/search-pending-navigation.ts` | begin 首行 clearTimeout；unfold 加超时竞速；then 链补 catch | 低 | done（036cb87） |
+| SM-013 | P2 | `clearSearchDecorations(context)` 无条件删除 document 级全局文本高亮，擦掉其他编辑器正在显示的高亮 | `editor/decorations.ts` | 缓存归属不属于当前 context 时跳过全局高亮清除 | 低 | done（69a6954） |
+| SM-014 | P2 | 表格当前匹配在当前文本高亮注册失败时，单元格 class、块 class、文本强调三者全空，"当前"标识静默丢失 | `editor/decorations.ts` | 以 `applyCurrentTextHighlight` 返回值门控 `usesTableTextHighlight`，失败回退块级 class | 低 | done（69a6954） |
+| SM-015 | P2 | 预设缓存读写竞态：`savePreset` await 期间重开菜单触发 load 磁盘旧态覆盖缓存，新预设消失并被固化丢失 | `global/saved-presets.ts` | dirty 标志：缓存脏时 load 跳过磁盘覆盖 | 低 | done（15faec0） |
+| SM-016 | P2 | `initReplaceHistoryTab` 重复初始化时旧 Vue app 从不 unmount（对照组 dock-manager 有正确先卸载） | `global/history-tab-manager.ts` | 重建前卸载 WeakMap 中旧 app | 低 | done（15faec0） |
+| SM-017 | P2 | 卸载期持久化静默丢失：`unbindUiStatePlugin` 直接 clearTimeout 不 flush；`setPluginInstance(null)` 后 in-flight 写盘静默丢弃；`applyPluginSettings` 在 `bindUiStatePlugin` 之前执行导致清盘写入丢失 | `store/ui-state.ts`、`index.ts`、`store.ts` | 提供 `flushPendingUiState()` 于卸载路径 await；onload 先 init 再 applyPluginSettings | 低 | done（15faec0） |
+| SM-018 | P2 | `uninstall()` 未清理 `saved_searches.json`（含搜索历史）与 `replace_transactions.json` | `index.ts` | 卸载时补删两类存储 | 低 | done（15faec0） |
+| SM-019 | P2 | 设置复选框 onChange 的 rejection 无人捕获、写盘失败无视觉回退（颜色/数字输入有 `accepted` 反馈，复选框独缺） | `plugin-setting-elements.ts` | onChange 契约升级为返回 boolean，失败回退 checked 并捕获 rejection | 低 | done（d53948e） |
+| SM-020 | P3 | `destroy()` 不复位会话状态，禁用再启用后查询词/替换词跨生命周期存活 | `main.ts` | 卸载路径调用 `resetSearchReplaceState()` | 低 | done（15faec0） |
+| SM-021 | P3 | `persistTransactions` 仅磁盘截断 50 条，内存缓存无界增长 | `global/transaction-history.ts` | 记录时同步截断内存缓存 | 低 | done（e2a4c69） |
+| SM-022 | P3 | `scrollAndHighlightTableRow` 等定时器链无取消句柄，卸载后仍执行 | `global/store.ts`、`global/dock-manager.ts` | 定时器句柄集中登记，Dock 销毁时统一清除 | 低 | done（d53948e） |
+| SM-023 | P3 | Dock 视图 `hideHelpTimer` 卸载未清理 | `global/ui/GlobalSearchDockView.vue` | onUnmounted 补清 | 低 | done（d53948e） |
+| SM-024 | P2 | 双历史视图（Drawer/Tab）并发回退无互斥、`reverted` 状态各自为政 | `global/transaction-history.ts` | revertTransaction 模块级 in-flight 互斥；并发调用返回"回滚进行中" | 低 | done（d53948e） |
+| SM-025 | P3 | `fetchNotebooks` 用 `LIMIT 500` SQL 采样且笔记本名显示为 box id | `global/kernel-query.ts` | 改用内核 `lsNotebooks` API（以 siyuan-note 源码核对） | 中 | done（d53948e） |
+| SM-026 | P3 | window capture Escape 拦截先于热键捕获框检查，捕获框内按 Escape 无法取消捕获反而关闭面板 | `index.ts` | `isHotkeyCaptureTarget` 检查前移 | 低 | done（d53948e） |
 
 ### 3.2 已识别但本轮不修复（记录原因）
 
@@ -101,12 +101,30 @@
 
 | ID | 开始日期 | 结束日期 | 验证命令 | 结果 | 备注 |
 | --- | --- | --- | --- | --- | --- |
-| （待填写） | | | | | |
+| 批次 A（SM-001/013/014） | 2026-11-19 | 2026-11-19 | `pnpm test tests/search-decoration-optimization.test.ts` 等 | pass | 69a6954；SM-014 经代码路径推演为防御性加固（该组合当前不可达），测试覆盖回退链整体行为 |
+| 批次 B（SM-002/021） | 2026-11-19 | 2026-11-19 | `pnpm test tests/global-transaction-history.test.ts tests/global-replace-engine.test.ts` | pass | e2a4c69；顺带修正 persistTransactions 用 slice(-50) 误保留最旧记录的问题 |
+| 批次 C（SM-003/010） | 2026-11-19 | 2026-11-19 | `pnpm test tests/global-search-revision.test.ts tests/attribute-view-search.test.ts` 等 | pass | 06184f9；新增 store/revision.ts 基建；spinner 由 in-flight 计数驱动、数据写入由 revision 驱动 |
+| 批次 D（SM-004/005） | 2026-11-19 | 2026-11-19 | `pnpm test tests/store-replace-all.test.ts` | pass | c180480；withBusyExclusive 原语 + 事务提交后才计数 |
+| 批次 E（SM-008/009） | 2026-11-19 | 2026-11-19 | `pnpm test tests/global-replace-engine.test.ts` | pass | caefb3d；取消令牌 + 函数替换器 + 逐条目实际生效计数 |
+| 批次 F（SM-011/012） | 2026-11-19 | 2026-11-19 | `pnpm test tests/native-navigation.test.ts tests/pending-navigation-controller.test.ts` | pass | 036cb87；新增两个测试文件 |
+| 批次 G（SM-006/007） | 2026-11-19 | 2026-11-19 | `pnpm test tests/global-dock-manager.test.ts tests/plugin-command-hotkeys.test.ts` | pass | eef70ed；可见信号经 siyuan-note layout/dock/index.ts 核实（dock__item--active 为思源自身判 show 的依据）；新增 dock-manager 测试 |
+| 批次 H（SM-015/016/017/018/020） | 2026-11-19 | 2026-11-19 | `pnpm test tests/global-saved-presets.test.ts tests/replace-history-tab-manager.test.ts tests/store-ui-state.test.ts tests/main-layering.test.ts` | pass | 15faec0；新增 history-tab-manager 测试 |
+| 批次 I（SM-019/022/023/024/025/026） | 2026-11-19 | 2026-11-20 | `pnpm test tests/global-notebooks.test.ts tests/plugin-setting-checkbox.test.ts` 等 | pass | d53948e；SM-025 契约经 siyuan-note kernel/apicontract/contracts.go 核实 |
+| 全量验证 | 2026-11-20 | 2026-11-20 | `pnpm test` && `pnpm build` | pass | 87 个测试文件 484 个用例全部通过；构建打包与集市规范校验通过（0a24748 为 uninstall 断言对齐） |
+
+### 5.1 结果统计
+
+- 修复条目：26 项全部完成（P0×2、P1×7、P2×9、P3×8），无 blocked
+- 明确不修：8 项（见 3.2，均已记录原因）
+- 新增测试文件 7 个：`global-search-revision`、`native-navigation`、`pending-navigation-controller`、`global-dock-manager`、`replace-history-tab-manager`、`global-notebooks`、`plugin-setting-checkbox`
+- 扩展测试文件 10 个：`search-decoration-optimization`、`global-transaction-history`、`attribute-view-search`、`global-replace-engine`、`store-replace-all`、`global-saved-presets`、`store-ui-state`、`main-layering`、`plugin-command-hotkeys`、`plugin-editor-events`
+- 用例规模：430+ → 484（87 个文件）
+- 新增生产模块：`store/revision.ts`（generation-token revision guard，供全库搜索 / 属性视图检索 / 批量替换复用）
 
 ## 6. 状态说明
 
 - `pending`：待执行
 - `in_progress`：执行中
-- `done`：已完成并验证
+- `done（hash）`：已完成并验证（括号内为对应提交）
 - `blocked`：受阻（注明原因）
 - `wontfix`：已识别但决定不修（见 3.2）
