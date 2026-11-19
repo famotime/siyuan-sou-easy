@@ -36,7 +36,12 @@ function parseArgs() {
 
 export function getLatestChangelogVersion(content) {
   const lines = content.split(/\r?\n/)
-  const versionHeaderRegex = /^##\s+(?:\[(.*?)\]|([^\s-]+))(.*)$/
+  // 等价于原 /^##\s+(?:\[(.*?)\]|([^\s-]+))(.*)$/：版本段（.*? 与 [^\s-]+）均无法
+  // 匹配行终止符（\r \n \u2028 \u2029），且版本号只能从 “##” 后首个非空白字符处开始，
+  // 故原尾部 (.*)$ 的实际语义即“版本号及其后到行尾不允许出现行终止符”（$ 非 multiline
+  // 仅匹配串尾）。改用前瞻 (?=\S[^\r\n\u2028\u2029]*$) 等价表达，消除尾部 .* 与版本段
+  // 量词之间的歧义交换（regexp/no-super-linear-backtracking），匹配结果与捕获组不变
+  const versionHeaderRegex = /^##\s+(?=\S[^\r\n\u2028\u2029]*$)(?:\[(.*?)\]|([^\s-]+))/
 
   for (const line of lines) {
     if (line.startsWith('## ')) {
@@ -64,7 +69,12 @@ export function extractReleaseNotes(content, targetVersion) {
   const cleanVersion = normalizedInput.replace(/^v/, '')
 
   const lines = content.split(/\r?\n/)
-  const versionHeaderRegex = /^##\s+(?:\[(.*?)\]|([^\s-]+))(.*)$/
+  // 等价于原 /^##\s+(?:\[(.*?)\]|([^\s-]+))(.*)$/：版本段（.*? 与 [^\s-]+）均无法
+  // 匹配行终止符（\r \n \u2028 \u2029），且版本号只能从 “##” 后首个非空白字符处开始，
+  // 故原尾部 (.*)$ 的实际语义即“版本号及其后到行尾不允许出现行终止符”（$ 非 multiline
+  // 仅匹配串尾）。改用前瞻 (?=\S[^\r\n\u2028\u2029]*$) 等价表达，消除尾部 .* 与版本段
+  // 量词之间的歧义交换（regexp/no-super-linear-backtracking），匹配结果与捕获组不变
+  const versionHeaderRegex = /^##\s+(?=\S[^\r\n\u2028\u2029]*$)(?:\[(.*?)\]|([^\s-]+))/
 
   let isCapturing = false
   const capturedLines = []

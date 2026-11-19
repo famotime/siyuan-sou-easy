@@ -13,21 +13,58 @@ import { fileURLToPath } from 'node:url'
  * @typedef {'error' | 'warning'} PrecheckLevel
  *
  * @typedef {object} PrecheckIssue
- * @property {PrecheckLevel} level
- * @property {string} code
- * @property {string} message
+ * @property {PrecheckLevel} level 问题级别，error 会阻断发版流程
+ * @property {string} code 问题唯一标识码
+ * @property {string} message 面向开发者的具体问题描述
  *
  * @typedef {object} PrecheckPayload
- * @property {Record<string, unknown>} pluginJson
- * @property {Record<string, unknown>} packageJson
- * @property {Record<string, unknown>} i18nZh
- * @property {Record<string, unknown>} i18nEn
- * @property {Set<string>} docsFiles
+ * @property {Record<string, unknown>} pluginJson 解析后的 plugin.json 内容
+ * @property {Record<string, unknown>} packageJson 解析后的 package.json 内容
+ * @property {Record<string, unknown>} i18nZh 解析后的中文语言包内容
+ * @property {Record<string, unknown>} i18nEn 解析后的英文语言包内容
+ * @property {Set<string>} docsFiles 工作区顶层文件名集合，用于校验 readme 指向的文件是否存在
  */
 
 /**
+ * @param {unknown} value
+ * @returns {string} 非字符串时返回空字符串，否则返回去除首尾空白后的结果
+ */
+function readString(value) {
+  if (typeof value !== 'string') {
+    return ''
+  }
+  return value.trim()
+}
+
+/**
+ * @param {unknown} value
+ * @returns {Record<string, unknown>} 传入对象时原样返回，否则返回空对象
+ */
+function toObject(value) {
+  return value && typeof value === 'object' ? /** @type {Record<string, unknown>} */ (value) : {}
+}
+
+function readJson(filePath) {
+  return JSON.parse(readFileSync(filePath, 'utf-8'))
+}
+
+function collectTopLevelFiles(workspaceRoot) {
+  const entries = readdirSync(workspaceRoot, { withFileTypes: true })
+  const files = entries
+    .filter((entry) => entry.isFile())
+    .map((entry) => entry.name)
+  return new Set(files)
+}
+
+function collectRedundantEnUsMetadataFields(pluginJson) {
+  return ['displayName', 'description', 'readme']
+    .filter((field) => Object.hasOwn(toObject(pluginJson[field]), 'en_US'))
+    .map((field) => `${field}.en_US`)
+}
+
+/**
  * @param {PrecheckPayload} payload
- * @returns {PrecheckIssue[]}
+ * @returns {PrecheckIssue[]} 检查发现的问题列表，全部通过时为空数组
  */
 export function collectPrecheckIssues(payload) {
   /** @type {PrecheckIssue[]} */
@@ -194,43 +231,6 @@ export function runPrecheckFromWorkspace(workspaceRoot) {
     packageJson,
     pluginJson,
   })
-}
-
-function collectTopLevelFiles(workspaceRoot) {
-  const entries = readdirSync(workspaceRoot, { withFileTypes: true })
-  const files = entries
-    .filter((entry) => entry.isFile())
-    .map((entry) => entry.name)
-  return new Set(files)
-}
-
-/**
- * @param {unknown} value
- * @returns {Record<string, unknown>}
- */
-function toObject(value) {
-  return value && typeof value === 'object' ? /** @type {Record<string, unknown>} */ (value) : {}
-}
-
-/**
- * @param {unknown} value
- * @returns {string}
- */
-function readString(value) {
-  if (typeof value !== 'string') {
-    return ''
-  }
-  return value.trim()
-}
-
-function readJson(filePath) {
-  return JSON.parse(readFileSync(filePath, 'utf-8'))
-}
-
-function collectRedundantEnUsMetadataFields(pluginJson) {
-  return ['displayName', 'description', 'readme']
-    .filter((field) => Object.hasOwn(toObject(pluginJson[field]), 'en_US'))
-    .map((field) => `${field}.en_US`)
 }
 
 function printIssues(issues) {

@@ -77,8 +77,8 @@ export function createInitialSearchReplaceState(): SearchReplaceState {
   }
 }
 
+export const searchReplaceState = reactive(createInitialSearchReplaceState()) as SearchReplaceState
+
 export function resetSearchReplaceState(target: SearchReplaceState = searchReplaceState): SearchReplaceState {
   return Object.assign(target, createInitialSearchReplaceState())
 }
-
-export const searchReplaceState = reactive(createInitialSearchReplaceState()) as SearchReplaceState

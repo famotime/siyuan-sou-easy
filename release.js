@@ -82,7 +82,7 @@ const main = async () => {
     try {
       changelogContent = readFileSync('./CHANGELOG.md', 'utf8')
       latestChangelog = getLatestChangelogVersion(changelogContent)
-    } catch (e) {
+    } catch {
       // 忽略读取错误，后续有存在性提示
     }
 
@@ -220,7 +220,7 @@ const main = async () => {
     console.log('🔄  \x1B[90m Ready to commit new version and create tag...\x1B[0m')
     exec(
       `git add ./plugin.json ./package.json ./CHANGELOG.md && git commit -m "chore(release): 升级版本至 v${newVersion}" && git push && git tag v${newVersion}`,
-      (err, stdout) => {
+      (err) => {
         if (err) {
           console.error('\x1B[31m%s\x1B[0m', '❌  Error for adding and committing:', err)
           process.exit(1)
