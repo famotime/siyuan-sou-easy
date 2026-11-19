@@ -144,7 +144,15 @@ export function createCheckboxElement(
   input.type = 'checkbox'
   input.checked = checked
   input.addEventListener('change', async () => {
-    await onChange(input.checked)
+    const nextChecked = input.checked
+    try {
+      await onChange(nextChecked)
+    } catch (error) {
+      // 设置写盘失败时回退开关显示并记录错误，
+      // 与颜色/数字输入的失败反馈行为保持一致（此前 rejection 无人捕获、开关虚报成功）
+      console.error('[search-replace] boolean setting change failed:', error)
+      input.checked = !nextChecked
+    }
   })
   return input
 }

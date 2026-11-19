@@ -94,6 +94,41 @@ describe('transaction-history', () => {
     expect(getTransactions()[0].reverted).toBe(true)
   })
 
+  it('serializes concurrent revert attempts into a single in-flight operation', async () => {
+    let resolveFirstWrite!: () => void
+    const updateSpy = vi.spyOn(kernel, 'updateDomBlock').mockImplementation(async () => {
+      await new Promise<void>((resolve) => {
+        resolveFirstWrite = resolve
+      })
+      return {} as any
+    })
+
+    const tx = await recordTransaction('foo', 'bar', [
+      {
+        blockId: 'b1',
+        rootId: 'd1',
+        originalDom: '<div>original one</div>',
+        newDom: '<div>replaced one</div>',
+      },
+    ])
+
+    const firstRevert = revertTransaction(tx.id)
+    // 首次回退仍在写盘时再次发起（另一视图触发）：必须被互斥拒绝
+    const secondRevert = await revertTransaction(tx.id)
+    expect(secondRevert.success).toBe(false)
+    expect(secondRevert.error).toContain('已有回退操作进行中')
+
+    resolveFirstWrite()
+    const firstResult = await firstRevert
+    expect(firstResult.success).toBe(true)
+    expect(updateSpy).toHaveBeenCalledTimes(1)
+
+    // 互斥释放后按正常语义拒绝重复回滚
+    const thirdRevert = await revertTransaction(tx.id)
+    expect(thirdRevert.success).toBe(false)
+    expect(thirdRevert.error).toContain('已经回滚')
+  })
+
   it('refuses to revert when no item carries an originalDom record', async () => {
     const updateSpy = vi.spyOn(kernel, 'updateDomBlock').mockResolvedValue({} as any)
 

@@ -50,6 +50,23 @@ const globalSearchRevision = createRevisionGuard()
 // 两者分离：过期搜索结束时不会误关新搜索的 spinner，也不会让已死搜索的 spinner 卡住。
 let inFlightSearchCount = 0
 
+// 跳转高亮的定时器链（重试/清理/复检/补偿）集中登记，Dock 销毁或插件卸载时统一清除
+const activeHighlightTimers = new Set<ReturnType<typeof setTimeout>>()
+
+function registerHighlightTimer(callback: () => void, delay: number) {
+  const timer = setTimeout(() => {
+    activeHighlightTimers.delete(timer)
+    callback()
+  }, delay)
+  activeHighlightTimers.add(timer)
+  return timer
+}
+
+export function cancelGlobalHighlightTimers() {
+  activeHighlightTimers.forEach(timer => clearTimeout(timer))
+  activeHighlightTimers.clear()
+}
+
 export function clearGlobalSearchResults() {
   // 结果被清除意味着任何 in-flight 搜索的产物都已过时，使其 revision 失效，
   // 防止旧搜索完成时把旧查询的结果写回已清空的状态。
@@ -311,7 +328,7 @@ export function scrollAndHighlightTableRow(
 
   if (!tableBlock) {
     if (attempt < 10) {
-      setTimeout(() => {
+      registerHighlightTimer(() => {
         scrollAndHighlightTableRow(tableBlockId, rowIndex, rowText, keyword, matchedCellText, attempt + 1)
       }, 70)
     }
@@ -337,13 +354,13 @@ export function scrollAndHighlightTableRow(
   void targetRow.offsetWidth
   targetRow.classList.add(HIGHLIGHT_CLASS)
 
-  setTimeout(() => {
+  registerHighlightTimer(() => {
     targetRow.classList.remove(HIGHLIGHT_CLASS)
   }, 2200)
 
   // 针对跨文档初次加载时的时序抗干扰校验：
   // 300ms 后再次校验 targetRow 是否偏离视口中心较多；若被思源微任务拉偏，再次执行居中滚动纠偏
-  setTimeout(() => {
+  registerHighlightTimer(() => {
     const scrollContainer = targetRow.closest('.protyle-content') as HTMLElement | null
     if (scrollContainer) {
       const containerRect = scrollContainer.getBoundingClientRect()
@@ -377,7 +394,7 @@ export function scrollAndHighlightBlock(blockElement: HTMLElement, shouldFocus =
   void blockElement.offsetWidth
   blockElement.classList.add(HIGHLIGHT_CLASS)
 
-  setTimeout(() => {
+  registerHighlightTimer(() => {
     blockElement.classList.remove(HIGHLIGHT_CLASS)
   }, 2200)
 }
@@ -435,7 +452,7 @@ export async function navigateToGlobalMatch(match: GlobalMatchSnippet) {
       })
 
       // 4. 打开后初次等待 Protyle 挂载就绪，补充强化高亮提示动画
-      setTimeout(() => {
+      registerHighlightTimer(() => {
         if (match.blockType === 't' && (typeof match.tableRowIndex === 'number' || match.tableRowText)) {
           scrollAndHighlightTableRow(
             match.blockId,

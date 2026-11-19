@@ -107,51 +107,80 @@ export function getTransactions(): ReplaceTransaction[] {
   return transactionsMemoryCache
 }
 
+export interface RevertTransactionResult {
+  success: boolean
+  revertedCount: number
+  skippedCount: number
+  error?: string
+}
+
+// 模块级回退互斥：Drawer 与分屏 Tab 两个视图可能同时发起回退，
+// 对重叠块交错写盘会产生 last-writer-wins 的错乱内容
+let revertInFlight: Promise<RevertTransactionResult> | null = null
+
 /**
  * 回滚指定的替换事务批次
  */
-export async function revertTransaction(txId: string): Promise<{ success: boolean, revertedCount: number, skippedCount: number, error?: string }> {
-  const tx = transactionsMemoryCache.find(t => t.id === txId)
-  if (!tx) {
-    return { success: false, revertedCount: 0, skippedCount: 0, error: '未找到对应事务记录' }
-  }
-  if (tx.reverted) {
-    return { success: false, revertedCount: 0, skippedCount: 0, error: '该事务已经回滚，不能重复回滚' }
-  }
-
-  // 缺少原始 DOM 记录的条目禁止回退：绝不使用猜测/伪造的内容覆盖文档块
-  const revertableItems = tx.items.filter(item => typeof item.originalDom === 'string' && item.originalDom.trim().length > 0)
-  if (!revertableItems.length) {
+export async function revertTransaction(txId: string): Promise<RevertTransactionResult> {
+  if (revertInFlight) {
     return {
       success: false,
       revertedCount: 0,
-      skippedCount: tx.items.length,
-      error: '事务缺少原始 DOM 记录，无法安全回退',
+      skippedCount: 0,
+      error: '已有回退操作进行中，请等待其完成后再试',
     }
   }
 
-  let revertedCount = 0
-  try {
-    // 逆向遍历更新
-    for (const item of revertableItems) {
-      await updateDomBlock(item.blockId, item.originalDom)
-      revertedCount++
+  const execution = (async (): Promise<RevertTransactionResult> => {
+    const tx = transactionsMemoryCache.find(t => t.id === txId)
+    if (!tx) {
+      return { success: false, revertedCount: 0, skippedCount: 0, error: '未找到对应事务记录' }
+    }
+    if (tx.reverted) {
+      return { success: false, revertedCount: 0, skippedCount: 0, error: '该事务已经回滚，不能重复回滚' }
     }
 
-    tx.reverted = true
-    await persistTransactions()
-    return {
-      success: true,
-      revertedCount,
-      skippedCount: tx.items.length - revertableItems.length,
+    // 缺少原始 DOM 记录的条目禁止回退：绝不使用猜测/伪造的内容覆盖文档块
+    const revertableItems = tx.items.filter(item => typeof item.originalDom === 'string' && item.originalDom.trim().length > 0)
+    if (!revertableItems.length) {
+      return {
+        success: false,
+        revertedCount: 0,
+        skippedCount: tx.items.length,
+        error: '事务缺少原始 DOM 记录，无法安全回退',
+      }
     }
-  } catch (err: any) {
-    return {
-      success: false,
-      revertedCount,
-      skippedCount: tx.items.length - revertableItems.length,
-      error: err.message || '回滚过程中发生错误',
+
+    let revertedCount = 0
+    try {
+      // 逆向遍历更新
+      for (const item of revertableItems) {
+        await updateDomBlock(item.blockId, item.originalDom)
+        revertedCount++
+      }
+
+      tx.reverted = true
+      await persistTransactions()
+      return {
+        success: true,
+        revertedCount,
+        skippedCount: tx.items.length - revertableItems.length,
+      }
+    } catch (err: any) {
+      return {
+        success: false,
+        revertedCount,
+        skippedCount: tx.items.length - revertableItems.length,
+        error: err.message || '回滚过程中发生错误',
+      }
     }
+  })()
+
+  revertInFlight = execution
+  try {
+    return await execution
+  } finally {
+    revertInFlight = null
   }
 }
 

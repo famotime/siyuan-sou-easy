@@ -141,6 +141,13 @@ export default class FriendlySearchReplacePlugin extends Plugin {
       return
     }
 
+    const target = event.target instanceof Element ? event.target : null
+    // 快捷键捕获输入框自身管理 Escape（取消捕获并恢复原值），
+    // 必须在面板 Escape 拦截之前放行，否则捕获框内按 Esc 会误关面板
+    if (isHotkeyCaptureTarget(target, HOTKEY_CAPTURE_INPUT_ATTRIBUTE)) {
+      return
+    }
+
     if (event.key === 'Escape') {
       if (searchReplaceState.visible) {
         event.preventDefault()
@@ -148,11 +155,6 @@ export default class FriendlySearchReplacePlugin extends Plugin {
         closePanel()
         return
       }
-    }
-
-    const target = event.target instanceof Element ? event.target : null
-    if (isHotkeyCaptureTarget(target, HOTKEY_CAPTURE_INPUT_ATTRIBUTE)) {
-      return
     }
 
     const hotkey = formatHotkeyFromEvent(event)

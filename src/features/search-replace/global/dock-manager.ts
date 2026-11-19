@@ -2,6 +2,7 @@ import type { App as VueApp } from 'vue'
 import { createApp } from 'vue'
 import GlobalSearchDockView from './ui/GlobalSearchDockView.vue'
 import {
+  cancelGlobalHighlightTimers,
   globalSearchState,
 } from './store'
 import { cancelActiveBatchReplace } from './replace-engine'
@@ -46,6 +47,7 @@ export function destroyGlobalSearchDock() {
   // Dock 销毁（含插件卸载）时中止仍在运行的批量替换批次，
   // 避免卸载后继续向内核写入变更
   cancelActiveBatchReplace()
+  cancelGlobalHighlightTimers()
   window.clearTimeout(focusSearchTimer)
   if (dockApp) {
     dockApp.unmount()

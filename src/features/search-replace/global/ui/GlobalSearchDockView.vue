@@ -612,6 +612,13 @@ function onHelpMouseLeave() {
   }, 160)
 }
 
+function clearHelpTimers() {
+  if (hideHelpTimer) {
+    clearTimeout(hideHelpTimer)
+    hideHelpTimer = null
+  }
+}
+
 function toggleHelpPopover() {
   closeRegexHelpPopover()
   showHelpPopover.value = !showHelpPopover.value
@@ -858,6 +865,7 @@ watch(
 
 onUnmounted(() => {
   clearRegexTimers()
+  clearHelpTimers()
   registerGlobalSearchInput(null)
 })
 </script>

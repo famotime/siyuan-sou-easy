@@ -1,4 +1,4 @@
-import { querySql } from '../kernel'
+import { listNotebooks, querySql } from '../kernel'
 import type { GlobalSearchFilters, ParsedGlobalQuery, RawBlockRecord } from './types'
 
 export interface NotebookInfo {
@@ -126,21 +126,21 @@ export async function executeGlobalBlockQuery(
 }
 
 /**
- * 获取知识库所有笔记本
+ * 获取知识库所有打开的笔记本
  */
 export async function fetchNotebooks(): Promise<NotebookInfo[]> {
   try {
-    const records = await querySql('SELECT DISTINCT box, hpath FROM blocks LIMIT 500')
-    const notebookMap = new Map<string, NotebookInfo>()
-    for (const r of (records || [])) {
-      if (r.box && !notebookMap.has(r.box)) {
-        notebookMap.set(r.box, {
-          id: r.box,
-          name: r.box,
-        })
-      }
-    }
-    return Array.from(notebookMap.values())
+    // 使用内核 lsNotebooks 接口获取真实笔记本名称与打开状态：
+    // 旧的 SQL DISTINCT box 采样方案受 LIMIT 截断且只能显示 box id
+    const response = await listNotebooks()
+    return (response.notebooks || [])
+      .filter(notebook => !notebook.closed)
+      .map(notebook => ({
+        id: notebook.id,
+        name: notebook.name,
+        icon: notebook.icon,
+        closed: notebook.closed,
+      }))
   } catch {
     return []
   }

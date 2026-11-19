@@ -274,4 +274,33 @@ describe('plugin command hotkeys', () => {
 
     expect(closePanel).toHaveBeenCalledTimes(1)
   })
+
+  it('lets the hotkey capture input handle Escape without closing the panel', async () => {
+    const { default: FriendlySearchReplacePlugin } = await import('@/index')
+
+    const plugin = new FriendlySearchReplacePlugin()
+    plugin.i18n = {
+      addTopBarIcon: 'Friendly Search Replace',
+    }
+
+    await plugin.onload()
+    closePanel.mockClear()
+    storeState.searchReplaceState.visible = true
+
+    const captureInput = document.createElement('input')
+    captureInput.setAttribute('data-friendly-search-hotkey-input', 'true')
+    document.body.appendChild(captureInput)
+
+    captureInput.dispatchEvent(new KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'Escape',
+    }))
+
+    // 捕获输入框自身的 Escape 语义（取消捕获并恢复原值）优先于面板关闭
+    expect(closePanel).not.toHaveBeenCalled()
+
+    captureInput.remove()
+    storeState.searchReplaceState.visible = false
+  })
 })

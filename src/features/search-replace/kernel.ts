@@ -53,6 +53,21 @@ export async function getBlockDoms(ids: string[]) {
   })
 }
 
+export interface SiyuanNotebook {
+  closed: boolean
+  icon: string
+  id: string
+  name: string
+}
+
+/**
+ * 获取全部笔记本（含名称与打开状态）。
+ * 响应契约见 siyuan-note kernel/apicontract/contracts.go ListNotebooksData。
+ */
+export async function listNotebooks() {
+  return requestApi<{ notebooks: SiyuanNotebook[] }>('/api/notebook/lsNotebooks', {})
+}
+
 export async function getBlockAttrs(id: string) {
   return requestApi<Record<string, string>>('/api/attr/getBlockAttrs', {
     id,
