@@ -664,6 +664,10 @@ function onToggleCollapseAll() {
 
 function onFiltersChange(newFilters: GlobalSearchFilters) {
   state.filters = { ...newFilters }
+  // 选中类型胶囊时自动关闭“仅文档”，否则 SQL 强制 type='d' 会吞掉类型过滤
+  if (newFilters.types && newFilters.types.length > 0 && state.options.docOnly) {
+    state.options.docOnly = false
+  }
   const currentQuery = state.query.trim()
   if (currentQuery && currentQuery === state.searchedQuery) {
     executeGlobalSearch()

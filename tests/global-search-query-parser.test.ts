@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { parseGlobalQuery } from '@/features/search-replace/global/query-parser'
+import {
+  parseDateFilterValue,
+  parseGlobalQuery,
+} from '@/features/search-replace/global/query-parser'
 
 describe('parseGlobalQuery', () => {
   it('parses empty query', () => {
@@ -79,5 +82,41 @@ describe('parseGlobalQuery', () => {
     expect(res2.orGroups).toEqual([['苹果', '香蕉', '橙子']])
     expect(res2.mustInclude).toEqual(['水果'])
     expect(res2.isMultiTermQuery).toBe(true)
+  })
+})
+
+describe('parseDateFilterValue', () => {
+  const now = new Date(2026, 9, 20, 15, 30, 45) // 2026-10-20 15:30:45 本地时间
+
+  it('maps relative days to a start-of-day stamp', () => {
+    expect(parseDateFilterValue('7d', now)).toEqual({ start: '20261013000000' })
+    expect(parseDateFilterValue('30d', now)).toEqual({ start: '20260920000000' })
+  })
+
+  it('maps today to the start of the current day', () => {
+    expect(parseDateFilterValue('today', now)).toEqual({ start: '20261020000000' })
+  })
+
+  it('maps absolute dates to start-of-day stamps', () => {
+    expect(parseDateFilterValue('2026-10-01', now)).toEqual({ start: '20261001000000' })
+    expect(parseDateFilterValue('20261001', now)).toEqual({ start: '20261001000000' })
+  })
+
+  it('maps ranges to an inclusive start/end interval', () => {
+    expect(parseDateFilterValue('2026-10-01..2026-10-31', now)).toEqual({
+      start: '20261001000000',
+      end: '20261031235959',
+    })
+    expect(parseDateFilterValue('20261001..20261020', now)).toEqual({
+      start: '20261001000000',
+      end: '20261020235959',
+    })
+  })
+
+  it('returns undefined for unrecognized values', () => {
+    expect(parseDateFilterValue('yesterday', now)).toBeUndefined()
+    expect(parseDateFilterValue('', now)).toBeUndefined()
+    expect(parseDateFilterValue(undefined, now)).toBeUndefined()
+    expect(parseDateFilterValue('2026-13-40..2026-12-01', now)).toBeUndefined()
   })
 })

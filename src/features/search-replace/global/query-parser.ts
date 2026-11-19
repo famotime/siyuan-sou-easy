@@ -231,3 +231,80 @@ export function parseGlobalQuery(raw: string): ParsedGlobalQuery {
     dateFilter,
   }
 }
+
+/**
+ * 解析 `updated:` / `date:` / `time:` 语法的日期值为 SQL 过滤区间。
+ * 支持格式：
+ * - `today`：今天 00:00:00 起
+ * - `Nd`（如 7d、30d）：近 N 天 00:00:00 起
+ * - `YYYY-MM-DD` / `YYYYMMDD`：该日 00:00:00 起
+ * - `A..B`：起止日期区间（两端格式同上）
+ * 无法识别时返回 undefined（不过滤）。
+ */
+export function parseDateFilterValue(
+  value: string | undefined,
+  now: Date = new Date(),
+): { start?: string, end?: string } | undefined {
+  if (!value) {
+    return undefined
+  }
+
+  const formatStamp = (date: Date) => {
+    const Y = date.getFullYear()
+    const M = String(date.getMonth() + 1).padStart(2, '0')
+    const D = String(date.getDate()).padStart(2, '0')
+    return `${Y}${M}${D}000000`
+  }
+
+  const parseBound = (raw: string): string | undefined => {
+    const token = raw.trim().toLowerCase()
+    if (!token) {
+      return undefined
+    }
+    if (token === 'today') {
+      return formatStamp(now)
+    }
+    const relativeDays = /^(\d+)d$/.exec(token)
+    if (relativeDays) {
+      const date = new Date(now)
+      date.setDate(date.getDate() - Number(relativeDays[1]))
+      return formatStamp(date)
+    }
+    const digits = token.replace(/[-:/\s.]/g, '')
+    if (/^\d{8}$/.test(digits)) {
+      const year = Number(digits.slice(0, 4))
+      const month = Number(digits.slice(4, 6))
+      const day = Number(digits.slice(6, 8))
+      const date = new Date(year, month - 1, day)
+      // JS Date 会静默进位非法月/日（如 2026-13-40），需回读校验
+      if (
+        !Number.isNaN(date.getTime())
+        && date.getFullYear() === year
+        && date.getMonth() === month - 1
+        && date.getDate() === day
+      ) {
+        return formatStamp(date)
+      }
+    }
+    return undefined
+  }
+
+  const [rawStart, rawEnd] = value.split('..')
+  const start = parseBound(rawStart)
+  if (!start) {
+    return undefined
+  }
+  const end = rawEnd !== undefined ? parseBound(rawEnd) : undefined
+  if (rawEnd !== undefined && !end) {
+    return undefined
+  }
+  if (end) {
+    // 区间终点取当日末尾，保证包含端点日
+    const endDate = new Date(Number(end.slice(0, 4)), Number(end.slice(4, 6)) - 1, Number(end.slice(6, 8)))
+    const Y = endDate.getFullYear()
+    const M = String(endDate.getMonth() + 1).padStart(2, '0')
+    const D = String(endDate.getDate()).padStart(2, '0')
+    return { start, end: `${Y}${M}${D}235959` }
+  }
+  return { start }
+}

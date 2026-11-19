@@ -8,7 +8,7 @@ import type {
   GlobalSearchSortMode,
   GlobalSearchStateModel,
 } from './types'
-import { parseGlobalQuery } from './query-parser'
+import { parseDateFilterValue, parseGlobalQuery } from './query-parser'
 import { executeGlobalBlockQuery } from './kernel-query'
 import {
   aggregateBlocksToDocs,
@@ -491,13 +491,20 @@ export async function executeGlobalSearch() {
 
   try {
     const parsed = parseGlobalQuery(raw)
+    const parsedDateRange = parseDateFilterValue(parsed.dateFilter)
     const effectiveFilters = {
       ...globalSearchState.filters,
       notebookId: parsed.notebook || globalSearchState.filters.notebookId,
       pathPrefix: parsed.path || globalSearchState.filters.pathPrefix,
       tags: Array.from(new Set([...(globalSearchState.filters.tags || []), ...parsed.tags])),
       types: Array.from(new Set([...(globalSearchState.filters.types || []), ...parsed.types])),
+      // `updated:` 等查询语法优先于时间胶囊过滤
+      dateRange: parsedDateRange ?? globalSearchState.filters.dateRange,
     }
+
+    // 类型过滤与"仅文档"互斥：选中类型胶囊或使用 type: 语法时自动关闭仅文档，
+    // 否则 SQL 强制 type='d' 会静默吞掉类型过滤
+    const effectiveDocOnly = globalSearchState.options.docOnly && effectiveFilters.types.length === 0
 
     const keyword = parsed.textQuery || raw
     const sqlKeyword = globalSearchState.options.pinyin ? '' : keyword
@@ -506,7 +513,7 @@ export async function executeGlobalSearch() {
     const blocks = await executeGlobalBlockQuery(sqlKeyword, effectiveFilters, {
       limit: queryLimit,
       useRegex: globalSearchState.options.useRegex || globalSearchState.options.pinyin,
-      docOnly: globalSearchState.options.docOnly,
+      docOnly: effectiveDocOnly,
       parsedQuery: globalSearchState.options.pinyin ? undefined : parsed,
     })
     if (globalSearchRevision.isStale(revision)) {
@@ -518,7 +525,7 @@ export async function executeGlobalSearch() {
       wholeWord: globalSearchState.options.wholeWord,
       useRegex: globalSearchState.options.useRegex,
       pinyin: globalSearchState.options.pinyin,
-      docOnly: globalSearchState.options.docOnly,
+      docOnly: effectiveDocOnly,
       parsedQuery: parsed,
     })
 
