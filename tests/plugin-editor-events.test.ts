@@ -7,6 +7,10 @@ import {
   it,
   vi,
 } from 'vitest'
+import type { App } from 'siyuan'
+
+// siyuan 类型声明的 Plugin 构造需要 { app, name, i18n }；运行时 mock 无参构造会忽略该参数
+const pluginOptions = { app: {} as App, name: 'siyuan-sou-easy', i18n: {} }
 
 const loadSettings = vi.fn().mockResolvedValue({
   debugLog: false,
@@ -67,7 +71,7 @@ describe('plugin editor context events', () => {
   it('passes protyle event detail into the search context cache', async () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
 
-    const plugin = new FriendlySearchReplacePlugin()
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
     plugin.i18n = {
       addTopBarIcon: 'Friendly Search Replace',
     }
@@ -104,7 +108,7 @@ describe('plugin editor context events', () => {
   it('registers and unregisters the full editor event list', async () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
 
-    const plugin = new FriendlySearchReplacePlugin()
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
     plugin.i18n = {
       addTopBarIcon: 'Friendly Search Replace',
     }
@@ -133,7 +137,7 @@ describe('plugin editor context events', () => {
   it('removes persisted plugin data during uninstall', async () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
 
-    const plugin = new FriendlySearchReplacePlugin()
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
     plugin.i18n = {
       addTopBarIcon: 'Friendly Search Replace',
     }

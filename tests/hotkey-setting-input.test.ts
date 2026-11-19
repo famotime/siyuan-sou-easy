@@ -7,6 +7,10 @@ import {
   it,
   vi,
 } from 'vitest'
+import type { App } from 'siyuan'
+
+// siyuan 类型声明的 Plugin 构造需要 { app, name, i18n }；运行时 mock 无参构造会忽略该参数
+const pluginOptions = { app: {} as App, name: 'siyuan-sou-easy', i18n: {} }
 
 const loadSettings = vi.fn().mockResolvedValue({
   debugLog: false,
@@ -70,7 +74,7 @@ describe('hotkey setting input', () => {
   it('captures shortcut input from keydown and saves non-conflicting values', async () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
 
-    const plugin = new FriendlySearchReplacePlugin()
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
     const applySettingsSpy = vi.spyOn(plugin as any, 'applySettings').mockResolvedValue(undefined)
     ;(plugin as any).settingsData = await loadSettings()
 
@@ -96,7 +100,7 @@ describe('hotkey setting input', () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
     const siyuan = await import('siyuan')
 
-    const plugin = new FriendlySearchReplacePlugin()
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
     const applySettingsSpy = vi.spyOn(plugin as any, 'applySettings').mockResolvedValue(undefined)
     ;(plugin as any).settingsData = await loadSettings()
     plugin.commands = [
@@ -148,7 +152,7 @@ describe('hotkey setting input', () => {
       },
     } as any
 
-    const plugin = new FriendlySearchReplacePlugin()
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
     const applySettingsSpy = vi.spyOn(plugin as any, 'applySettings').mockResolvedValue(undefined)
     ;(plugin as any).settingsData = await loadSettings()
 

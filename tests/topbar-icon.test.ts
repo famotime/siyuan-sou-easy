@@ -7,6 +7,7 @@ import {
   it,
   vi,
 } from 'vitest'
+import type { App } from 'siyuan'
 
 const loadSettings = vi.fn().mockResolvedValue({
   debugLog: false,
@@ -56,7 +57,8 @@ describe('plugin top bar icon', () => {
   it('uses a dedicated icon instead of SiYuan iconSearch', async () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
 
-    const plugin = new FriendlySearchReplacePlugin()
+    // siyuan 类型声明的 Plugin 构造需要 { app, name, i18n }；运行时 mock 无参构造会忽略该参数
+    const plugin = new FriendlySearchReplacePlugin({ app: {} as App, name: 'siyuan-sou-easy', i18n: {} })
     plugin.i18n = {
       addTopBarIcon: 'Friendly Search Replace',
     }

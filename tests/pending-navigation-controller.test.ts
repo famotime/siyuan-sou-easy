@@ -58,7 +58,8 @@ describe('pending navigation controller lifecycle', () => {
     } as EditorContext
 
     const scrollMatchIntoView = vi.fn(() => options.scrollResult ?? 'scrolled')
-    const isMatchVisible = vi.fn(() => options.isMatchVisible ?? false)
+    // mock 需返回 boolean：显式调用注入的可见性判断函数（未注入时恒为 false，与原行为一致）
+    const isMatchVisible = vi.fn((): boolean => options.isMatchVisible?.() ?? false)
     const resolveEditorContext = vi.fn(() => context)
 
     const controller = createPendingNavigationController({

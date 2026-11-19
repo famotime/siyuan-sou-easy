@@ -16,7 +16,9 @@ import type {
 const kernelMocks = vi.hoisted(() => ({
   getAttributeViewKeysByAvID: vi.fn(async () => []),
   getBlockAttrs: vi.fn(async () => ({})),
-  renderAttributeView: vi.fn(async () => ({
+  // 与 kernel.ts renderAttributeView 真实签名一致（requestApi<any> 返回 any），
+  // 放宽 mock 返回类型以便各用例注入不同形状的渲染结果
+  renderAttributeView: vi.fn(async (): Promise<any> => ({
     view: {
       columns: [],
       rows: [],

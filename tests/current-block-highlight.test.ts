@@ -47,10 +47,11 @@ describe('current block highlight', () => {
       start: 0, occ: 0,
     }
 
-    ;(globalThis as typeof globalThis & { Highlight?: new (...ranges: Range[]) => unknown }).Highlight = class {
+    // lib.dom 已声明全局 Highlight/CSS，交叉断言会把属性类型并成 typeof Highlight & stub；经 unknown 双重断言用桩形状覆盖
+    ;(globalThis as unknown as { Highlight?: new (...ranges: Range[]) => unknown }).Highlight = class {
       constructor(..._ranges: Range[]) {}
     }
-    ;(globalThis as typeof globalThis & { CSS?: { highlights?: Map<string, unknown> } }).CSS = {
+    ;(globalThis as unknown as { CSS?: { highlights?: Map<string, unknown> } }).CSS = {
       highlights: new Map(),
     }
 
@@ -92,14 +93,15 @@ describe('current block highlight', () => {
     }
 
     const highlights = new Map<string, { ranges: Range[] }>()
-    ;(globalThis as typeof globalThis & { Highlight?: new (...ranges: Range[]) => { ranges: Range[] } }).Highlight = class {
+    // lib.dom 已声明全局 Highlight/CSS，交叉断言会把属性类型并成 typeof Highlight & stub；经 unknown 双重断言用桩形状覆盖
+    ;(globalThis as unknown as { Highlight?: new (...ranges: Range[]) => { ranges: Range[] } }).Highlight = class {
       ranges: Range[]
 
       constructor(...ranges: Range[]) {
         this.ranges = ranges
       }
     }
-    ;(globalThis as typeof globalThis & { CSS?: { highlights?: Map<string, { ranges: Range[] }> } }).CSS = {
+    ;(globalThis as unknown as { CSS?: { highlights?: Map<string, { ranges: Range[] }> } }).CSS = {
       highlights,
     }
 
@@ -200,14 +202,15 @@ describe('current block highlight', () => {
     }
 
     const highlights = new Map<string, { ranges: Range[] }>()
-    ;(globalThis as typeof globalThis & { Highlight?: new (...ranges: Range[]) => { ranges: Range[] } }).Highlight = class {
+    // lib.dom 已声明全局 Highlight/CSS，交叉断言会把属性类型并成 typeof Highlight & stub；经 unknown 双重断言用桩形状覆盖
+    ;(globalThis as unknown as { Highlight?: new (...ranges: Range[]) => { ranges: Range[] } }).Highlight = class {
       ranges: Range[]
 
       constructor(...ranges: Range[]) {
         this.ranges = ranges
       }
     }
-    ;(globalThis as typeof globalThis & { CSS?: { highlights?: Map<string, { ranges: Range[] }> } }).CSS = {
+    ;(globalThis as unknown as { CSS?: { highlights?: Map<string, { ranges: Range[] }> } }).CSS = {
       highlights,
     }
 
@@ -617,14 +620,15 @@ describe('current block highlight', () => {
     }
 
     const highlights = new Map<string, { ranges: Range[] }>()
-    ;(globalThis as typeof globalThis & { Highlight?: new (...ranges: Range[]) => { ranges: Range[] } }).Highlight = class {
+    // lib.dom 已声明全局 Highlight/CSS，交叉断言会把属性类型并成 typeof Highlight & stub；经 unknown 双重断言用桩形状覆盖
+    ;(globalThis as unknown as { Highlight?: new (...ranges: Range[]) => { ranges: Range[] } }).Highlight = class {
       ranges: Range[]
 
       constructor(...ranges: Range[]) {
         this.ranges = ranges
       }
     }
-    ;(globalThis as typeof globalThis & { CSS?: { highlights?: Map<string, { ranges: Range[] }> } }).CSS = {
+    ;(globalThis as unknown as { CSS?: { highlights?: Map<string, { ranges: Range[] }> } }).CSS = {
       highlights,
     }
 

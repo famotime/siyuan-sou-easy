@@ -16,7 +16,7 @@ describe('jumpToMatchIndex store action', () => {
       { id: 'm5' } as any,
     ]
     searchReplaceState.currentIndex = 0
-    searchReplaceState.sourceMode = 'document'
+    searchReplaceState.sourceMode = 'editor'
   })
 
   it('jumps to valid 1-based index', () => {

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { it, expect } from 'vitest'
+import { it } from 'vitest'
 import { isRangeReplaceable } from '../src/features/search-replace/editor/replacement'
 import { locateRangeInSingleTextNode } from '../src/features/search-replace/editor/ranges'
 

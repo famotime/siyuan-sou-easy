@@ -5,7 +5,6 @@ import {
   cleanMarkdownFormatting,
   extractTableRowSnippet,
   findMatchesInBlock,
-  findMatchesInTableBlock,
   isTableSeparatorRow,
   parseTableRowsFromBlock,
 } from '@/features/search-replace/global/doc-aggregator'

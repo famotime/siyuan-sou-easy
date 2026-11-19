@@ -336,6 +336,7 @@ function createMatch(blockId: string, start: number, end: number) {
     end,
     id: `${blockId}:${start}:${end}`,
     matchedText: 'foo',
+    occ: 0,
     previewText: '[foo]',
     replaceable: true,
     rootId: 'root-1',

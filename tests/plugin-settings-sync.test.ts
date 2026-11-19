@@ -8,6 +8,10 @@ import {
   vi,
 } from 'vitest'
 import { adaptHotkey } from 'siyuan'
+import type { App } from 'siyuan'
+
+// siyuan 类型声明的 Plugin 构造需要 { app, name, i18n }；运行时 mock 无参构造会忽略该参数
+const pluginOptions = { app: {} as App, name: 'siyuan-sou-easy', i18n: {} }
 
 const applyPluginSettings = vi.fn()
 const loadSettings = vi.fn().mockResolvedValue({
@@ -62,7 +66,7 @@ describe('plugin settings sync', () => {
   it('syncs command hotkeys after saving settings', async () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
 
-    const plugin = new FriendlySearchReplacePlugin()
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
     plugin.i18n = {
       settingSaved: 'Saved',
     }
@@ -127,7 +131,7 @@ describe('plugin settings sync', () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
     const siyuan = await import('siyuan')
 
-    const plugin = new FriendlySearchReplacePlugin()
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
     plugin.i18n = {
       settingSaved: 'Saved',
     }
@@ -170,7 +174,7 @@ describe('plugin settings sync', () => {
       },
     } as any
 
-    const plugin = new FriendlySearchReplacePlugin()
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
     plugin.i18n = {
       settingSaved: 'Saved',
     }
@@ -190,9 +194,17 @@ describe('plugin settings sync', () => {
     const accepted = await (plugin as any).updateHotkeySetting('panelHotkey', 'Ctrl+Alt+F')
 
     expect(accepted).toBe(true)
-    expect(window.siyuan.config.keymap.plugin['siyuan-sou-easy'].togglePanel.custom).toBe('Ctrl+Alt+F')
+    // 全局 Window.siyuan 声明缺 config 字段，按上方写入的结构做局部窄化
+    const siyuanWindow = window.siyuan as typeof window.siyuan & {
+      config: {
+        keymap: {
+          plugin: Record<string, Record<string, { custom: string, default: string }>>
+        }
+      }
+    }
+    expect(siyuanWindow.config.keymap.plugin['siyuan-sou-easy'].togglePanel.custom).toBe('Ctrl+Alt+F')
     expect(siyuan.fetchSyncPost).toHaveBeenCalledWith('/api/setting/setKeymap', {
-      data: window.siyuan.config.keymap,
+      data: siyuanWindow.config.keymap,
     })
   })
 })

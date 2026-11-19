@@ -12,6 +12,13 @@ import { openTab } from 'siyuan'
 
 import { DEFAULT_SETTINGS, createSearchOptionsFromSettings } from '@/settings'
 import { setPluginInstance } from '@/plugin-instance'
+import type {
+  EditorContext,
+  SearchableBlock,
+  SearchMatch,
+  SearchOptions,
+  SelectionScope,
+} from '@/features/search-replace/types'
 
 const editorMocks = vi.hoisted(() => {
   const state = {
@@ -36,7 +43,7 @@ const editorMocks = vi.hoisted(() => {
     applyReplacementsToClone: vi.fn(),
     buildPreview: vi.fn((text: string, start: number, end: number) => `${text.slice(0, start)}[${text.slice(start, end)}]${text.slice(end)}`),
     clearSearchDecorations: vi.fn(),
-    collectSearchableBlocks: vi.fn(() => state.blocks),
+    collectSearchableBlocks: vi.fn((_context: EditorContext, _options?: SearchOptions) => state.blocks),
     collectSearchableBlocksFromDocumentContent: vi.fn((content: string, rootId: string) => {
       const container = document.createElement('div')
       container.innerHTML = content
@@ -57,7 +64,7 @@ const editorMocks = vi.hoisted(() => {
     getBlockElement: vi.fn(),
     getCurrentSelectionScope: vi.fn(() => new Map()),
     getCurrentSelectionText: vi.fn(() => ''),
-    isMatchVisible: vi.fn(() => true),
+    isMatchVisible: vi.fn((_context: EditorContext, _match?: SearchMatch | null) => true),
     getUniqueBlockElements: vi.fn((root: ParentNode) => Array.from(root.querySelectorAll<HTMLElement>('[data-node-id][data-type]'))),
     scrollMatchIntoView: vi.fn(),
     syncSearchDecorations: vi.fn(),
@@ -65,7 +72,7 @@ const editorMocks = vi.hoisted(() => {
 })
 
 const searchEngineMocks = vi.hoisted(() => ({
-  findMatches: vi.fn(() => ({
+  findMatches: vi.fn((_blocks: SearchableBlock[], _query: string, _options?: SearchOptions, _selectionScope?: SelectionScope) => ({
     error: '',
     matches: [
       {
@@ -106,7 +113,7 @@ const kernelMocks = vi.hoisted(() => ({
     eof: true,
   })),
   renderAttributeView: vi.fn(async () => null),
-  unfoldBlock: vi.fn(async () => null),
+  unfoldBlock: vi.fn(async (_id?: string) => null),
   updateDomBlock: vi.fn(async () => null),
 }))
 
@@ -699,6 +706,7 @@ describe('search store editor context fallback', () => {
           end: start + 3,
           id: `${block.blockId}:${start}:${start + 3}`,
           matchedText: 'foo',
+          occ: 0,
           previewText: `[foo]`,
           replaceable: true,
           rootId: block.rootId,
@@ -761,6 +769,7 @@ describe('search store editor context fallback', () => {
           end: start + query.length,
           id: `${block.blockId}:${start}:${start + query.length}`,
           matchedText: query,
+          occ: 0,
           previewText: `[${query}]`,
           replaceable: true,
           rootId: block.rootId,
@@ -1730,6 +1739,7 @@ describe('search store editor context fallback', () => {
             end: start + 3,
             id: `${block.blockId}:${start}:${start + 3}`,
             matchedText: 'foo',
+            occ: 0,
             previewText: '[foo]',
             replaceable: true,
             rootId: block.rootId,

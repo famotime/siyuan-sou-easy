@@ -1305,7 +1305,8 @@ function createMatch(): SearchMatch {
   }
 }
 
-function mockRangeRects(rect: DOMRectInit) {
+// fixture 同时提供 DOMRectInit（x/y/width/height）与 left/right/top/bottom 两种坐标，函数内部做归一化，故放宽为 Partial<DOMRect>
+function mockRangeRects(rect: Partial<DOMRect>) {
   const normalizedRect = {
     bottom: rect.bottom ?? ((rect.y ?? rect.top ?? 0) + (rect.height ?? 0)),
     height: rect.height ?? 0,

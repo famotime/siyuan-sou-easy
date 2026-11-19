@@ -17,6 +17,8 @@ describe('attribute view candidate policy helpers', () => {
       {
         avBlockId: 'av-1',
         avID: 'av-1',
+        // 补齐 AttributeViewCellCandidate 必填的 columnName（中性空串，不参与签名计算）
+        columnName: '',
         keyID: 'col-1',
         targetKind: 'cell',
         text: 'visible',
@@ -39,6 +41,7 @@ describe('attribute view candidate policy helpers', () => {
     const domCandidate = {
       avBlockId: 'av-1',
       avID: 'av-1',
+      columnName: '',
       itemID: 'item-1',
       keyID: 'col-1',
       rowID: 'item-1',
@@ -68,6 +71,7 @@ describe('attribute view candidate policy helpers', () => {
     const domCandidate = {
       avBlockId: 'av-1',
       avID: 'av-1',
+      columnName: '',
       columnIndex: 1,
       itemID: 'item-1',
       keyID: '__dom-col-1__',
@@ -78,6 +82,7 @@ describe('attribute view candidate policy helpers', () => {
     const renderedCandidate = {
       avBlockId: 'av-1',
       avID: 'av-1',
+      columnName: '',
       columnIndex: 1,
       itemID: 'item-1',
       keyID: 'col-sensor',

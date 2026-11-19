@@ -7,7 +7,10 @@ import {
   getBlockPlainText,
   isRangeReplaceable,
 } from '@/features/search-replace/editor'
-import type { EditorContext } from '@/features/search-replace/types'
+import type { EditorContext, SearchMatch } from '@/features/search-replace/types'
+
+// applyReplacementsToClone 的签名只消费 start/occ/matchedText；fixture 中的 end 仅描述完整匹配区间，运行时不读取
+type ReplacementFixture = Pick<SearchMatch, 'start' | 'occ' | 'matchedText'> & { end: number }
 
 function createBlockFromHtml(html: string) {
   const block = document.createElement('div')
@@ -26,7 +29,7 @@ describe('applyReplacementsToClone', () => {
         { end: 3, matchedText: 'foo', start: 0, occ: 0 },
         { end: 7, matchedText: 'foo', start: 4, occ: 1 },
         { end: 11, matchedText: 'foo', start: 8, occ: 2 },
-      ],
+      ] as ReplacementFixture[],
       'bar',
     )
 
@@ -43,7 +46,7 @@ describe('applyReplacementsToClone', () => {
         { end: 3, matchedText: 'FOO', start: 0, occ: 0 },
         { end: 7, matchedText: 'Foo', start: 4, occ: 0 },
         { end: 11, matchedText: 'foo', start: 8, occ: 0 },
-      ],
+      ] as ReplacementFixture[],
       'bar',
       { preserveCase: true },
     )
@@ -57,7 +60,7 @@ describe('applyReplacementsToClone', () => {
     const block = createBlockFromHtml('<div contenteditable="true">fo<strong>o</strong></div>')
     const outcome = applyReplacementsToClone(
       block,
-      [{ end: 3, matchedText: 'foo', start: 0, occ: 0 }],
+      [{ end: 3, matchedText: 'foo', start: 0, occ: 0 }] as ReplacementFixture[],
       'bar',
     )
 
@@ -85,7 +88,7 @@ describe('applyReplacementsToClone', () => {
     const block = getBlockElement(context, 'heading-1')
     const outcome = applyReplacementsToClone(
       block as HTMLElement,
-      [{ end: 4, matchedText: '安装', start: 2, occ: 0 }],
+      [{ end: 4, matchedText: '安装', start: 2, occ: 0 }] as ReplacementFixture[],
       '部署',
     )
 
@@ -98,6 +101,7 @@ describe('applyReplacementsToClone', () => {
   it('keeps readonly block text non-replaceable when no editable root exists', () => {
     const block = createBlockFromHtml('<div contenteditable="false">本馆创编学生国学丛书</div>')
 
-    expect(isRangeReplaceable(block, 6, 8)).toBe(false)
+    // 历史调用形状保留数字偏移实参，运行时行为与断言不变；现签名要求 string，故仅在类型层收窄
+    expect(isRangeReplaceable(block, 6 as unknown as string, 8)).toBe(false)
   })
 })

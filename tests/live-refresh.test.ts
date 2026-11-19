@@ -10,6 +10,12 @@ import {
 } from 'vitest'
 
 import { DEFAULT_SETTINGS, createSearchOptionsFromSettings } from '@/settings'
+import type {
+  SearchMatch,
+  SearchOptions,
+  SearchableBlock,
+  SelectionScope,
+} from '@/features/search-replace/types'
 
 const editorMocks = vi.hoisted(() => {
   const state = {
@@ -47,10 +53,13 @@ const editorMocks = vi.hoisted(() => {
 })
 
 const searchEngineMocks = vi.hoisted(() => ({
-  findMatches: vi.fn(() => ({
-    error: '',
-    matches: [],
-  })),
+  // 按 findMatches 真实签名补参（参数仅用于类型，不改变默认返回值），使后续 mockImplementation 可携带参数
+  findMatches: vi.fn(
+    (_blocks: SearchableBlock[], _query: string, _options: SearchOptions, _selectionScope: SelectionScope): { error: string, matches: SearchMatch[] } => ({
+      error: '',
+      matches: [],
+    }),
+  ),
 }))
 
 vi.mock('@/features/search-replace/editor', () => editorMocks)

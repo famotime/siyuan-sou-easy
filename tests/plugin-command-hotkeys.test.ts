@@ -7,6 +7,10 @@ import {
   it,
   vi,
 } from 'vitest'
+import type { App, IProtyle } from 'siyuan'
+
+// siyuan 类型声明的 Plugin 构造需要 { app, name, i18n }；运行时 mock 无参构造会忽略该参数
+const pluginOptions = { app: {} as App, name: 'siyuan-sou-easy', i18n: {} }
 
 const storeState = vi.hoisted(() => ({
   searchReplaceState: {
@@ -86,7 +90,7 @@ describe('plugin command hotkeys', () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
     const siyuan = await import('siyuan')
 
-    const plugin = new FriendlySearchReplacePlugin()
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
     plugin.i18n = {
       addTopBarIcon: 'Friendly Search Replace',
     }
@@ -114,7 +118,7 @@ describe('plugin command hotkeys', () => {
   it('registers an editor callback that opens the panel with the current protyle context', async () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
 
-    const plugin = new FriendlySearchReplacePlugin()
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
     plugin.i18n = {
       addTopBarIcon: 'Friendly Search Replace',
     }
@@ -129,7 +133,8 @@ describe('plugin command hotkeys', () => {
       element: document.createElement('div'),
     }
 
-    panelCommand?.editorCallback?.(protyle)
+    // 测试桩只包含 editorCallback 实际用到的字段，按真实 IProtyle 类型做局部断言
+    panelCommand?.editorCallback?.(protyle as unknown as IProtyle)
 
     expect(createEditorContextFromProtyleLike).toHaveBeenCalledWith(protyle)
     expect(onEditorContextChanged).toHaveBeenCalledWith(expect.objectContaining({
@@ -142,7 +147,7 @@ describe('plugin command hotkeys', () => {
   it('opens the panel from a saved hotkey even when command routing does not provide a context callback', async () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
 
-    const plugin = new FriendlySearchReplacePlugin()
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
     plugin.i18n = {
       addTopBarIcon: 'Friendly Search Replace',
     }
@@ -193,7 +198,7 @@ describe('plugin command hotkeys', () => {
       },
     } as any
 
-    const plugin = new FriendlySearchReplacePlugin()
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
     plugin.i18n = {
       addTopBarIcon: 'Friendly Search Replace',
       settingSaved: 'Saved',
@@ -231,7 +236,7 @@ describe('plugin command hotkeys', () => {
   it('keeps the panel open when the active mode hotkey is pressed again', async () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
 
-    const plugin = new FriendlySearchReplacePlugin()
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
     plugin.i18n = {
       addTopBarIcon: 'Friendly Search Replace',
     }
@@ -257,7 +262,7 @@ describe('plugin command hotkeys', () => {
   it('closes the panel from Escape even when focus stays outside the panel', async () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
 
-    const plugin = new FriendlySearchReplacePlugin()
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
     plugin.i18n = {
       addTopBarIcon: 'Friendly Search Replace',
     }
@@ -278,7 +283,7 @@ describe('plugin command hotkeys', () => {
   it('lets the hotkey capture input handle Escape without closing the panel', async () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
 
-    const plugin = new FriendlySearchReplacePlugin()
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
     plugin.i18n = {
       addTopBarIcon: 'Friendly Search Replace',
     }

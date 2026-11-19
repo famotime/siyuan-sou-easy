@@ -7,6 +7,10 @@ import {
   it,
   vi,
 } from 'vitest'
+import type { App } from 'siyuan'
+
+// siyuan 类型声明的 Plugin 构造需要 { app, name, i18n }；运行时 mock 无参构造会忽略该参数
+const pluginOptions = { app: {} as App, name: 'siyuan-sou-easy', i18n: {} }
 
 const loadSettings = vi.fn().mockResolvedValue({
   debugLog: false,
@@ -110,7 +114,7 @@ describe('plugin settings panel', () => {
     const addItemSpy = vi.spyOn(Setting.prototype, 'addItem')
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
 
-    const plugin = new FriendlySearchReplacePlugin()
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
     plugin.i18n = settingsI18n
     ;(plugin as any).settingsData = await loadSettings()
 
@@ -185,7 +189,7 @@ describe('plugin settings panel', () => {
     const addItemSpy = vi.spyOn(Setting.prototype, 'addItem')
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
 
-    const plugin = new FriendlySearchReplacePlugin()
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
     plugin.i18n = settingsI18n
     ;(plugin as any).settingsData = await loadSettings()
 
@@ -206,7 +210,7 @@ describe('plugin settings panel', () => {
     const addItemSpy = vi.spyOn(Setting.prototype, 'addItem')
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
 
-    const plugin = new FriendlySearchReplacePlugin()
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
     plugin.i18n = settingsI18n
     ;(plugin as any).settingsData = await loadSettings()
 
@@ -250,7 +254,7 @@ describe('plugin settings panel', () => {
       },
     } as any
 
-    const plugin = new FriendlySearchReplacePlugin()
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
     plugin.i18n = settingsI18n
     ;(plugin as any).settingsData = await loadSettings()
 
@@ -288,7 +292,7 @@ describe('plugin settings panel', () => {
       },
     } as any
 
-    const plugin = new FriendlySearchReplacePlugin()
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
     plugin.i18n = settingsI18n
     plugin.commands = [
       {
@@ -319,7 +323,7 @@ describe('plugin settings panel', () => {
     const addItemSpy = vi.spyOn(Setting.prototype, 'addItem')
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
 
-    const plugin = new FriendlySearchReplacePlugin()
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
     plugin.i18n = settingsI18n
     ;(plugin as any).settingsData = await loadSettings()
 
@@ -327,8 +331,8 @@ describe('plugin settings panel', () => {
 
     const items = addItemSpy.mock.calls.map(([item]) => item)
     const colorControl = items[0].createActionElement() as HTMLDivElement
-    const textInput = colorControl.querySelector('input[type="text"]')
-    const colorInput = colorControl.querySelector('input[type="color"]')
+    const textInput = colorControl.querySelector('input[type="text"]') as HTMLInputElement
+    const colorInput = colorControl.querySelector('input[type="color"]') as HTMLInputElement
     const resetButton = colorControl.querySelector('button')
 
     expect(textInput?.value).toBe('#ffc400')

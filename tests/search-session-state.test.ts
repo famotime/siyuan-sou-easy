@@ -37,6 +37,7 @@ describe('search session state helpers', () => {
   it('clears transient panel state when closing the panel', () => {
     const state = {
       busy: true,
+      documentReadonly: true,
       error: 'boom',
       minimapBlocks: [{ blockId: 'block-1' }],
       navigationHint: 'pending',

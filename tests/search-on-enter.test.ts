@@ -9,7 +9,7 @@ import {
   vi,
 } from 'vitest'
 
-import { DEFAULT_SETTINGS, createSearchOptionsFromSettings } from '@/settings'
+import { DEFAULT_SETTINGS } from '@/settings'
 
 const editorMocks = vi.hoisted(() => {
   const state = {

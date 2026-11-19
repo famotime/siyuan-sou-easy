@@ -17,7 +17,6 @@ import {
   closePanel,
   openPanel,
   resetSearchReplaceState,
-  searchReplaceState,
   toggleReplaceVisible,
   unbindPlugin,
 } from '@/features/search-replace/store'
@@ -63,7 +62,8 @@ describe('mobile UI simplified controls', () => {
       isInWindow: false,
       isLocal: true,
       isMobile: true,
-      platform: 'mobile',
+      // SyFrontendTypes 为全局环境枚举（仅作类型使用，运行时无此绑定），局部断言保持原字面量
+      platform: 'mobile' as SyFrontendTypes,
     })
 
     mountPanel()
@@ -96,7 +96,8 @@ describe('mobile UI simplified controls', () => {
       isInWindow: false,
       isLocal: true,
       isMobile: true,
-      platform: 'mobile',
+      // SyFrontendTypes 为全局环境枚举（仅作类型使用，运行时无此绑定），局部断言保持原字面量
+      platform: 'mobile' as SyFrontendTypes,
     })
 
     mountPanel()

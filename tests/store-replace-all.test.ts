@@ -187,7 +187,7 @@ describe('search store replaceAll', () => {
 
     editorMocks.getBlockElement.mockImplementation((_context, blockId: string) => {
       if (blockId === 'block-1' || blockId === 'block-2') {
-        return { dataset: { nodeId: blockId } } as HTMLElement
+        return { dataset: { nodeId: blockId } } as unknown as HTMLElement
       }
 
       return null
@@ -281,7 +281,7 @@ describe('search store replaceAll', () => {
           dataset: {
             nodeId: blockId,
           },
-        } as HTMLElement
+        } as unknown as HTMLElement
       }
 
       return null
@@ -333,7 +333,7 @@ describe('search store replaceAll', () => {
 
     editorMocks.getBlockElement.mockReturnValue({
       dataset: { nodeId: 'block-1' },
-    } as HTMLElement)
+    } as unknown as HTMLElement)
     editorMocks.applyReplacementsToClone.mockReturnValue({
       appliedCount: 1,
       clone: {
@@ -439,7 +439,7 @@ describe('search store replaceAll', () => {
       start: 0, occ: 0,
     }]
 
-    editorMocks.getBlockElement.mockReturnValue({ dataset: { nodeId: 'block-1' } } as HTMLElement)
+    editorMocks.getBlockElement.mockReturnValue({ dataset: { nodeId: 'block-1' } } as unknown as HTMLElement)
     let applyCalls = 0
     editorMocks.applyReplacementsToClone.mockImplementation(() => {
       applyCalls += 1
@@ -481,7 +481,7 @@ describe('search store replaceAll', () => {
       start: 0, occ: 0,
     }]
 
-    editorMocks.getBlockElement.mockReturnValue({ dataset: { nodeId: 'block-1' } } as HTMLElement)
+    editorMocks.getBlockElement.mockReturnValue({ dataset: { nodeId: 'block-1' } } as unknown as HTMLElement)
     editorMocks.applyReplacementsToClone.mockReturnValue({
       appliedCount: 1,
       clone: { outerHTML: '<div data-node-id="block-1">bar</div>' },
@@ -524,7 +524,7 @@ describe('search store replaceAll', () => {
       start: 0, occ: 0,
     }]
 
-    editorMocks.getBlockElement.mockReturnValue({ dataset: { nodeId: 'block-1' } } as HTMLElement)
+    editorMocks.getBlockElement.mockReturnValue({ dataset: { nodeId: 'block-1' } } as unknown as HTMLElement)
     editorMocks.applyReplacementsToClone.mockReturnValue({
       appliedCount: 1,
       clone: { outerHTML: '<div data-node-id="block-1">bar</div>' },

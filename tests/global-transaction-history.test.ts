@@ -8,8 +8,12 @@ import {
   revertTransaction,
   TRANSACTION_STORAGE,
   type ReplaceTransaction,
+  type ReplaceTransactionItem,
 } from '@/features/search-replace/global/transaction-history'
 import * as kernel from '@/features/search-replace/kernel'
+
+// originalContent 为 ReplaceTransactionItem 之外的遗留冗余字段（未被读取），用局部扩展类型保持 fixture 原样
+type TransactionItemFixture = ReplaceTransactionItem & { originalContent?: string }
 
 describe('transaction-history', () => {
   beforeEach(() => {
@@ -18,14 +22,15 @@ describe('transaction-history', () => {
   })
 
   it('records a new transaction and adds to history', async () => {
-    const tx = await recordTransaction('foo', 'bar', [
+    const items: TransactionItemFixture[] = [
       {
         blockId: 'b1',
         rootId: 'd1',
         originalContent: 'hello foo',
         newContent: 'hello bar',
       },
-    ])
+    ]
+    const tx = await recordTransaction('foo', 'bar', items)
 
     expect(tx.id).toBeDefined()
     expect(tx.query).toBe('foo')
@@ -41,7 +46,7 @@ describe('transaction-history', () => {
   it('reverts a recorded transaction successfully', async () => {
     const updateSpy = vi.spyOn(kernel, 'updateDomBlock').mockResolvedValue({} as any)
 
-    const tx = await recordTransaction('foo', 'bar', [
+    const items: TransactionItemFixture[] = [
       {
         blockId: 'b1',
         rootId: 'd1',
@@ -49,7 +54,8 @@ describe('transaction-history', () => {
         newContent: 'modified text',
         originalDom: '<div>original text</div>',
       },
-    ])
+    ]
+    const tx = await recordTransaction('foo', 'bar', items)
 
     const res = await revertTransaction(tx.id)
     expect(res.success).toBe(true)

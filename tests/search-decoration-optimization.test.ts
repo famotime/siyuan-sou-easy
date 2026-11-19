@@ -242,7 +242,6 @@ describe('search decoration optimization', () => {
       rootId: 'root-b',
       title: 'Doc B',
     }
-    const blockA = document.querySelector<HTMLElement>('[data-node-id="block-a"]')!
     const matchesA: SearchMatch[] = [
       createMatch({
         blockId: 'block-a',
@@ -341,7 +340,8 @@ function createMatch(overrides: Partial<SearchMatch>): SearchMatch {
 
 function mockCssHighlights() {
   const highlights = new Map<string, { ranges: Range[] }>()
-  ;(globalThis as typeof globalThis & {
+  // lib.dom 已声明全局 Highlight/CSS，交叉断言会把属性类型并成 typeof Highlight & stub；经 unknown 双重断言用桩形状覆盖
+  ;(globalThis as unknown as {
     Highlight?: new (...ranges: Range[]) => { ranges: Range[] }
   }).Highlight = class {
     ranges: Range[]
@@ -350,7 +350,7 @@ function mockCssHighlights() {
       this.ranges = ranges
     }
   }
-  ;(globalThis as typeof globalThis & {
+  ;(globalThis as unknown as {
     CSS?: { highlights?: Map<string, { ranges: Range[] }> }
   }).CSS = {
     highlights,

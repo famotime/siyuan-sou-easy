@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
 import { setPluginInstance } from '@/plugin-instance'
 import {
@@ -13,7 +13,7 @@ import {
 describe('dock manager visibility states', () => {
   let dockElement: HTMLElement
   let tabButton: HTMLElement
-  let clickSpy: ReturnType<typeof vi.fn>
+  let clickSpy: MockInstance
 
   beforeEach(() => {
     vi.clearAllMocks()

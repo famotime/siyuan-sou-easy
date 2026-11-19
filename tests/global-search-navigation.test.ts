@@ -2,7 +2,6 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  globalSearchState,
   navigateToGlobalMatch,
   scrollAndHighlightBlock,
 } from '@/features/search-replace/global/store'

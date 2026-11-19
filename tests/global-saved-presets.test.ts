@@ -24,6 +24,7 @@ describe('saved-presets', () => {
         useRegex: false,
         pinyin: false,
         fuzzy: false,
+        docOnly: false,
       },
       filters: {
         tags: ['工作'],
@@ -63,6 +64,7 @@ describe('saved-presets', () => {
         useRegex: false,
         pinyin: false,
         fuzzy: false,
+        docOnly: false,
       },
       filters: {},
     })
@@ -78,7 +80,8 @@ describe('saved-presets', () => {
   })
 
   it('loads presets from disk again after a failed persistence', async () => {
-    const saveData = vi.fn(async () => {
+    // 显式标注返回类型：恒抛出的 async 函数会被推断为 Promise<never>，导致 mockResolvedValue(null) 不兼容
+    const saveData = vi.fn(async (): Promise<null> => {
       throw new Error('disk full')
     })
     const loadData = vi.fn(async () => [
@@ -107,6 +110,7 @@ describe('saved-presets', () => {
         useRegex: false,
         pinyin: false,
         fuzzy: false,
+        docOnly: false,
       },
       filters: {},
     })

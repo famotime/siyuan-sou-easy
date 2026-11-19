@@ -56,15 +56,11 @@ describe('kernel-query SQL builder', () => {
 
   it('builds SQL with parsedQuery containing multiple positive terms and exclude terms', () => {
     const sql = buildGlobalSearchSql('', {}, {
+      // buildGlobalSearchSql 只消费 mustInclude/orGroups/exclude 三个字段
       parsedQuery: {
-        rawQuery: '思源 插件 -草稿',
-        textQuery: '思源 插件',
         mustInclude: ['思源', '插件'],
         orGroups: [],
         exclude: ['草稿'],
-        isMultiTermQuery: true,
-        tags: [],
-        types: [],
       },
     })
     expect(sql).toContain("content LIKE '%思源%'")
