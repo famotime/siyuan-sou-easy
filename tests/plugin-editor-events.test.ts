@@ -141,8 +141,10 @@ describe('plugin editor context events', () => {
 
     await plugin.uninstall?.()
 
-    expect(plugin.removeData).toHaveBeenCalledTimes(2)
+    expect(plugin.removeData).toHaveBeenCalledTimes(4)
     expect(plugin.removeData).toHaveBeenNthCalledWith(1, 'settings.json')
     expect(plugin.removeData).toHaveBeenNthCalledWith(2, 'ui-state.json')
+    expect(plugin.removeData).toHaveBeenNthCalledWith(3, 'saved_searches.json')
+    expect(plugin.removeData).toHaveBeenNthCalledWith(4, 'replace_transactions.json')
   })
 })
