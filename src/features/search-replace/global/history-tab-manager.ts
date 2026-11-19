@@ -13,6 +13,14 @@ const tabApps = new WeakMap<HTMLElement, VueApp>()
  * 初始化并挂载替换历史分屏页签视图
  */
 export function initReplaceHistoryTab(element: HTMLElement) {
+  // 同一 element 重放 init（分屏重载）时先卸载旧 app：
+  // 直接覆盖 WeakMap 条目会让旧 app 及其组件副作用永久泄漏
+  const previousApp = tabApps.get(element)
+  if (previousApp) {
+    previousApp.unmount()
+    tabApps.delete(element)
+  }
+
   const container = document.createElement('div')
   container.className = 'sfsr-history-tab-container'
   container.style.height = '100%'

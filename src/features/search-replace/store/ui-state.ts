@@ -8,6 +8,8 @@ export const UI_STATE_STORAGE = 'ui-state.json'
 
 let pluginInstance: Plugin | null = null
 let persistTimer = 0
+// 防抖窗口内挂起的最后一次位置/宽度变更，卸载时立即刷写，避免丢失
+let pendingUiState: { position: PanelPosition | null, width?: number | null } | null = null
 
 export function bindUiStatePlugin(plugin: Plugin) {
   pluginInstance = plugin
@@ -15,6 +17,13 @@ export function bindUiStatePlugin(plugin: Plugin) {
 
 export function unbindUiStatePlugin() {
   window.clearTimeout(persistTimer)
+  // 卸载前立即发起挂起变更的写入：saveData 是内核级请求，
+  // 发起后即使实例引用随后置空，写入仍会完成，最后一次拖动不会丢失
+  if (pendingUiState && pluginInstance) {
+    const { position, width } = pendingUiState
+    pendingUiState = null
+    void persistUiState(position, width)
+  }
   pluginInstance = null
 }
 
@@ -52,8 +61,10 @@ export function schedulePersistUiState(
     return
   }
 
+  pendingUiState = { position, width }
   window.clearTimeout(persistTimer)
   persistTimer = window.setTimeout(() => {
+    pendingUiState = null
     void persistUiState(position, width)
   }, delay)
 }

@@ -10,6 +10,7 @@ import {
   bindPlugin,
   closePanel,
   initializeUiState,
+  resetSearchReplaceState,
   unbindPlugin,
 } from '@/features/search-replace/store'
 
@@ -60,4 +61,6 @@ export function destroy() {
 
   hostElement = null
   setPluginInstance(null)
+  // 复位模块级会话状态：禁用→重新启用后不残留上一会话的查询词/替换词/匹配
+  resetSearchReplaceState()
 }

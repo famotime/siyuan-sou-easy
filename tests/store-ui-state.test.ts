@@ -304,6 +304,22 @@ describe('search store ui state', () => {
     expect(searchReplaceState.currentIndex).toBe(0)
     expect(searchReplaceState.options.matchCase).toBe(false)
   })
+
+  it('flushes pending panel position changes immediately when the plugin unbinds', async () => {
+    bindPlugin(plugin as any)
+    applyPluginSettings({
+      ...DEFAULT_SETTINGS,
+      rememberPanelPosition: true,
+    })
+
+    setPanelPosition({ left: 88, top: 42 })
+    // 180ms 防抖窗口内卸载：挂起变更立即刷写，最后一次拖动不丢失
+    unbindPlugin()
+
+    expect(plugin.saveData).toHaveBeenCalledWith('ui-state.json', {
+      panelPosition: { left: 88, top: 42 },
+    })
+  })
 })
 
 function resetState() {

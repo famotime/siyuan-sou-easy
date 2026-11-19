@@ -14,6 +14,7 @@ const unmount = vi.fn()
 const bindPlugin = vi.fn()
 const closePanel = vi.fn()
 const initializeUiState = vi.fn(async () => undefined)
+const resetSearchReplaceState = vi.fn()
 const unbindPlugin = vi.fn()
 
 vi.mock('vue', () => ({
@@ -31,6 +32,7 @@ vi.mock('@/features/search-replace/store', () => ({
   bindPlugin,
   closePanel,
   initializeUiState,
+  resetSearchReplaceState,
   unbindPlugin,
 }))
 
@@ -42,6 +44,7 @@ describe('plugin host layering', () => {
     bindPlugin.mockClear()
     closePanel.mockClear()
     initializeUiState.mockClear()
+    resetSearchReplaceState.mockClear()
     unbindPlugin.mockClear()
   })
 
@@ -76,5 +79,15 @@ describe('plugin host layering', () => {
     const host = document.getElementById('siyuan-friendly-search-replace')
 
     expect(host?.style.zIndex).toBe('1')
+  })
+
+  it('resets the module session state when the host is destroyed', async () => {
+    const { init, destroy } = await import('@/main')
+    await init({} as any)
+
+    destroy()
+
+    // 卸载路径复位模块级会话状态，禁用→重新启用不残留上一会话的查询词
+    expect(resetSearchReplaceState).toHaveBeenCalledTimes(1)
   })
 })

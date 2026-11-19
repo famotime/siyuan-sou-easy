@@ -71,6 +71,8 @@ import {
   initReplaceHistoryTab,
 } from '@/features/search-replace/global/history-tab-manager'
 import { UI_STATE_STORAGE } from '@/features/search-replace/store/ui-state'
+import { PRESETS_STORAGE } from '@/features/search-replace/global/saved-presets'
+import { TRANSACTION_STORAGE } from '@/features/search-replace/global/transaction-history'
 import { createEditorContextFromProtyleLike } from '@/features/search-replace/editor'
 import { setKeymap } from '@/features/search-replace/kernel'
 import { executeGlobalBlockQuery } from '@/features/search-replace/global/kernel-query'
@@ -199,9 +201,11 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     this.isElectron = environment.isElectron
 
     this.settingsData = await loadSettings(this)
-    applyPluginSettings(this.settingsData)
-
+    // 先 init（内部完成 bindUiStatePlugin）再应用设置：
+    // 否则 applyPluginSettings 中 rememberPanelPosition=false 的清盘写入
+    // 会因实例未绑定而被静默丢弃
     await init(this)
+    applyPluginSettings(this.settingsData)
 
     this.addIcons(SEARCH_REPLACE_TOP_BAR_ICON)
 
@@ -300,6 +304,8 @@ export default class FriendlySearchReplacePlugin extends Plugin {
   async uninstall() {
     await this.removeData(SETTINGS_STORAGE)
     await this.removeData(UI_STATE_STORAGE)
+    await this.removeData(PRESETS_STORAGE)
+    await this.removeData(TRANSACTION_STORAGE)
   }
 
   openSetting() {
