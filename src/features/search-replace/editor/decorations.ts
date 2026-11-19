@@ -4,6 +4,7 @@ import type {
   SearchDecorationOptions,
   SearchMatch,
 } from '../types'
+import type { EditorBlockRoots } from './blocks'
 import {
   clearCanvasSearchDecorations,
   isCanvasMatchVisible,
@@ -17,7 +18,14 @@ import {
   debugRect,
 } from '../debug'
 import { findAttributeViewCellElements } from './attribute-view'
-import { getBlockElement } from './blocks'
+import {
+  createViewportRect,
+  hasUsableRect,
+} from './block-selection'
+import {
+  getBlockElement,
+  resolveEditorBlockRoots,
+} from './blocks'
 import {
   ATTRIBUTE_VIEW_CELL_CURRENT_CLASS,
   ATTRIBUTE_VIEW_CELL_MATCH_CLASS,
@@ -38,7 +46,7 @@ import {
   resolveRectCenterDelta,
 } from './scroll-geometry'
 import {
-  getTableRowElements,
+  findTableCellElementByMetadata,
   resolveTableRowElementFromCell,
 } from './table-dom'
 
@@ -94,10 +102,13 @@ export function syncSearchDecorations(
 
   clearSearchDecorations(context)
 
-  const textHighlightState = applyMatchTextHighlights(context, matches, options)
+  // 一次装饰同步周期内 DOM 状态不变：滚动容器与搜索根只解析一次，循环体内复用
+  const roots = resolveEditorBlockRoots(context)
+
+  const textHighlightState = applyMatchTextHighlights(context, matches, options, roots)
   const textHighlightedMatchIds = textHighlightState.highlightedMatchIds
-  const tableCellHighlightedMatchIds = applyTableCellHighlights(context, matches, currentMatch, textHighlightedMatchIds)
-  applyAttributeViewCellHighlights(context, matches, currentMatch)
+  const tableCellHighlightedMatchIds = applyTableCellHighlights(context, matches, currentMatch, textHighlightedMatchIds, roots)
+  applyAttributeViewCellHighlights(context, matches, currentMatch, roots)
   const matchedBlockIds = new Set(
     matches
       .filter((match) => {
@@ -111,18 +122,18 @@ export function syncSearchDecorations(
   )
 
   matchedBlockIds.forEach((blockId) => {
-    getBlockElement(context, blockId)?.classList.add(MATCH_CLASS)
+    getBlockElement(context, blockId, roots)?.classList.add(MATCH_CLASS)
   })
 
   if (currentMatch) {
-    const currentTextHighlightApplied = applyCurrentTextHighlight(context, currentMatch, textHighlightState.rangesByMatchId)
+    const currentTextHighlightApplied = applyCurrentTextHighlight(context, currentMatch, textHighlightState.rangesByMatchId, roots)
     // 表格匹配以文本强调作为"当前"标识（不再叠加块级/单元格 class）；
     // 当文本强调注册意外失败时回退为块级标识，避免"当前"提示完全丢失。
     const usesTableTextHighlight = currentMatch.blockType === TABLE_NODE_TYPE
       && textHighlightedMatchIds.has(currentMatch.id)
       && currentTextHighlightApplied
     if (!usesTableTextHighlight && !tableCellHighlightedMatchIds.has(currentMatch.id)) {
-      getBlockElement(context, currentMatch.blockId)?.classList.add(CURRENT_MATCH_CLASS)
+      getBlockElement(context, currentMatch.blockId, roots)?.classList.add(CURRENT_MATCH_CLASS)
     }
   }
 }
@@ -297,17 +308,7 @@ function isScrollTargetVisibleWithinContainers(
     return false
   }
 
-  return isRectVisibleWithinBoundary(elementRect, {
-    bottom: window.innerHeight,
-    height: window.innerHeight,
-    left: 0,
-    right: window.innerWidth,
-    top: 0,
-    width: window.innerWidth,
-    x: 0,
-    y: 0,
-    toJSON: () => ({}),
-  }, axis)
+  return isRectVisibleWithinBoundary(elementRect, createViewportRect(), axis)
 }
 
 function safeScrollIntoView(
@@ -409,18 +410,6 @@ function getRangeRect(range: Range) {
     ? range.getBoundingClientRect()
     : null
   return hasUsableRect(boundingRect) ? boundingRect : null
-}
-
-function hasUsableRect(rect: DOMRect | DOMRectReadOnly | null | undefined) {
-  if (!rect) {
-    return false
-  }
-
-  return Number.isFinite(rect.top)
-    && Number.isFinite(rect.bottom)
-    && Number.isFinite(rect.left)
-    && Number.isFinite(rect.right)
-    && (rect.width > 0 || rect.height > 0)
 }
 
 function isRenderableScrollElement(element: HTMLElement | null | undefined) {
@@ -533,6 +522,7 @@ function applyTableCellHighlights(
   matches: SearchMatch[],
   currentMatch: SearchMatch | null,
   textHighlightedMatchIds: Set<string>,
+  roots?: EditorBlockRoots,
 ) {
   const highlightedMatchIds = new Set<string>()
 
@@ -545,7 +535,7 @@ function applyTableCellHighlights(
       return
     }
 
-    const cell = findTableCellElement(context, match)
+    const cell = findTableCellElement(context, match, roots)
     if (!cell) {
       return
     }
@@ -564,8 +554,9 @@ function applyCurrentTextHighlight(
   context: EditorContext,
   match: SearchMatch,
   cachedRangesByMatchId?: Map<string, Range>,
+  roots?: EditorBlockRoots,
 ) {
-  const range = getReusableMatchRange(context, match, cachedRangesByMatchId)
+  const range = getReusableMatchRange(context, match, cachedRangesByMatchId, roots)
   if (!range) {
     return false
   }
@@ -608,6 +599,7 @@ function applyMatchTextHighlights(
   context: EditorContext,
   matches: SearchMatch[],
   options: SearchDecorationOptions,
+  roots?: EditorBlockRoots,
 ) {
   const registry = getHighlightRegistry()
   const HighlightConstructor = getHighlightConstructor()
@@ -618,7 +610,7 @@ function applyMatchTextHighlights(
     }
   }
 
-  const cacheEntry = resolveTextHighlightCache(context, matches, options)
+  const cacheEntry = resolveTextHighlightCache(context, matches, options, roots)
 
   if (cacheEntry.ranges.length > 0) {
     registry.set(MATCH_TEXT_HIGHLIGHT_NAME, new HighlightConstructor(...cacheEntry.ranges))
@@ -634,9 +626,10 @@ function applyAttributeViewCellHighlights(
   context: EditorContext,
   matches: SearchMatch[],
   currentMatch: SearchMatch | null,
+  roots?: EditorBlockRoots,
 ) {
   matches.forEach((match) => {
-    const cells = findAttributeViewCellElements(context, match)
+    const cells = findAttributeViewCellElements(context, match, roots)
     if (!cells.length) {
       return
     }
@@ -668,17 +661,18 @@ function resolveMatchVerticalTargetElement(context: EditorContext, match: Search
   return findTableRowElement(context, match) ?? fallbackElement
 }
 
-function findTableCellElement(context: EditorContext, match: SearchMatch) {
+function findTableCellElement(context: EditorContext, match: SearchMatch, roots?: EditorBlockRoots) {
   if (match.blockType !== TABLE_NODE_TYPE) {
     return null
   }
 
-  const directCell = findTableCellElementByMetadata(context, match)
+  const tableBlock = getBlockElement(context, match.blockId, roots)
+  const directCell = tableBlock ? findTableCellElementByMetadata(tableBlock, match) : null
   if (directCell) {
     return directCell
   }
 
-  const range = locateTextRange(context, match)
+  const range = locateTextRange(context, match, roots)
   if (!range) {
     return null
   }
@@ -692,70 +686,23 @@ function findTableCellElement(context: EditorContext, match: SearchMatch) {
   return endCell
 }
 
-function findTableRowElement(context: EditorContext, match: SearchMatch) {
-  const directCell = findTableCellElementByMetadata(context, match)
+function findTableRowElement(context: EditorContext, match: SearchMatch, roots?: EditorBlockRoots) {
+  const tableBlock = getBlockElement(context, match.blockId, roots)
+  const directCell = tableBlock ? findTableCellElementByMetadata(tableBlock, match) : null
   if (directCell) {
-    const tableBlock = getBlockElement(context, match.blockId)
     return (tableBlock && resolveTableRowElementFromCell(directCell, tableBlock))
       ?? directCell.closest<HTMLElement>('.table__row')
       ?? directCell
   }
 
-  const fallbackCell = findTableCellElement(context, match)
+  const fallbackCell = findTableCellElement(context, match, roots)
   if (!fallbackCell) {
     return null
   }
 
-  const tableBlock = getBlockElement(context, match.blockId)
   return (tableBlock && resolveTableRowElementFromCell(fallbackCell, tableBlock))
     ?? fallbackCell.closest<HTMLElement>('.table__row')
     ?? fallbackCell
-}
-
-function findTableCellElementByMetadata(context: EditorContext, match: SearchMatch) {
-  const tableBlock = getBlockElement(context, match.blockId)
-  if (!tableBlock) {
-    return null
-  }
-
-  const cellId = match.table?.cellId?.trim()
-  if (cellId) {
-    const exactCell = tableBlock.querySelector<HTMLElement>(`[data-node-id="${cellId}"][data-type="NodeTableCell"]`)
-      ?? tableBlock.querySelector<HTMLElement>(`[data-node-id="${cellId}"].table__cell`)
-    if (exactCell) {
-      return exactCell
-    }
-  }
-
-  const rowIndex = match.table?.rowIndex
-  const columnIndex = match.table?.columnIndex
-  if (typeof rowIndex === 'number' && typeof columnIndex === 'number') {
-    const rows = getTableRowElements(tableBlock)
-    const targetRow = rows[rowIndex]
-    if (targetRow) {
-      const rowCells = Array.from(targetRow.children)
-        .filter((child): child is HTMLElement => child instanceof HTMLElement)
-        .filter((child) => child.matches('[data-type="NodeTableCell"], .table__cell, td, th'))
-
-      if (rowCells[columnIndex]) {
-        return rowCells[columnIndex]
-      }
-    }
-  }
-
-  // 增强回退：如果由于合并单元格或行结构不一致未能按索引定位，则在表格中寻找包含 matchedText 的单元格
-  if (match.matchedText) {
-    const allCells = Array.from(
-      tableBlock.querySelectorAll<HTMLElement>('[data-type="NodeTableCell"], .table__cell, td, th'),
-    )
-    const needle = match.matchedText.toLowerCase()
-    const matchingCell = allCells.find((cell) => cell.textContent?.toLowerCase().includes(needle))
-    if (matchingCell) {
-      return matchingCell
-    }
-  }
-
-  return null
 }
 
 function resolveNodeElement(node: Node | null) {
@@ -770,6 +717,7 @@ function resolveTextHighlightCache(
   context: EditorContext,
   matches: SearchMatch[],
   options: SearchDecorationOptions,
+  roots?: EditorBlockRoots,
 ) {
   const optionsKey = buildTextHighlightOptionsKey(options)
   if (
@@ -791,7 +739,7 @@ function resolveTextHighlightCache(
       return
     }
 
-    const range = locateTextRange(context, match)
+    const range = locateTextRange(context, match, roots)
     if (!range || !isReusableRange(context, range)) {
       return
     }
@@ -841,13 +789,14 @@ function getReusableMatchRange(
   context: EditorContext,
   match: SearchMatch,
   cachedRangesByMatchId?: Map<string, Range>,
+  roots?: EditorBlockRoots,
 ) {
   const cachedRange = cachedRangesByMatchId?.get(match.id)
   if (cachedRange && isReusableRange(context, cachedRange)) {
     return cachedRange
   }
 
-  const range = locateTextRange(context, match)
+  const range = locateTextRange(context, match, roots)
   return isReusableRange(context, range) ? range : null
 }
 

@@ -2,12 +2,16 @@ import type {
   EditorContext,
   SearchMatch,
 } from '../types'
+import type { EditorBlockRoots } from './blocks'
 import { findAttributeViewCellElements } from './attribute-view'
 import {
+
   getBlockElement,
   getOwnedTextNodes,
   getSearchTextNodes,
 } from './blocks'
+import { findTableCellElementByMetadata } from './table-dom'
+import { collectVisibleTextNodes } from './text-nodes'
 
 interface TextRangeLocation {
   node: Text
@@ -20,19 +24,19 @@ interface TextPoint {
   offset: number
 }
 
-export function locateTextRange(context: EditorContext, match: SearchMatch) {
+export function locateTextRange(context: EditorContext, match: SearchMatch, roots?: EditorBlockRoots) {
   if (match.sourceKind === 'attribute-view') {
-    return locateAttributeViewTextRange(context, match)
+    return locateAttributeViewTextRange(context, match, roots)
   }
 
-  const blockElement = getBlockElement(context, match.blockId)
+  const blockElement = getBlockElement(context, match.blockId, roots)
   if (!blockElement) {
     return null
   }
 
   // 表格块优先尝试单元格级精准 Range 定位
   if (match.blockType === 'NodeTable' || match.table) {
-    const tableRange = locateTableTextRange(context, match)
+    const tableRange = locateTableTextRange(context, match, roots)
     if (tableRange) {
       return tableRange
     }
@@ -76,8 +80,8 @@ export function locateRangeInSingleTextNode(blockElement: HTMLElement, matchedTe
   }
 }
 
-function locateAttributeViewTextRange(context: EditorContext, match: SearchMatch) {
-  const cells = findAttributeViewCellElements(context, match)
+function locateAttributeViewTextRange(context: EditorContext, match: SearchMatch, roots?: EditorBlockRoots) {
+  const cells = findAttributeViewCellElements(context, match, roots)
   for (const cell of cells) {
     const range = locateTextRangeInContainer(cell, match.matchedText, match.occ)
     if (range) {
@@ -88,13 +92,13 @@ function locateAttributeViewTextRange(context: EditorContext, match: SearchMatch
   return null
 }
 
-function locateTableTextRange(context: EditorContext, match: SearchMatch) {
-  const cell = findTableCellElement(context, match)
+function locateTableTextRange(context: EditorContext, match: SearchMatch, roots?: EditorBlockRoots) {
+  const cell = findTableCellElement(context, match, roots)
   if (!cell) {
     return null
   }
 
-  const cellTextNodes = collectDescendantTextNodes(cell)
+  const cellTextNodes = collectVisibleTextNodes(cell)
   if (!cellTextNodes.length) {
     return null
   }
@@ -172,7 +176,7 @@ function locateTextPoint(textNodes: Text[], targetOffset: number): TextPoint | n
 }
 
 function locateTextRangeInContainer(container: HTMLElement, matchedText: string, occ: number) {
-  const textNodes = collectDescendantTextNodes(container)
+  const textNodes = collectVisibleTextNodes(container)
   return locateTextRangeInTextNodes(textNodes, matchedText, occ)
 }
 
@@ -203,32 +207,6 @@ function createRangeFromOffsets(textNodes: Text[], startOffset: number, endOffse
   range.setStart(startPoint.node, startPoint.offset)
   range.setEnd(endPoint.node, endPoint.offset)
   return range
-}
-
-function collectDescendantTextNodes(container: HTMLElement) {
-  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
-    acceptNode(node) {
-      if (!(node instanceof Text) || !node.nodeValue?.trim()) {
-        return NodeFilter.FILTER_REJECT
-      }
-
-      const parentElement = node.parentElement
-      if (!parentElement || parentElement.closest('.protyle-attr, .fn__none, svg, style, script')) {
-        return NodeFilter.FILTER_REJECT
-      }
-
-      return NodeFilter.FILTER_ACCEPT
-    },
-  })
-
-  const textNodes: Text[] = []
-  let currentNode = walker.nextNode()
-  while (currentNode) {
-    textNodes.push(currentNode as Text)
-    currentNode = walker.nextNode()
-  }
-
-  return textNodes
 }
 
 function resolveMatchStart(text: string, matchedText: string, occ: number) {
@@ -275,62 +253,11 @@ function resolveMatchStart(text: string, matchedText: string, occ: number) {
   return bestIdx
 }
 
-function findTableCellElement(context: EditorContext, match: SearchMatch) {
-  const tableBlock = getBlockElement(context, match.blockId)
+function findTableCellElement(context: EditorContext, match: SearchMatch, roots?: EditorBlockRoots) {
+  const tableBlock = getBlockElement(context, match.blockId, roots)
   if (!tableBlock) {
     return null
   }
 
-  const cellId = match.table?.cellId?.trim()
-  if (cellId) {
-    const exactCell = tableBlock.querySelector<HTMLElement>(`[data-node-id="${cellId}"][data-type="NodeTableCell"]`)
-      ?? tableBlock.querySelector<HTMLElement>(`[data-node-id="${cellId}"].table__cell`)
-    if (exactCell) {
-      return exactCell
-    }
-  }
-
-  const rowIndex = match.table?.rowIndex
-  const columnIndex = match.table?.columnIndex
-  if (typeof rowIndex === 'number' && typeof columnIndex === 'number') {
-    const rows = getTableRowElements(tableBlock)
-    const targetRow = rows[rowIndex]
-    if (targetRow) {
-      const rowCells = Array.from(targetRow.children)
-        .filter((child): child is HTMLElement => child instanceof HTMLElement)
-        .filter((child) => child.matches('[data-type="NodeTableCell"], .table__cell, td, th'))
-
-      if (rowCells[columnIndex]) {
-        return rowCells[columnIndex]
-      }
-    }
-  }
-
-  // 增强回退：如果由于合并单元格或行结构不一致未能按索引定位，则在表格中寻找包含 matchedText 的单元格
-  if (match.matchedText) {
-    const allCells = Array.from(
-      tableBlock.querySelectorAll<HTMLElement>('[data-type="NodeTableCell"], .table__cell, td, th'),
-    )
-    const needle = match.matchedText.toLowerCase()
-    const matchingCell = allCells.find((cell) => cell.textContent?.toLowerCase().includes(needle))
-    if (matchingCell) {
-      return matchingCell
-    }
-  }
-
-  return null
-}
-
-function getTableRowElements(tableBlock: HTMLElement) {
-  const explicitRows = Array.from(tableBlock.querySelectorAll<HTMLElement>('.table__row'))
-  if (explicitRows.length) {
-    return explicitRows
-  }
-
-  const nativeRows = Array.from(tableBlock.querySelectorAll<HTMLElement>('tr'))
-  if (nativeRows.length) {
-    return nativeRows
-  }
-
-  return []
+  return findTableCellElementByMetadata(tableBlock, match)
 }

@@ -23,15 +23,34 @@ import {
   getTableRowCells,
   getTableRowElements,
 } from './table-dom'
+import { collectVisibleTextNodes } from './text-nodes'
+
+/**
+ * 一次编辑器块定位周期内复用的根容器：滚动容器 + 搜索根。
+ * 装饰同步等循环场景应解析一次后透传，避免逐块/逐匹配重复解析 DOM。
+ */
+export interface EditorBlockRoots {
+  scrollContainer: HTMLElement | null
+  searchRoot: HTMLElement
+}
+
+export function resolveEditorBlockRoots(context: EditorContext): EditorBlockRoots {
+  const scrollContainer = resolveEditorScrollContainer(context)
+  return {
+    scrollContainer,
+    searchRoot: resolveEditorSearchRoot(context, scrollContainer),
+  }
+}
 
 export function collectSearchableBlocks(context: EditorContext, options: SearchOptions): SearchableBlock[] {
   const searchRoot = resolveEditorSearchRoot(context)
   return collectSearchableBlocksFromRoot(searchRoot, context.rootId, options)
 }
 
-export function getBlockElement(context: EditorContext, blockId: string) {
-  const scrollContainer = resolveEditorScrollContainer(context)
-  const preferredSearchRoot = resolveEditorSearchRoot(context)
+export function getBlockElement(context: EditorContext, blockId: string, roots?: EditorBlockRoots) {
+  const resolvedRoots = roots ?? resolveEditorBlockRoots(context)
+  const scrollContainer = resolvedRoots.scrollContainer
+  const preferredSearchRoot = resolvedRoots.searchRoot
   const primaryCandidates = Array.from(
     preferredSearchRoot.querySelectorAll<HTMLElement>(`[data-node-id="${blockId}"][data-type]`),
   )
@@ -235,29 +254,9 @@ function getTableCellPlainText(cell: HTMLElement) {
     return editableText
   }
 
-  const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT, {
-    acceptNode(node) {
-      if (!(node instanceof Text) || !node.nodeValue?.trim()) {
-        return NodeFilter.FILTER_REJECT
-      }
-
-      const parentElement = node.parentElement
-      if (!parentElement || parentElement.closest('.protyle-attr, .fn__none, svg, style, script')) {
-        return NodeFilter.FILTER_REJECT
-      }
-
-      return NodeFilter.FILTER_ACCEPT
-    },
-  })
-
-  const textParts: string[] = []
-  let currentNode = walker.nextNode()
-  while (currentNode) {
-    textParts.push((currentNode as Text).nodeValue ?? '')
-    currentNode = walker.nextNode()
-  }
-
-  return textParts.join('')
+  return collectVisibleTextNodes(cell)
+    .map((node) => node.nodeValue ?? '')
+    .join('')
 }
 
 export function getOwnedTextNodes(blockElement: HTMLElement) {

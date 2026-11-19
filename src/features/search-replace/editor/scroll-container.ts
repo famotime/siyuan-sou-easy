@@ -3,6 +3,11 @@ import {
   debugElement,
   debugLogLazy,
 } from '../debug'
+import {
+  createViewportRect,
+  hasUsableRect,
+  resolveRectCenterDistance,
+} from './block-selection'
 
 export function resolveEditorScrollContainer(context: EditorContext) {
   const protyleContentCandidates = Array.from(
@@ -92,17 +97,7 @@ function pickPreferredScrollContainer(candidates: HTMLElement[]) {
     return null
   }
 
-  const viewport = {
-    bottom: window.innerHeight,
-    height: window.innerHeight,
-    left: 0,
-    right: window.innerWidth,
-    top: 0,
-    width: window.innerWidth,
-    x: 0,
-    y: 0,
-    toJSON: () => ({}),
-  }
+  const viewport = createViewportRect()
 
   return usableCandidates
     .map((element) => {
@@ -135,32 +130,4 @@ function pickPreferredScrollContainer(candidates: HTMLElement[]) {
       return 0
     })[0]
     ?.element ?? null
-}
-
-function resolveRectCenterDistance(
-  rect: DOMRect | DOMRectReadOnly,
-  viewport: DOMRect | DOMRectReadOnly,
-) {
-  if (!hasUsableRect(rect)) {
-    return Number.POSITIVE_INFINITY
-  }
-
-  const rectCenterY = (rect.top + rect.bottom) / 2
-  const rectCenterX = (rect.left + rect.right) / 2
-  const viewportCenterY = (viewport.top + viewport.bottom) / 2
-  const viewportCenterX = (viewport.left + viewport.right) / 2
-
-  return Math.abs(rectCenterY - viewportCenterY) + Math.abs(rectCenterX - viewportCenterX)
-}
-
-function hasUsableRect(rect: DOMRect | DOMRectReadOnly | null | undefined) {
-  if (!rect) {
-    return false
-  }
-
-  return Number.isFinite(rect.top)
-    && Number.isFinite(rect.bottom)
-    && Number.isFinite(rect.left)
-    && Number.isFinite(rect.right)
-    && (rect.width > 0 || rect.height > 0)
 }

@@ -2,14 +2,19 @@ import type {
   EditorContext,
   SearchMatch,
 } from '../types'
-import { getBlockElement } from './blocks'
+import type { EditorBlockRoots } from './blocks'
+import {
 
-export function findAttributeViewCellElements(context: EditorContext, match: SearchMatch) {
+  getBlockElement,
+} from './blocks'
+import { collectVisibleTextNodes } from './text-nodes'
+
+export function findAttributeViewCellElements(context: EditorContext, match: SearchMatch, roots?: EditorBlockRoots) {
   if (match.sourceKind !== 'attribute-view' || !match.attributeView) {
     return []
   }
 
-  const blockElement = getBlockElement(context, match.attributeView.avBlockId)
+  const blockElement = getBlockElement(context, match.attributeView.avBlockId, roots)
   if (!blockElement) {
     return []
   }
@@ -178,29 +183,9 @@ function cellContainsMatchedText(cell: HTMLElement, matchedText: string) {
 }
 
 function getCellTextContent(cell: HTMLElement) {
-  const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT, {
-    acceptNode(node) {
-      if (!(node instanceof Text) || !node.nodeValue?.trim()) {
-        return NodeFilter.FILTER_REJECT
-      }
-
-      const parentElement = node.parentElement
-      if (!parentElement || parentElement.closest('.protyle-attr, .fn__none, svg, style, script')) {
-        return NodeFilter.FILTER_REJECT
-      }
-
-      return NodeFilter.FILTER_ACCEPT
-    },
-  })
-
-  const parts: string[] = []
-  let currentNode = walker.nextNode()
-  while (currentNode) {
-    parts.push((currentNode as Text).nodeValue ?? '')
-    currentNode = walker.nextNode()
-  }
-
-  return parts.join('')
+  return collectVisibleTextNodes(cell)
+    .map((node) => node.nodeValue ?? '')
+    .join('')
 }
 
 function normalizeText(value: string) {

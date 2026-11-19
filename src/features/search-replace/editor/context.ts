@@ -10,6 +10,7 @@ import {
   debugElement,
   debugLogLazy,
 } from '../debug'
+import { hasUsableRect } from './block-selection'
 
 export function getActiveEditorContext(): EditorContext | null {
   const canvasContext = getActiveCanvasSearchContext()
@@ -261,16 +262,4 @@ function debugRectSummary(element: HTMLElement) {
     right: rect.right,
     top: rect.top,
   }
-}
-
-function hasUsableRect(rect: DOMRect | DOMRectReadOnly | null | undefined) {
-  if (!rect) {
-    return false
-  }
-
-  return Number.isFinite(rect.top)
-    && Number.isFinite(rect.bottom)
-    && Number.isFinite(rect.left)
-    && Number.isFinite(rect.right)
-    && (rect.width > 0 || rect.height > 0)
 }
