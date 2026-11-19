@@ -11,8 +11,6 @@ import {
   findAllPinyinMatches,
 } from './pinyin-match'
 
-const PUNCTUATION_REGEX = /[。！？!?；;\n]/
-
 export interface AggregateBlocksOptions {
   matchCase?: boolean
   wholeWord?: boolean

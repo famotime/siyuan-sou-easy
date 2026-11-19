@@ -37,7 +37,7 @@ export async function resolveAttributeViewSearchCandidates({
     viewID ? renderAttributeView(avID, viewID) : renderAttributeView(avID),
     getAttributeViewKeysByAvID(avID),
   ])
-  const columnIndexByKeyId = new Map(
+  const columnIndexByKeyId = new Map<string, number>(
     resolveAttributeViewColumns(renderedAttributeView)
       .map((column: any, index: number) => [String(column?.id ?? ''), index] as const)
       .filter(([id]) => Boolean(id)),

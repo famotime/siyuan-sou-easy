@@ -13,7 +13,7 @@ export interface BuildGlobalSearchSqlOptions {
   offset?: number
   useRegex?: boolean
   docOnly?: boolean
-  parsedQuery?: ParsedGlobalQuery
+  parsedQuery?: Pick<ParsedGlobalQuery, 'mustInclude' | 'orGroups' | 'exclude'>
 }
 
 /**
@@ -78,7 +78,7 @@ export function buildGlobalSearchSql(
 
   // 标签过滤
   if (filters.tags && filters.tags.length > 0) {
-    const tagConditions = filters.tags.map(t => `tag LIKE '%#${escapeSqlString(t)}%' OR tag LIKE '%${escapeSqlString(t)}%'`)
+    const tagConditions = filters.tags.map(t => `tag LIKE '%${escapeSqlString(t)}%'`)
     whereClauses.push(`(${tagConditions.join(' OR ')})`)
   }
 

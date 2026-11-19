@@ -208,11 +208,6 @@ defineExpose({
     processedBlocks.value = processed
     totalBlocks.value = total
   },
-  setExecutionState(isExecuting: boolean, processed = 0, total = 0) {
-    executing.value = isExecuting
-    processedBlocks.value = processed
-    totalBlocks.value = total
-  },
 })
 </script>
 

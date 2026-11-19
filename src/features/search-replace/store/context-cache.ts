@@ -99,10 +99,6 @@ export function clearSelectionScope(rootId?: string) {
   lastSelectionScopeRootId = ''
 }
 
-export function clearResolvedEditorContext() {
-  lastEditorContext = null
-}
-
 export function clearCachedEditorState() {
   lastEditorContext = null
   lastHintedEditorContext = null

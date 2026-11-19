@@ -54,6 +54,7 @@ export function usePanelMinimap({
   const minimapState = ref<MinimapLayout | null>(null)
   let minimapScrollContainer: HTMLElement | null = null
   let minimapScrollTarget: MinimapScrollTarget | null = null
+  let minimapRefreshRafId = 0
 
   const minimapStyle = computed(() => {
     if (!minimapState.value) {
@@ -101,9 +102,23 @@ export function usePanelMinimap({
   }
 
   function clearMinimap() {
+    if (minimapRefreshRafId) {
+      window.cancelAnimationFrame(minimapRefreshRafId)
+      minimapRefreshRafId = 0
+    }
     minimapState.value = null
     minimapScrollTarget = null
     syncMinimapScrollContainer(null)
+  }
+
+  function scheduleMinimapRefresh() {
+    if (minimapRefreshRafId) {
+      return
+    }
+    minimapRefreshRafId = window.requestAnimationFrame(() => {
+      minimapRefreshRafId = 0
+      refreshMinimap()
+    })
   }
 
   function handleMinimapScroll() {
@@ -119,7 +134,7 @@ export function usePanelMinimap({
       minimapScrollTarget = null
     }
 
-    refreshMinimap()
+    scheduleMinimapRefresh()
   }
 
   function handleViewportResize() {

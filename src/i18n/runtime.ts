@@ -3,7 +3,7 @@ import zhCN from './zh_CN.json'
 import { getPluginInstance } from '@/plugin-instance'
 
 type Messages = typeof zhCN
-export type I18nKey = keyof Messages
+type I18nKey = keyof Messages
 
 function resolveMessage(key: I18nKey) {
   const pluginMessage = getPluginInstance()?.i18n?.[key as string]

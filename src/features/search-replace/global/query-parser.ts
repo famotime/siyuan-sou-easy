@@ -210,8 +210,7 @@ export function parseGlobalQuery(raw: string): ParsedGlobalQuery {
   const isMultiTermQuery =
     exclude.length > 0 ||
     orGroups.length > 0 ||
-    mustInclude.length > 1 ||
-    (mustInclude.length > 0 && orGroups.length > 0)
+    mustInclude.length > 1
 
   // 提取单一关键词（仅当只有 1 个 mustInclude 且无任何其他修饰符时生效）
   const singleKeyword =

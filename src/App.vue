@@ -207,8 +207,6 @@ import {
 } from 'vue'
 import { detectPluginEnvironment } from '@/features/search-replace/plugin-environment'
 import { t } from '@/i18n/runtime'
-
-const { isMobile } = detectPluginEnvironment()
 import {
   hasAttributeViewMatches,
   hasUnsupportedCanvasReplacementMatches,
@@ -246,6 +244,8 @@ import { useComposedInput } from '@/features/search-replace/ui/use-composed-inpu
 import { usePanelFrame } from '@/features/search-replace/ui/use-panel-frame'
 import { usePanelMinimap } from '@/features/search-replace/ui/use-panel-minimap'
 
+const { isMobile } = detectPluginEnvironment()
+
 const panelRef = ref<HTMLDivElement>()
 const searchToolbarRef = ref<{
   focusInput: () => void
@@ -265,6 +265,10 @@ const regexHelpExamples = computed(() => [
   {
     description: t('regexHelpDescWhitespace'),
     pattern: t('regexHelpPatternWhitespace'),
+  },
+  {
+    description: t('regexHelpDescAny'),
+    pattern: t('regexHelpPatternAny'),
   },
   {
     description: t('regexHelpDescVersion'),

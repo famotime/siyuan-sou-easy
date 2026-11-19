@@ -16,6 +16,7 @@ export function mapTerminalSearchResult(result: TerminalSearchResult, surfaceId:
       end: match.col + match.length,
       id: `${surfaceId}:${match.id}:${index}`,
       matchedText: match.matchedText,
+      occ: 0,
       previewText: match.previewText,
       replaceable: false,
       rootId: surfaceId,

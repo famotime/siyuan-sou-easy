@@ -34,11 +34,6 @@ export async function replaceCanvasMatchGroups({
 
   let replacedCount = 0
   for (const [targetId, group] of groups) {
-    if (!group.host) {
-      skippedCount += group.matches.length
-      continue
-    }
-
     const result = await group.host.replaceTextRanges(
       targetId,
       group.matches.map(match => ({

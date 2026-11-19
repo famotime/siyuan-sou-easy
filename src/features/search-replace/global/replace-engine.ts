@@ -74,15 +74,9 @@ export async function executeBatchReplace(
   diffSummary: DiffSummary,
   query: string,
   replacement: string,
-  optionsOrProgress?: unknown,
   onProgress?: (processed: number, total: number) => void,
 ): Promise<ReplaceExecutionResult> {
-  let progressCb: ((processed: number, total: number) => void) | undefined
-  if (typeof optionsOrProgress === 'function') {
-    progressCb = optionsOrProgress as (processed: number, total: number) => void
-  } else if (typeof onProgress === 'function') {
-    progressCb = onProgress
-  }
+  const progressCb = onProgress
 
   const activeItems: DiffItem[] = []
   for (const group of diffSummary.groups) {

@@ -285,6 +285,8 @@ describe('search panel minimap', () => {
 
     scrollHeight = 2400
     scrollContainer?.dispatchEvent(new Event('scroll'))
+    // 滚动触发的 minimap 刷新经 rAF 合并，需等一帧后再断言
+    await new Promise(resolve => requestAnimationFrame(resolve))
     await nextTick()
 
     const loadedTop = Number.parseFloat(viewport()?.style.top ?? '0')

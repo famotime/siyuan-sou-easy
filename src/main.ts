@@ -3,7 +3,6 @@ import { createApp } from 'vue'
 import type { Plugin } from 'siyuan'
 import App from './App.vue'
 import {
-  getPluginInstance,
   setPluginInstance,
 } from './plugin-instance'
 import {
@@ -24,10 +23,6 @@ function resolveHostZIndex() {
   }
 
   return '1'
-}
-
-export function getPlugin() {
-  return getPluginInstance()
 }
 
 export async function init(plugin: Plugin) {

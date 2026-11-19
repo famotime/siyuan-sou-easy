@@ -21,10 +21,10 @@ export interface CommandHotkeyShape {
 }
 
 interface PanelCommandDefinition {
-  defaultHotkey: keyof PluginSettings
-  editorCallback: keyof PanelCommandCallbacks
+  defaultHotkey: 'panelHotkey' | 'replacePanelHotkey'
+  editorCallback: 'openFindPanelFromEditor' | 'openReplacePanelFromEditor'
   langKey: PanelCommandLangKey
-  openCallback: keyof PanelCommandCallbacks
+  openCallback: 'openFindPanel' | 'openReplacePanel'
   settingKey: HotkeySettingKey
 }
 
@@ -64,14 +64,18 @@ export function createPanelCommands({
   toRegisteredHotkey: (hotkey: string) => string
 }) {
   return PANEL_COMMAND_DEFINITIONS.map((definition) => {
-    const callback = callbacks[definition.openCallback]
+    const openPanel = () => {
+      callbacks[definition.openCallback]()
+    }
 
     return {
-      callback,
+      callback: openPanel,
       customHotkey: toRegisteredHotkey(settings[definition.settingKey]),
-      dockCallback: callback,
-      editorCallback: callbacks[definition.editorCallback],
-      fileTreeCallback: callback,
+      dockCallback: openPanel,
+      editorCallback: (protyle: IProtyle) => {
+        callbacks[definition.editorCallback](protyle)
+      },
+      fileTreeCallback: openPanel,
       hotkey: toRegisteredHotkey(DEFAULT_SETTINGS[definition.defaultHotkey]),
       langKey: definition.langKey,
     }

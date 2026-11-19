@@ -40,7 +40,6 @@ import {
 } from './store/state'
 import {
   bindUiStatePlugin,
-  loadStoredPanelPosition,
   loadStoredUiState,
   normalizePanelPosition,
   normalizePanelWidth,
@@ -52,7 +51,6 @@ import { mapTerminalSearchResult } from './terminal/adapter'
 import type { TerminalSearchSurface } from './terminal/registry'
 
 export { createInitialSearchReplaceState, resetSearchReplaceState, searchReplaceState } from './store/state'
-export { normalizePanelWidth } from './store/ui-state'
 const searchController = createSearchController({
   getCurrentMatch: () => getCurrentMatch(),
   state: searchReplaceState,
@@ -496,8 +494,9 @@ export async function extractAll() {
 
   if (searchReplaceState.settings.extractAsBlockRef) {
     const textLimit = 30
-    resultText = targetIds.map(id => {
-      const match = searchReplaceState.matches.find(m => m.blockId === id)
+    const matchByBlockId = new Map(searchReplaceState.matches.map(m => [m.blockId, m]))
+    resultText = targetIds.map((id) => {
+      const match = matchByBlockId.get(id)
       let anchorText = match?.previewText?.trim() || ''
       if (match?.matchedText) {
         anchorText = anchorText.replace(`[${match.matchedText}]`, match.matchedText)
@@ -525,7 +524,7 @@ export async function extractAll() {
         .join('\n\n')
     } catch (e) {
       console.error('Failed to extract plain text', e)
-      showMessage(t('extractLimitWarning').replace('{0}', '0'), 3000, 'error')
+      showMessage(t('extractFailed'), 3000, 'error')
       return
     }
   }
@@ -533,9 +532,9 @@ export async function extractAll() {
   try {
     await navigator.clipboard.writeText(resultText)
     if (isLimited) {
-      showMessage(t('extractLimitWarning').replace('{0}', String(limit)), 5000, 'info')
+      showMessage(t('extractLimitWarning', { 0: String(limit) }), 5000, 'info')
     } else {
-      showMessage(t('extractSuccess').replace('{0}', String(targetIds.length)), 3000, 'info')
+      showMessage(t('extractSuccess', { 0: String(targetIds.length) }), 3000, 'info')
     }
   } catch (e) {
     console.error('Clipboard write failed', e)

@@ -38,6 +38,7 @@ import {
   isHotkeyCaptureTarget,
   openSearchReplacePanelFromCommand,
   openSearchReplacePanelFromKeyboardEvent,
+  type EditorProtyleLike,
 } from '@/features/search-replace/plugin-panel-launch'
 import {
   type ColorSettingKey,
@@ -91,17 +92,9 @@ import {
   normalizeSettings,
   saveSettings,
 } from '@/settings'
+import { t } from '@/i18n/runtime'
 
-let pluginInfo = {
-  version: '',
-}
-
-try {
-  pluginInfo = PluginInfoString
-} catch {
-}
-
-const { version } = pluginInfo
+const { version } = PluginInfoString
 
 export default class FriendlySearchReplacePlugin extends Plugin {
   public isMobile: boolean
@@ -238,7 +231,6 @@ export default class FriendlySearchReplacePlugin extends Plugin {
         },
         hotkey: this.toRegisteredHotkey(this.settingsData.globalSearchHotkey || 'Ctrl+Shift+F'),
         langKey: 'openGlobalSearch',
-        langText: '全库搜索与替换 (侧边栏)',
       })
     }
 
@@ -265,18 +257,20 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     }
 
     if (!this.isMobile && typeof (this as any).addTab === 'function') {
+      // 思源运行时把 Custom 实例作为首参传入 init/destroy（见 app/src/layout/dock/Custom.ts 的 this.init(this)），
+      // 官方 d.ts 却标注为 (this: Custom)，这里按运行时行为处理并收敛类型。
       this.addTab({
         type: REPLACE_HISTORY_TAB_TYPE,
-        init: (custom: any) => {
+        init: ((custom: { element?: Element }) => {
           if (custom?.element) {
             initReplaceHistoryTab(custom.element as HTMLElement)
           }
-        },
-        destroy: (custom: any) => {
+        }) as unknown as () => void,
+        destroy: ((custom: { element?: Element }) => {
           if (custom?.element) {
             destroyReplaceHistoryTab(custom.element as HTMLElement)
           }
-        },
+        }) as unknown as () => void,
       })
     }
 
@@ -369,12 +363,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
 
   private openPanelFromCommand(
     replaceVisible?: boolean,
-    protyle?: {
-      block?: {
-        rootID?: string
-      }
-      element?: HTMLElement
-    },
+    protyle?: EditorProtyleLike,
   ) {
     openSearchReplacePanelFromCommand(replaceVisible, protyle)
   }
@@ -387,7 +376,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
 
     const conflict = this.findHotkeySettingConflict(settingKey, normalizedHotkey)
     if (conflict) {
-      showMessage(`\u5feb\u6377\u952e ${normalizedHotkey} \u4e0e\u5df2\u6709\u5feb\u6377\u952e\u51b2\u7a81\uff1a${conflict.label}`, 4000, 'warning')
+      showMessage(t('hotkeyConflict', { 0: normalizedHotkey, 1: conflict.label }), 4000, 'error')
       return false
     }
 

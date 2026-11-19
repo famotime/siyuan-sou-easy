@@ -11,7 +11,7 @@ interface SettingsHotkeyShape {
   replacePanelHotkey: string
 }
 
-export function getIgnoredCommandLangKeys(settingKey: HotkeySettingKey) {
+export function getIgnoredCommandLangKeys(settingKey: HotkeySettingKey): string[] {
   return [getPanelCommandLangKey(settingKey)]
 }
 

@@ -85,9 +85,6 @@ export interface SearchableBlockSummary {
   blockId: string
   blockIndex: number
   blockType: string
-  canvas?: {
-    targetId: string
-  }
 }
 
 export interface SearchMatch {

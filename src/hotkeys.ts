@@ -121,7 +121,7 @@ export function normalizeHotkey(hotkey: string | null | undefined) {
     .map(token => token.trim())
     .filter(Boolean)
 
-  const modifiers = new Set<typeof MODIFIER_ORDER[number]>()
+  const modifiers = new Set<typeof DISPLAY_MODIFIER_ORDER[number]>()
   let key = ''
 
   rawTokens.forEach((token) => {

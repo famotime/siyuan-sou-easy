@@ -749,11 +749,6 @@ async function onConfirmExecuteReplace() {
       currentDiffSummary.value,
       state.query,
       state.replacement,
-      {
-        useRegex: state.options.useRegex,
-        matchCase: state.options.matchCase,
-        wholeWord: state.options.wholeWord,
-      },
       (processed, total) => {
         diffModalRef.value?.setProgress(processed, total)
       },
@@ -800,7 +795,7 @@ async function onExportBlockRefs() {
 }
 
 async function onExportEmbedSql() {
-  const content = exportAsEmbedQuery(state.query, state.filters)
+  const content = exportAsEmbedQuery(state.results)
   const ok = await copyToClipboard(content)
   showExportModal.value = false
   if (ok) {

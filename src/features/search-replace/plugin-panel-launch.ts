@@ -1,7 +1,7 @@
-import type { IProtyle } from 'siyuan'
 import {
   createEditorContextFromElement,
   createEditorContextFromProtyleLike,
+  type EditorProtyleLike,
 } from './editor'
 import {
   onEditorContextChanged,
@@ -13,7 +13,7 @@ import {
   isTerminalSearchTarget,
 } from './terminal/registry'
 
-export type EditorProtyleLike = IProtyle
+export type { EditorProtyleLike }
 
 export function openSearchReplacePanelFromCommand(
   replaceVisible?: boolean,

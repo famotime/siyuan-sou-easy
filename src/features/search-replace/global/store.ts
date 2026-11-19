@@ -4,7 +4,6 @@ import { getPluginInstance } from '@/plugin-instance'
 import { checkBlockFold, unfoldBlock } from '@/features/search-replace/kernel'
 import { createRevisionGuard } from '@/features/search-replace/store/revision'
 import type {
-  DocAggregateNode,
   GlobalMatchSnippet,
   GlobalSearchSortMode,
   GlobalSearchStateModel,

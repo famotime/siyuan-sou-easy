@@ -1,4 +1,5 @@
-import { getAllEditor, type IProtyle, type Protyle } from 'siyuan'
+import { getAllEditor, type IProtyle } from 'siyuan'
+import { t } from '@/i18n/runtime'
 import {
   findCanvasSearchContextByRootId,
   getActiveCanvasSearchContext,
@@ -86,14 +87,25 @@ export function createEditorContextFromElement(
 
   return {
     protyle,
-    protyleRef: resolvedProtyleRef?.element === protyle ? resolvedProtyleRef : (resolvedProtyleRef ?? null),
+    protyleRef: resolvedProtyleRef ?? null,
     rootId,
     title: titleHint.trim() || getEditorTitle(protyle),
   }
 }
 
-export function createEditorContextFromProtyleLike(protyle: IProtyle | null | undefined) {
-  return createEditorContextFromElement(protyle?.element, protyle?.block?.rootID, '', protyle ?? null)
+/**
+ * 命令入口可能只携带部分 Protyle 信息（element 与 block.rootID）。
+ * protyleRef 的完整能力由运行时按需探测（getInstance?.()/scroll?/disabled）。
+ */
+export type EditorProtyleLike = {
+  block?: {
+    rootID?: string
+  }
+  element?: HTMLElement
+}
+
+export function createEditorContextFromProtyleLike(protyle: IProtyle | EditorProtyleLike | null | undefined) {
+  return createEditorContextFromElement(protyle?.element, protyle?.block?.rootID, '', (protyle as IProtyle | null | undefined) ?? null)
 }
 
 export function findEditorContextByRootId(rootId: string, titleHint = '') {
@@ -136,7 +148,7 @@ function getEditorTitle(protyle: HTMLElement) {
     return titleInput.value
   }
 
-  return '当前文档'
+  return t('currentDocumentLabel')
 }
 
 function collectVisibleEditorContexts() {

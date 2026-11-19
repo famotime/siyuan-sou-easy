@@ -27,7 +27,7 @@ const kernelMocks = vi.hoisted(() => ({
 
 vi.mock('@/features/search-replace/kernel', () => kernelMocks)
 
-import { searchAttributeViewMatches } from '@/features/search-replace/attribute-view-search'
+import { searchAttributeViewMatches } from '@/features/search-replace/attribute-view'
 
 const DEFAULT_OPTIONS: SearchOptions = {
   includeCodeBlock: false,

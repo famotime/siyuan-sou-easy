@@ -86,7 +86,7 @@ export function findMatches(
         replaceable: typeof block.replaceable === 'boolean'
           ? block.replaceable
           : isRangeReplaceable(block.element, matchedText, occ),
-        sourceKind: block.sourceKind === 'canvas' ? 'canvas' : block.sourceKind,
+        sourceKind: block.sourceKind,
         table: resolveTableMatchMetadata(block, start, end),
         canvas: block.canvas,
       })

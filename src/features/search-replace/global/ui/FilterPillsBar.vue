@@ -115,7 +115,7 @@ function calculateStartDate(key: string): string {
   } else if (key === '7d') {
     now.setDate(now.getDate() - 7)
   } else if (key === '30d') {
-    now.setDate(now.getDate() - 3)
+    now.setDate(now.getDate() - 30)
   }
   const Y = now.getFullYear()
   const M = String(now.getMonth() + 1).padStart(2, '0')

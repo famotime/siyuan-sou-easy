@@ -153,11 +153,18 @@ export async function revertTransaction(txId: string): Promise<RevertTransaction
 
     let revertedCount = 0
     try {
-      // 逆向遍历更新
+      // 同一块的多条记录共享同一份 originalDom，按块去重避免重复内核写入
+      const blockDoms = new Map<string, string>()
       for (const item of revertableItems) {
-        await updateDomBlock(item.blockId, item.originalDom)
-        revertedCount++
+        if (!blockDoms.has(item.blockId)) {
+          blockDoms.set(item.blockId, item.originalDom as string)
+        }
       }
+
+      for (const [blockId, originalDom] of blockDoms) {
+        await updateDomBlock(blockId, originalDom)
+      }
+      revertedCount = revertableItems.length
 
       tx.reverted = true
       await persistTransactions()

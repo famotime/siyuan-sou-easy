@@ -3,6 +3,7 @@ export {
   createEditorContextFromProtyleLike,
   findEditorContextByRootId,
   getActiveEditorContext,
+  type EditorProtyleLike,
 } from './editor/context'
 export {
   collectSearchableBlocks,
@@ -12,7 +13,6 @@ export {
   getBlockElement,
   getBlockPlainText,
   getUniqueBlockElements,
-  resolveSearchRoot,
 } from './editor/blocks'
 export {
   getCurrentSelectionScope,

@@ -47,11 +47,6 @@ export async function loadStoredUiState(): Promise<PersistedUiState | undefined>
   }
 }
 
-export async function loadStoredPanelPosition() {
-  const uiState = await loadStoredUiState()
-  return uiState ? uiState.panelPosition : undefined
-}
-
 export function schedulePersistUiState(
   position: PanelPosition | null,
   width?: number | null,

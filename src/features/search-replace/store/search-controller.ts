@@ -117,10 +117,6 @@ export function createSearchController({
     revision = ++latestRefreshRevision,
     scrollMode: 'if-needed' | 'none' = 'none',
   ) {
-    if (revision > latestRefreshRevision) {
-      latestRefreshRevision = revision
-    }
-
     if (!state.visible) {
       state.searching = false
       return
@@ -168,11 +164,6 @@ export function createSearchController({
 
       const result = findMatches(blocks, state.query, state.options, selectionScope)
       const minimapBlocks = blocks.map(block => ({
-        canvas: block.canvas
-          ? {
-              targetId: block.canvas.targetId,
-            }
-          : undefined,
         blockId: block.blockId,
         blockIndex: block.blockIndex,
         blockType: block.blockType,

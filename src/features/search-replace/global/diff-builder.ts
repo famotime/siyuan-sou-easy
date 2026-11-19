@@ -1,6 +1,5 @@
 import type {
   DocAggregateNode,
-  GlobalMatchSnippet,
 } from './types'
 import { extractContextSnippet } from './doc-aggregator'
 

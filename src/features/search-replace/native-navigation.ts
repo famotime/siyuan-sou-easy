@@ -41,7 +41,7 @@ export async function triggerNativeMatchNavigation(match: SearchMatch): Promise<
 
   const plugin = getPluginInstance()!
 
-  const action = [...NATIVE_NAVIGATION_ACTIONS]
+  const action = NATIVE_NAVIGATION_ACTIONS
   const frontend = getFrontend()
 
   try {
@@ -64,5 +64,3 @@ export async function triggerNativeMatchNavigation(match: SearchMatch): Promise<
     return 'failed'
   }
 }
-
-export { NATIVE_NAVIGATION_ACTIONS }

@@ -22,5 +22,3 @@ export function unbindEditorContextEvents(eventBus: EventBusLike, handler: (...a
     eventBus.off(eventName, handler)
   })
 }
-
-export { EDITOR_CONTEXT_EVENT_NAMES }

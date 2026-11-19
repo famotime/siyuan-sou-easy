@@ -33,7 +33,7 @@ describe('kernel-query SQL builder', () => {
         start: '2026-10-01',
       },
     })
-    expect(sql).toContain("tag LIKE '%#Todo%'")
+    expect(sql).toContain("tag LIKE '%Todo%'")
     expect(sql).toContain("type IN ('p','h')")
     expect(sql).toContain("updated >= '20261001'")
   })

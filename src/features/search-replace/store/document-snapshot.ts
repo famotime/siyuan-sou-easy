@@ -52,11 +52,6 @@ export async function resolveDocumentSnapshot({
   return snapshotCache
 }
 
-export async function resolveDocumentBlocks(dependencies: ResolveDocumentBlocksDependencies) {
-  const snapshot = await resolveDocumentSnapshot(dependencies)
-  return snapshot.blocks
-}
-
 export function invalidateDocumentSnapshot(rootId?: string) {
   if (!snapshotCache) {
     return

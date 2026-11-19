@@ -3,7 +3,7 @@ import type { PluginSettings } from '@/settings'
 export type HotkeySettingKey = 'panelHotkey' | 'replacePanelHotkey'
 export type ColorSettingKey = 'searchHighlightColor'
 
-type BooleanSettingKey =
+export type BooleanSettingKey =
   | 'debugLog'
   | 'defaultReplaceVisible'
   | 'includeCodeBlock'

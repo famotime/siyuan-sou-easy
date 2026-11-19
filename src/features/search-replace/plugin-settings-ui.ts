@@ -4,6 +4,7 @@ import {
   COLOR_SETTING_DEFINITIONS,
   HOTKEY_SETTING_DEFINITIONS,
   NUMBER_SETTING_DEFINITIONS,
+  type BooleanSettingKey,
   type ColorSettingKey,
   type HotkeySettingKey,
   type NumberSettingKey,
@@ -117,5 +118,3 @@ export function registerSearchReplaceSettings({
     })
   })
 }
-
-type BooleanSettingKey = Extract<keyof PluginSettings, 'debugLog' | 'defaultReplaceVisible' | 'includeCodeBlock' | 'minimapVisible' | 'optimizeLargeCodeBlocks' | 'preloadSelection' | 'searchOnEnter' | 'rememberPanelPosition' | 'searchAttributeView' | 'extractAsBlockRef'>

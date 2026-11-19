@@ -2,6 +2,7 @@ import {
   formatHotkeyFromEvent,
   normalizeHotkey,
 } from '@/hotkeys'
+import { t } from '@/i18n/runtime'
 
 export const HOTKEY_CAPTURE_INPUT_ATTRIBUTE = 'data-friendly-search-hotkey-input'
 
@@ -91,7 +92,7 @@ export function createHotkeyInputElement(
   input.className = 'b3-text-field fn__size200'
   input.autocomplete = 'off'
   input.setAttribute(HOTKEY_CAPTURE_INPUT_ATTRIBUTE, 'true')
-  input.placeholder = '点击后按下快捷键'
+  input.placeholder = t('hotkeyInputPlaceholder')
   input.readOnly = true
   input.spellcheck = false
 
