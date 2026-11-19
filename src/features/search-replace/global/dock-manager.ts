@@ -4,6 +4,7 @@ import GlobalSearchDockView from './ui/GlobalSearchDockView.vue'
 import {
   globalSearchState,
 } from './store'
+import { cancelActiveBatchReplace } from './replace-engine'
 
 let dockApp: VueApp<Element> | null = null
 let currentDockContainer: HTMLElement | null = null
@@ -35,6 +36,9 @@ export function initGlobalSearchDock(dockElement: HTMLElement) {
 }
 
 export function destroyGlobalSearchDock() {
+  // Dock 销毁（含插件卸载）时中止仍在运行的批量替换批次，
+  // 避免卸载后继续向内核写入变更
+  cancelActiveBatchReplace()
   if (dockApp) {
     dockApp.unmount()
     dockApp = null

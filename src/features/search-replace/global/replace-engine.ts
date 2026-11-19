@@ -10,6 +10,7 @@ export interface ReplaceExecutionResult {
   totalCount: number
   replacedCount: number
   skippedCount: number
+  cancelled?: boolean
   transactionId?: string
   error?: string
 }
@@ -18,18 +19,52 @@ function delay(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+// 模块级取消标志：批量替换不可重入（VisualDiffModal 有 executing 门禁），
+// Dock 销毁/插件卸载时通过 cancelActiveBatchReplace 请求中止当前批次
+let batchReplaceCancelled = false
+
+export function cancelActiveBatchReplace() {
+  batchReplaceCancelled = true
+}
+
 /**
- * 针对纯文本在 DOM 节点中进行简单内容替换
+ * 针对纯文本在 DOM 节点中进行内容替换。
+ *
+ * 安全约束：
+ * - 使用函数替换器，替换文本中的 $&/$'/$1 等特殊模式不会被二次解释
+ * - 只替换位于文本内容（标签之外）的首个匹配，属性值中的出现一律跳过
+ * - 找不到文本内容中的匹配时原样返回，由调用方计为跳过
  */
 export function replaceTextInDom(domStr: string, originalText: string, newText: string): string {
-  if (!domStr) {
-    return ''
+  if (!domStr || !originalText) {
+    return domStr ?? ''
   }
-  // 如果 DOM 包含原始纯文本，直接首个匹配替换
-  if (domStr.includes(originalText)) {
-    return domStr.replace(originalText, newText)
+
+  let searchStart = 0
+  while (searchStart <= domStr.length - originalText.length) {
+    const index = domStr.indexOf(originalText, searchStart)
+    if (index < 0) {
+      return domStr
+    }
+
+    if (!isInsideTag(domStr, index)) {
+      return domStr.slice(0, index) + newText + domStr.slice(index + originalText.length)
+    }
+
+    searchStart = index + 1
   }
+
   return domStr
+}
+
+function isInsideTag(dom: string, index: number) {
+  const lastOpen = dom.lastIndexOf('<', index)
+  if (lastOpen < 0) {
+    return false
+  }
+
+  const lastClose = dom.lastIndexOf('>', index)
+  return lastClose < lastOpen
 }
 
 /**
@@ -58,6 +93,9 @@ export async function executeBatchReplace(
     }
   }
 
+  // 新批次启动时重置取消标志（上一批次可能已被中止）
+  batchReplaceCancelled = false
+
   if (activeItems.length === 0) {
     return {
       success: true,
@@ -71,6 +109,8 @@ export async function executeBatchReplace(
   let replacedCount = 0
   let skippedCount = 0
   const transactionItems: ReplaceTransactionItem[] = []
+
+  const isCancelled = () => batchReplaceCancelled
 
   // 获取所有涉及的块 DOM
   const blockIds = Array.from(new Set(activeItems.map(i => i.blockId)))
@@ -96,23 +136,58 @@ export async function executeBatchReplace(
   const totalBlocks = allBlockIds.length
 
   for (let i = 0; i < totalBlocks; i += batchSize) {
+    if (isCancelled()) {
+      return {
+        success: false,
+        cancelled: true,
+        totalCount: activeItems.length,
+        replacedCount,
+        skippedCount: skippedCount + (activeItems.length - replacedCount - skippedCount),
+      }
+    }
+
     const chunk = allBlockIds.slice(i, i + batchSize)
 
     for (const blockId of chunk) {
+      if (isCancelled()) {
+        return {
+          success: false,
+          cancelled: true,
+          totalCount: activeItems.length,
+          replacedCount,
+          skippedCount: skippedCount + (activeItems.length - replacedCount - skippedCount),
+        }
+      }
+
       const itemsInBlock = blockGroups.get(blockId) || []
       const originalDom = domMap[blockId]
 
       if (originalDom) {
         let updatedDom = originalDom
+        const appliedItems: DiffItem[] = []
+
+        // 逐条替换并按实际生效数计数：替换文本未命中（内容已被并发修改、
+        // 仅出现在属性中等）时计为跳过，而不是盲目计入替换数
         for (const it of itemsInBlock) {
-          updatedDom = replaceTextInDom(updatedDom, it.matchedText, it.replacedText)
+          const nextDom = replaceTextInDom(updatedDom, it.matchedText, it.replacedText)
+          if (nextDom === updatedDom) {
+            skippedCount += 1
+            continue
+          }
+
+          updatedDom = nextDom
+          appliedItems.push(it)
+        }
+
+        if (appliedItems.length === 0) {
+          continue
         }
 
         try {
           await updateDomBlock(blockId, updatedDom)
-          replacedCount += itemsInBlock.length
+          replacedCount += appliedItems.length
 
-          for (const it of itemsInBlock) {
+          for (const it of appliedItems) {
             transactionItems.push({
               blockId,
               rootId: it.rootId,
@@ -131,7 +206,7 @@ export async function executeBatchReplace(
             })
           }
         } catch {
-          skippedCount += itemsInBlock.length
+          skippedCount += appliedItems.length
         }
       } else {
         // 拿不到原始 DOM 时无法安全替换：跳过该块。
