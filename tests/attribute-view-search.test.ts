@@ -932,6 +932,89 @@ describe('attribute view search', () => {
 
     expect(result.matches).toHaveLength(0)
   })
+
+  it('aborts attribute view collection once isStale turns true mid-block', async () => {
+    const context = renderEditor(`
+      <div data-node-id="av-block-1" data-type="NodeAttributeView" class="av" data-av-id="av-1" data-render="true">
+        <div class="av__row" data-id="item-1">
+          <div class="av__body">
+            <div class="av__cell"><div class="av__celltext">传感器一</div></div>
+          </div>
+        </div>
+      </div>
+      <div data-node-id="av-block-2" data-type="NodeAttributeView" class="av" data-av-id="av-2" data-render="true">
+        <div class="av__row" data-id="item-2">
+          <div class="av__body">
+            <div class="av__cell"><div class="av__celltext">传感器二</div></div>
+          </div>
+        </div>
+      </div>
+    `)
+
+    // 块缺少 viewID 时 resolveAttributeViewInfo 会逐块调用 getBlockAttrs，
+    // 以它作为过期翻转点：第一个块的信息解析完成后搜索即被判过期
+    let stale = false
+    let attrsCalls = 0
+    kernelMocks.getBlockAttrs.mockImplementation(async () => {
+      attrsCalls += 1
+      stale = true
+      return {}
+    })
+
+    const result = await searchAttributeViewMatches({
+      context,
+      isStale: () => stale,
+      options: DEFAULT_OPTIONS,
+      query: '传感器',
+      startingBlockIndex: 0,
+    })
+
+    // 第一个块在信息解析后、候选采集前被过期检查中断，后续块不再进入循环；
+    // 中断发生在块摘要 push 之前，因此不产生任何块或匹配
+    expect(attrsCalls).toBe(1)
+    expect(result.blocks).toEqual([])
+    expect(result.matches).toEqual([])
+  })
+
+  it('excludes failed attribute view blocks from the searched blocks summary', async () => {
+    const context = renderEditor(`
+      <div data-node-id="av-block-ok" data-type="NodeAttributeView" class="av" data-av-id="av-ok" data-render="true">
+        <div class="av__row" data-id="item-ok">
+          <div class="av__body">
+            <div class="av__cell"><div class="av__celltext">传感器正常</div></div>
+          </div>
+        </div>
+      </div>
+      <div data-node-id="av-block-bad" data-type="NodeAttributeView" class="av" data-av-id="av-bad" data-render="true">
+        <div class="av__row" data-id="item-bad">
+          <div class="av__body">
+            <div class="av__cell"><div class="av__celltext">传感器异常</div></div>
+          </div>
+        </div>
+      </div>
+    `)
+
+    // 第二个块的信息解析失败，模拟内核请求异常
+    let attrsCalls = 0
+    kernelMocks.getBlockAttrs.mockImplementation(async () => {
+      attrsCalls += 1
+      if (attrsCalls >= 2) {
+        throw new Error('kernel unavailable')
+      }
+      return {}
+    })
+
+    const result = await searchAttributeViewMatches({
+      context,
+      options: DEFAULT_OPTIONS,
+      query: '传感器',
+      startingBlockIndex: 0,
+    })
+
+    // 失败块不再计入已搜索块摘要（此前会在 try 之前被提前 push 导致计数虚高）
+    expect(result.blocks.map(block => block.blockId)).toEqual(['av-block-ok'])
+    expect(result.matches.every(match => match.attributeView?.avBlockId === 'av-block-ok')).toBe(true)
+  })
 })
 
 function renderEditor(attributeViewDom: string): EditorContext {

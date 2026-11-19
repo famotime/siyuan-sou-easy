@@ -1,4 +1,5 @@
 import { buildPreview } from '../editor'
+import { debugLog } from '../debug'
 import { findMatches } from '../search-engine'
 import type {
   EditorContext,
@@ -16,6 +17,12 @@ import {
 export interface SearchAttributeViewMatchesOptions {
   context: EditorContext
   documentContent?: string
+  /**
+   * 过期判定回调：搜索被更新的一次刷新取代时返回 true，循环立即中止。
+   * 每个 AV 块的候选采集都伴随内核请求，缺少该检查时过期搜索会把
+   * 内核 API 打满（历史行为），由调用方以 revision guard 驱动。
+   */
+  isStale?: () => boolean
   options: SearchOptions
   query: string
   startingBlockIndex: number
@@ -24,6 +31,7 @@ export interface SearchAttributeViewMatchesOptions {
 export async function searchAttributeViewMatches({
   context,
   documentContent = '',
+  isStale,
   options,
   query,
   startingBlockIndex,
@@ -50,16 +58,26 @@ export async function searchAttributeViewMatches({
   const matches: SearchMatch[] = []
 
   for (const attributeViewBlock of attributeViewBlocks) {
-    blocks.push({
-      blockId: attributeViewBlock.avBlockId,
-      blockIndex: attributeViewBlock.blockIndex,
-      blockType: ATTRIBUTE_VIEW_NODE_TYPE,
-    })
+    if (isStale?.()) {
+      debugLog('attribute-view-search:stale', {
+        avBlockId: attributeViewBlock.avBlockId,
+        remainingBlocks: attributeViewBlocks.length - blocks.length,
+      })
+      break
+    }
 
     try {
       const { avID, viewID } = await resolveAttributeViewInfo(attributeViewBlock)
       if (!avID) {
         continue
+      }
+
+      if (isStale?.()) {
+        debugLog('attribute-view-search:stale', {
+          avBlockId: attributeViewBlock.avBlockId,
+          stage: 'after-resolve-info',
+        })
+        break
       }
 
       const candidates = await resolveAttributeViewSearchCandidates({
@@ -71,13 +89,25 @@ export async function searchAttributeViewMatches({
         continue
       }
 
+      // 块摘要仅在成功完成候选采集后计入，保证 searchableBlockCount
+      // 与实际完成搜索的块一致（失败块此前会被提前计入导致计数虚高）。
+      blocks.push({
+        blockId: attributeViewBlock.avBlockId,
+        blockIndex: attributeViewBlock.blockIndex,
+        blockType: ATTRIBUTE_VIEW_NODE_TYPE,
+      })
+
       matches.push(...buildAttributeViewMatches({
         attributeViewBlock,
         candidates,
         options,
         query,
       }))
-    } catch {
+    } catch (error) {
+      debugLog('attribute-view-search:block-failed', {
+        avBlockId: attributeViewBlock.avBlockId,
+        error: error instanceof Error ? error.message : String(error),
+      })
       continue
     }
   }

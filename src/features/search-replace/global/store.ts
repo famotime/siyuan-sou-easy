@@ -2,6 +2,7 @@ import { reactive } from 'vue'
 import { openTab, type TProtyleAction } from 'siyuan'
 import { getPluginInstance } from '@/plugin-instance'
 import { checkBlockFold, unfoldBlock } from '@/features/search-replace/kernel'
+import { createRevisionGuard } from '@/features/search-replace/store/revision'
 import type {
   DocAggregateNode,
   GlobalMatchSnippet,
@@ -44,7 +45,15 @@ export const globalSearchState = reactive<GlobalSearchStateModel>({
   selectedMatchId: undefined,
 })
 
+const globalSearchRevision = createRevisionGuard()
+// spinner 语义是"存在进行中的搜索"，用 in-flight 计数驱动；结果写入用 revision 守卫。
+// 两者分离：过期搜索结束时不会误关新搜索的 spinner，也不会让已死搜索的 spinner 卡住。
+let inFlightSearchCount = 0
+
 export function clearGlobalSearchResults() {
+  // 结果被清除意味着任何 in-flight 搜索的产物都已过时，使其 revision 失效，
+  // 防止旧搜索完成时把旧查询的结果写回已清空的状态。
+  globalSearchRevision.invalidate()
   globalSearchState.results = []
   globalSearchState.totalDocCount = 0
   globalSearchState.totalMatchCount = 0
@@ -459,6 +468,8 @@ export async function executeGlobalSearch() {
     return
   }
 
+  const revision = globalSearchRevision.next()
+  inFlightSearchCount += 1
   globalSearchState.searching = true
   globalSearchState.error = undefined
 
@@ -482,6 +493,9 @@ export async function executeGlobalSearch() {
       docOnly: globalSearchState.options.docOnly,
       parsedQuery: globalSearchState.options.pinyin ? undefined : parsed,
     })
+    if (globalSearchRevision.isStale(revision)) {
+      return
+    }
 
     const docNodes = aggregateBlocksToDocs(blocks, keyword, {
       matchCase: globalSearchState.options.matchCase,
@@ -500,10 +514,17 @@ export async function executeGlobalSearch() {
     globalSearchState.totalMatchCount = sorted.reduce((sum, d) => sum + d.totalCount, 0)
     globalSearchState.statusMessage = `共命中 ${globalSearchState.totalDocCount} 篇文档，${globalSearchState.totalMatchCount} 处匹配`
   } catch (err: any) {
+    // 过期搜索的异常同样丢弃，避免覆盖新搜索的状态
+    if (globalSearchRevision.isStale(revision)) {
+      return
+    }
     globalSearchState.error = err.message || '搜索执行失败'
     globalSearchState.results = []
     globalSearchState.searchedQuery = raw
   } finally {
-    globalSearchState.searching = false
+    inFlightSearchCount = Math.max(0, inFlightSearchCount - 1)
+    if (inFlightSearchCount === 0) {
+      globalSearchState.searching = false
+    }
   }
 }

@@ -182,6 +182,7 @@ export function createSearchController({
         const attributeViewSearch = await searchAttributeViewMatches({
           context,
           documentContent,
+          isStale: () => revision !== latestRefreshRevision,
           options: state.options,
           query: state.query,
           startingBlockIndex: minimapBlocks.length,
