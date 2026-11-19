@@ -159,6 +159,7 @@ describe('getReleaseStaticCopyTargets', () => {
     expect(i18nTarget).toEqual({
       dest: './i18n/',
       src: './src/i18n/*.json',
+      rename: { stripBase: true },
     })
   })
 })

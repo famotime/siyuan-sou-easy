@@ -166,6 +166,9 @@ export function getReleaseStaticCopyTargets() {
     {
       src: './src/i18n/*.json',
       dest: './i18n/',
+      // vite-plugin-static-copy v2+ 默认保留源目录层级（structured），
+      // stripBase: true 确保语言包扁平落在 i18n/ 根下
+      rename: { stripBase: true },
     },
   ]
 }
