@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
-import AdmZip from 'jszip'
+import JSZip from 'jszip'
 
 /**
  * 校验 package.zip 与 dist 产物规范
@@ -52,7 +52,7 @@ async function verifyPackage() {
   }
 
   const zipData = fs.readFileSync(zipPath)
-  const zip = await AdmZip.loadAsync(zipData)
+  const zip = await JSZip.loadAsync(zipData)
   const zipEntries = Object.keys(zip.files)
 
   const zipDotEntries = []

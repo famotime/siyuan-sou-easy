@@ -9,6 +9,7 @@ tmp
 .env
 /tmp/
 .worktrees/
+.pytest_cache/
 .log
 developer_docs/
 

@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url'
  * @returns {PrecheckIssue[]}
  */
 export function collectPrecheckIssues(payload) {
+  /** @type {PrecheckIssue[]} */
   const issues = []
   const pluginVersion = readString(payload.pluginJson.version)
   const packageVersion = readString(payload.packageJson.version)

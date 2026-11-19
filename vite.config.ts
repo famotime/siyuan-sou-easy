@@ -1,4 +1,5 @@
 /* eslint-disable node/prefer-global/process */
+import { createRequire } from "node:module"
 import { resolve } from "node:path"
 import vue from "@vitejs/plugin-vue"
 import fg from "fast-glob"
@@ -12,19 +13,17 @@ import { viteStaticCopy } from "vite-plugin-static-copy"
 import zipPack from "vite-plugin-zip-pack"
 import { getReleaseStaticCopyTargets } from "./scripts/release-precheck.mjs"
 
+const require = createRequire(import.meta.url)
 const pluginInfo = require("./plugin.json")
 
 export default defineConfig(({
   mode,
 }) => {
 
-  console.log('mode=>', mode)
   const env = loadEnv(mode, process.cwd())
   const {
     VITE_SIYUAN_WORKSPACE_PATH,
   } = env
-  console.log('env=>', env)
-
 
   const siyuanWorkspacePath = VITE_SIYUAN_WORKSPACE_PATH
   let devDistDir = './dev'
@@ -39,10 +38,6 @@ export default defineConfig(({
   const args = minimist(process.argv.slice(2))
   const isWatch = args.watch || args.w || false
   const distDir = isWatch ? devDistDir : "./dist"
-
-  console.log()
-  console.log("isWatch=>", isWatch)
-  console.log("distDir=>", distDir)
 
   return {
     resolve: {
@@ -113,8 +108,8 @@ export default defineConfig(({
                   inDir: "./dist",
                   outDir: "./",
                   outFileName: "package.zip",
-                // 过滤以点开头的文件和目录，确保符合思源集市规范，避免数据同步异常
-                filter: (fileName) => !fileName.startsWith("."),
+                  // 过滤以点开头的文件和目录，确保符合思源集市规范，避免数据同步异常
+                  filter: (fileName) => !fileName.startsWith("."),
                 }),
               ]),
         ],

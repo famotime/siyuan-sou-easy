@@ -3,7 +3,7 @@
     "target": "ESNext",
     "jsx": "preserve",
     "lib": [
-      "ES2020",
+      "ES2022",
       "DOM",
       "DOM.Iterable"
     ],
@@ -13,8 +13,7 @@
     /* Bundler mode */
     "moduleResolution": "Node",
     "paths": {
-      "@/*": ["./src/*"],
-      "@/libs/*": ["./src/libs/*"]
+      "@/*": ["./src/*"]
     },
     "resolveJsonModule": true,
     "types": [
@@ -42,15 +41,13 @@
     }
   ],
   "include": [
-    "tools/**/*.ts",
     "tests/**/*.ts",
     "src/**/*.ts",
     "src/**/*.d.ts",
     "src/**/*.vue"
   ],
   "exclude": [
-    "node_modules",
-    "src/abandon"
+    "node_modules"
   ],
   "root": "."
 }
