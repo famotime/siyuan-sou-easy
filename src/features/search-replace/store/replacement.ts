@@ -43,6 +43,23 @@ interface ReplaceAllDependencies {
   updateDomBlock: typeof import('../kernel').updateDomBlock
 }
 
+/**
+ * busy 互斥执行器：在发起任何异步操作之前同步占用 busy 标志。
+ * 若先做异步准备再上锁，两次快速触发都会通过入口检查并发执行（TOCTOU）。
+ */
+async function withBusyExclusive<T>(state: SearchReplaceState, action: () => Promise<T>): Promise<T | undefined> {
+  if (state.busy) {
+    return undefined
+  }
+
+  state.busy = true
+  try {
+    return await action()
+  } finally {
+    state.busy = false
+  }
+}
+
 export async function replaceCurrentMatch({
   applyReplacementsToClone,
   clearSelectionScope,
@@ -61,18 +78,18 @@ export async function replaceCurrentMatch({
   if (!match || state.busy || state.documentReadonly) {
     return
   }
-  if (isAttributeViewMatch(match)) {
-    showMessage(t('replaceAttributeViewUnsupported'), 4000, 'error')
-    return
-  }
-  if (isCanvasMatch(match)) {
-    if (!match.replaceable) {
-      showMessage(t('replaceCanvasNoteUnsupported'), 4000, 'error')
+
+  await withBusyExclusive(state, async () => {
+    if (isAttributeViewMatch(match)) {
+      showMessage(t('replaceAttributeViewUnsupported'), 4000, 'error')
       return
     }
+    if (isCanvasMatch(match)) {
+      if (!match.replaceable) {
+        showMessage(t('replaceCanvasNoteUnsupported'), 4000, 'error')
+        return
+      }
 
-    try {
-      state.busy = true
       const result = await replaceCanvasMatchGroups({
         getReplacementText: () => state.replacement,
         matches: [match],
@@ -83,44 +100,38 @@ export async function replaceCurrentMatch({
         revealCurrentMatch(undefined, 'if-needed')
       }
       showMessage(t('replaceAllResult', result), 3000, 'info')
-    } finally {
-      state.busy = false
+      return
     }
-    return
-  }
 
-  debugLog('replace-current:start', match)
+    debugLog('replace-current:start', match)
 
-  const context = resolveEditorContext()
-  if (!context || context.rootId !== match.rootId) {
-    await refreshMatches()
-    return
-  }
+    const context = resolveEditorContext()
+    if (!context || context.rootId !== match.rootId) {
+      await refreshMatches()
+      return
+    }
 
-  const blockElement = await resolveBlockElement({
-    blockId: match.blockId,
-    context,
-    createBlockElementFromDom,
-    getBlockDoms,
-    getBlockElement,
-  })
-  if (!blockElement) {
-    await refreshMatches()
-    return
-  }
+    const blockElement = await resolveBlockElement({
+      blockId: match.blockId,
+      context,
+      createBlockElementFromDom,
+      getBlockDoms,
+      getBlockElement,
+    })
+    if (!blockElement) {
+      await refreshMatches()
+      return
+    }
 
-  const outcome = applyReplacementsToClone(blockElement, [match], state.replacement, {
-    preserveCase: state.preserveCase,
-  })
-  if (!outcome.clone || outcome.appliedCount === 0) {
-    showMessage(t('replaceCurrentUnsupported'), 4000, 'error')
-    return
-  }
+    const outcome = applyReplacementsToClone(blockElement, [match], state.replacement, {
+      preserveCase: state.preserveCase,
+    })
+    if (!outcome.clone || outcome.appliedCount === 0) {
+      showMessage(t('replaceCurrentUnsupported'), 4000, 'error')
+      return
+    }
 
-  const nextIndex = state.currentIndex
-
-  try {
-    state.busy = true
+    const nextIndex = state.currentIndex
     const canUseTransaction = context.protyleRef && !context.protyleRef.disabled
     if (canUseTransaction) {
       const doOperations: IOperation[] = [{
@@ -163,9 +174,7 @@ export async function replaceCurrentMatch({
       nextIndex: state.currentIndex,
     })
     showMessage(t('replaceCurrentDone'), 2000, 'info')
-  } finally {
-    state.busy = false
-  }
+  })
 }
 
 export async function replaceAllMatches({
@@ -183,22 +192,22 @@ export async function replaceAllMatches({
   if (!state.matches.length || state.busy || state.documentReadonly) {
     return
   }
-  if (hasAttributeViewMatches(state.matches)) {
-    showMessage(t('replaceAttributeViewUnsupported'), 4000, 'error')
-    return
-  }
-  if (hasUnsupportedCanvasReplacementMatches(state.matches)) {
-    showMessage(t('replaceCanvasNoteUnsupported'), 4000, 'error')
-    return
-  }
-  if (hasCanvasMatches(state.matches)) {
-    const confirmed = window.confirm(t('replaceAllConfirm', { count: state.matches.length }))
-    if (!confirmed) {
+
+  await withBusyExclusive(state, async () => {
+    if (hasAttributeViewMatches(state.matches)) {
+      showMessage(t('replaceAttributeViewUnsupported'), 4000, 'error')
       return
     }
+    if (hasUnsupportedCanvasReplacementMatches(state.matches)) {
+      showMessage(t('replaceCanvasNoteUnsupported'), 4000, 'error')
+      return
+    }
+    if (hasCanvasMatches(state.matches)) {
+      const confirmed = window.confirm(t('replaceAllConfirm', { count: state.matches.length }))
+      if (!confirmed) {
+        return
+      }
 
-    try {
-      state.busy = true
       const result = await replaceCanvasMatchGroups({
         getReplacementText: () => state.replacement,
         matches: state.matches,
@@ -206,43 +215,42 @@ export async function replaceAllMatches({
       })
       await refreshMatches()
       showMessage(t('replaceAllResult', result), 4000, 'info')
-    } finally {
-      state.busy = false
-    }
-    return
-  }
-
-  debugLog('replace-all:start', {
-    count: state.matches.length,
-  })
-
-  const confirmed = window.confirm(t('replaceAllConfirm', { count: state.matches.length }))
-  if (!confirmed) {
-    return
-  }
-
-  const context = resolveEditorContext()
-  if (!context) {
-    state.error = t('currentDocumentMissing')
-    return
-  }
-
-  const groupedMatches = new Map<string, SearchMatch[]>()
-  state.matches.forEach((match) => {
-    if (match.rootId !== context.rootId) {
       return
     }
 
-    const group = groupedMatches.get(match.blockId) ?? []
-    group.push(match)
-    groupedMatches.set(match.blockId, group)
-  })
+    debugLog('replace-all:start', {
+      count: state.matches.length,
+    })
 
-  let replacedCount = 0
-  let skippedCount = 0
+    const confirmed = window.confirm(t('replaceAllConfirm', { count: state.matches.length }))
+    if (!confirmed) {
+      return
+    }
 
-  try {
-    state.busy = true
+    const context = resolveEditorContext()
+    if (!context) {
+      state.error = t('currentDocumentMissing')
+      return
+    }
+
+    const groupedMatches = new Map<string, SearchMatch[]>()
+    state.matches.forEach((match) => {
+      if (match.rootId !== context.rootId) {
+        return
+      }
+
+      const group = groupedMatches.get(match.blockId) ?? []
+      group.push(match)
+      groupedMatches.set(match.blockId, group)
+    })
+
+    let replacedCount = 0
+    let skippedCount = 0
+    // 事务路径的替换数延迟到事务提交后再计入：
+    // 提交失败时这些块实际未变更，若提前计数会出现"替换成功 N 处"的假成功提示
+    let preparedReplacedCount = 0
+    let preparedSkippedCount = 0
+
     const missingBlockIds = Array.from(groupedMatches.keys()).filter(blockId => !getBlockElement(context, blockId))
     const fallbackDoms = missingBlockIds.length
       ? await getBlockDoms(missingBlockIds)
@@ -271,25 +279,35 @@ export async function replaceAllMatches({
       if (canUseTransaction) {
         doOperations.push({ action: 'update', id: blockId, data: outcome.clone.outerHTML })
         undoOperations.push({ action: 'update', id: blockId, data: blockElement.outerHTML })
+        preparedReplacedCount += outcome.appliedCount
+        preparedSkippedCount += Math.max(0, matches.length - outcome.appliedCount)
       } else {
         await updateDomBlock(blockId, outcome.clone.outerHTML)
+        replacedCount += outcome.appliedCount
+        skippedCount += Math.max(0, matches.length - outcome.appliedCount)
       }
-
-      replacedCount += outcome.appliedCount
-      skippedCount += Math.max(0, matches.length - outcome.appliedCount)
     }
 
     if (canUseTransaction && doOperations.length > 0) {
+      let committed = false
       try {
         const protyleInstance = context.protyleRef!.getInstance?.()
         if (protyleInstance) {
           protyleInstance.transaction(doOperations, undoOperations)
+          committed = true
         } else {
           console.warn('[search-replace] protyle instance not found for batch replacement')
         }
       } catch (e) {
         console.warn('[search-replace] protyle transaction failed', e)
-        // Fallback for batch replacement might be risky, simply let it pass
+        // 事务失败时不再回退逐块重写：重试可能基于过期 DOM 造成二次破坏
+      }
+
+      if (committed) {
+        replacedCount += preparedReplacedCount
+        skippedCount += preparedSkippedCount
+      } else {
+        skippedCount += preparedReplacedCount + preparedSkippedCount
       }
     }
 
@@ -305,9 +323,7 @@ export async function replaceAllMatches({
       skippedCount,
     })
     showMessage(t('replaceAllResult', { replacedCount, skippedCount }), 4000, 'info')
-  } finally {
-    state.busy = false
-  }
+  })
 }
 
 async function resolveBlockElement({

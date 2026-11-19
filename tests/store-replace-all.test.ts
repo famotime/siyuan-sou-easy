@@ -421,6 +421,131 @@ describe('search store replaceAll', () => {
       'error',
     )
   })
+
+  it('rejects concurrent replace-all invocations via synchronous busy claim', async () => {
+    searchReplaceState.visible = true
+    searchReplaceState.query = 'foo'
+    searchReplaceState.replacement = 'bar'
+    searchReplaceState.matches = [{
+      blockId: 'block-1',
+      blockIndex: 0,
+      blockType: 'NodeParagraph',
+      end: 3,
+      id: 'block-1:0:3',
+      matchedText: 'foo',
+      previewText: '[foo]',
+      replaceable: true,
+      rootId: 'root-1',
+      start: 0, occ: 0,
+    }]
+
+    editorMocks.getBlockElement.mockReturnValue({ dataset: { nodeId: 'block-1' } } as HTMLElement)
+    let applyCalls = 0
+    editorMocks.applyReplacementsToClone.mockImplementation(() => {
+      applyCalls += 1
+      return {
+        appliedCount: 1,
+        clone: { outerHTML: '<div data-node-id="block-1">bar</div>' },
+      }
+    })
+    // applyReplacementsToClone 是同步契约，用延迟的内核写盘制造并发交叠窗口
+    kernelMocks.updateDomBlock.mockImplementation(async () => {
+      await new Promise(resolve => setTimeout(resolve, 20))
+      return null
+    })
+
+    const first = replaceAll()
+    const second = replaceAll()
+    await Promise.all([first, second])
+
+    // busy 在任何 await 之前同步置位，第二次调用必须在入口被拒绝
+    expect(applyCalls).toBe(1)
+    expect(kernelMocks.updateDomBlock).toHaveBeenCalledTimes(1)
+    expect(searchReplaceState.busy).toBe(false)
+  })
+
+  it('does not report replaced matches when the protyle transaction fails', async () => {
+    searchReplaceState.visible = true
+    searchReplaceState.query = 'foo'
+    searchReplaceState.replacement = 'bar'
+    searchReplaceState.matches = [{
+      blockId: 'block-1',
+      blockIndex: 0,
+      blockType: 'NodeParagraph',
+      end: 3,
+      id: 'block-1:0:3',
+      matchedText: 'foo',
+      previewText: '[foo]',
+      replaceable: true,
+      rootId: 'root-1',
+      start: 0, occ: 0,
+    }]
+
+    editorMocks.getBlockElement.mockReturnValue({ dataset: { nodeId: 'block-1' } } as HTMLElement)
+    editorMocks.applyReplacementsToClone.mockReturnValue({
+      appliedCount: 1,
+      clone: { outerHTML: '<div data-node-id="block-1">bar</div>' },
+    })
+    editorMocks.state.context = {
+      protyle: { isConnected: true } as HTMLElement,
+      protyleRef: {
+        disabled: false,
+        getInstance: () => ({
+          transaction: () => {
+            throw new Error('transaction failed')
+          },
+        }),
+      },
+      rootId: 'root-1',
+      title: 'Doc 1',
+    } as any
+
+    await replaceAll()
+
+    // 事务提交失败：不计入替换数（不再假成功），也不回退逐块重写
+    expect(kernelMocks.updateDomBlock).not.toHaveBeenCalled()
+    expect(siyuan.showMessage).toHaveBeenCalledWith('替换完成：0 处，跳过 1 处', 4000, 'info')
+  })
+
+  it('counts replaced matches only after the protyle transaction commits', async () => {
+    searchReplaceState.visible = true
+    searchReplaceState.query = 'foo'
+    searchReplaceState.replacement = 'bar'
+    searchReplaceState.matches = [{
+      blockId: 'block-1',
+      blockIndex: 0,
+      blockType: 'NodeParagraph',
+      end: 3,
+      id: 'block-1:0:3',
+      matchedText: 'foo',
+      previewText: '[foo]',
+      replaceable: true,
+      rootId: 'root-1',
+      start: 0, occ: 0,
+    }]
+
+    editorMocks.getBlockElement.mockReturnValue({ dataset: { nodeId: 'block-1' } } as HTMLElement)
+    editorMocks.applyReplacementsToClone.mockReturnValue({
+      appliedCount: 1,
+      clone: { outerHTML: '<div data-node-id="block-1">bar</div>' },
+    })
+    const transactionSpy = vi.fn()
+    editorMocks.state.context = {
+      protyle: { isConnected: true } as HTMLElement,
+      protyleRef: {
+        disabled: false,
+        getInstance: () => ({ transaction: transactionSpy }),
+      },
+      rootId: 'root-1',
+      title: 'Doc 1',
+    } as any
+
+    await replaceAll()
+
+    expect(transactionSpy).toHaveBeenCalledTimes(1)
+    expect(kernelMocks.updateDomBlock).not.toHaveBeenCalled()
+    expect(siyuan.showMessage).toHaveBeenCalledWith('替换完成：1 处，跳过 0 处', 4000, 'info')
+  })
 })
 
 function resetState() {
