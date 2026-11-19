@@ -59,6 +59,7 @@ vi.mock('@/settings', () => ({
   DEFAULT_SETTINGS: {
     debugLog: false,
     defaultReplaceVisible: false,
+    globalSearchHotkey: 'Ctrl+Shift+F',
     includeCodeBlock: false,
     minimapVisible: false,
     panelHotkey: 'Ctrl+F11',

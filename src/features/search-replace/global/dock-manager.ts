@@ -9,6 +9,13 @@ import { cancelActiveBatchReplace } from './replace-engine'
 let dockApp: VueApp<Element> | null = null
 let currentDockContainer: HTMLElement | null = null
 let searchInputElement: HTMLInputElement | null = null
+let focusSearchTimer = 0
+
+const DOCK_TAB_SELECTOR = '[data-type="siyuan-sou-easy-dock-tab"]'
+
+function findDockTabButton(): HTMLElement | null {
+  return document.querySelector<HTMLElement>(DOCK_TAB_SELECTOR)
+}
 
 export function registerGlobalSearchInput(input: HTMLInputElement | null) {
   searchInputElement = input
@@ -39,6 +46,7 @@ export function destroyGlobalSearchDock() {
   // Dock 销毁（含插件卸载）时中止仍在运行的批量替换批次，
   // 避免卸载后继续向内核写入变更
   cancelActiveBatchReplace()
+  window.clearTimeout(focusSearchTimer)
   if (dockApp) {
     dockApp.unmount()
     dockApp = null
@@ -48,11 +56,18 @@ export function destroyGlobalSearchDock() {
 }
 
 /**
- * 判断当前全库搜索 Dock 是否已在界面上处于展开且激活的可见状态
+ * 判断当前全库搜索 Dock 是否已在界面上处于展开状态。
+ *
+ * 以思源自身维护的 tab 激活态（dock__item--active）为权威信号——
+ * 思源以该 class 决定并持久化面板 show 状态（layout/dock/index.ts）。
+ * 不再用 offsetParent 探测：fixed 定位祖先链会使其恒为 null。
  */
 export function isGlobalSearchDockVisible(): boolean {
-  if (!currentDockContainer) return false
-  return currentDockContainer.offsetParent !== null
+  if (!currentDockContainer) {
+    return false
+  }
+
+  return findDockTabButton()?.classList.contains('dock__item--active') ?? false
 }
 
 /**
@@ -100,7 +115,7 @@ export function returnFocusToActiveEditor() {
  * 关闭/折叠全库搜索 Dock，并将焦点归还主编辑器
  */
 export function closeGlobalSearchDockAndReturnFocus() {
-  const tabBtn = document.querySelector<HTMLElement>('[data-type="siyuan-sou-easy-dock-tab"]')
+  const tabBtn = findDockTabButton()
   if (tabBtn && isGlobalSearchDockVisible()) {
     tabBtn.click()
   }
@@ -112,7 +127,7 @@ export function closeGlobalSearchDockAndReturnFocus() {
  * @param replace 是否同时展开替换输入行
  */
 export function toggleGlobalSearchDock(replace = false) {
-  const tabBtn = document.querySelector<HTMLElement>('[data-type="siyuan-sou-easy-dock-tab"]')
+  const tabBtn = findDockTabButton()
 
   // 若当前已可见且输入框已获得焦点：执行 Toggle 收起侧栏并归还焦点
   if (isGlobalSearchDockVisible() && isGlobalSearchInputFocused()) {
@@ -131,18 +146,29 @@ export function toggleGlobalSearchDock(replace = false) {
     globalSearchState.replaceVisible = true
   }
 
-  // 3. 激活或展开 Dock
-  if (!isGlobalSearchDockVisible()) {
-    if (tabBtn) {
-      tabBtn.click()
-    }
+  // 3. 激活或聚焦 Dock。可见性按 {关闭, 本 tab 激活, 其他 tab 激活} 区分：
+  //    本 tab 已激活时再点击 tab 按钮会被思源切换为折叠，因此只聚焦搜索框；
+  //    其他 tab 激活时才点击 tabBtn 切换至本插件。
+  if (isGlobalSearchDockVisible()) {
+    // 本 tab 已激活，无需点击
   } else if (tabBtn) {
-    // 侧栏已打开但可能处于其他 Tab，点击 tabBtn 切换至本插件
     tabBtn.click()
   }
 
-  // 4. 聚焦搜索输入框
-  setTimeout(() => {
-    focusAndSelectGlobalSearchInput()
+  // 4. 聚焦搜索输入框（带有限重试，等待 Dock 展开动画完成）
+  scheduleFocusSearchInput()
+}
+
+function scheduleFocusSearchInput(attempt = 0) {
+  window.clearTimeout(focusSearchTimer)
+  focusSearchTimer = window.setTimeout(() => {
+    if (isGlobalSearchDockVisible()) {
+      focusAndSelectGlobalSearchInput()
+      return
+    }
+
+    if (attempt < 5) {
+      scheduleFocusSearchInput(attempt + 1)
+    }
   }, 100)
 }

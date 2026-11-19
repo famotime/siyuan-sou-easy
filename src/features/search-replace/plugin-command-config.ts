@@ -96,6 +96,15 @@ export function syncPanelCommandHotkeys({
     command.hotkey = toRegisteredHotkey(DEFAULT_SETTINGS[definition.defaultHotkey])
     command.customHotkey = toRegisteredHotkey(settings[definition.settingKey])
   })
+
+  // openGlobalSearch 命令不属于面板命令定义，但设置中修改 globalSearchHotkey
+  // 时必须同步其注册热键，否则旧热键仍可通过思源命令系统触发（幽灵热键）。
+  // Dock config.hotkey 无法在运行期更新，需重载插件后生效。
+  const globalSearchCommand = commands.find(candidate => candidate.langKey === 'openGlobalSearch')
+  if (globalSearchCommand) {
+    globalSearchCommand.hotkey = toRegisteredHotkey(DEFAULT_SETTINGS.globalSearchHotkey || 'Ctrl+Shift+F')
+    globalSearchCommand.customHotkey = toRegisteredHotkey(settings.globalSearchHotkey || 'Ctrl+Shift+F')
+  }
 }
 
 export function getPanelCommandLangKey(settingKey: HotkeySettingKey): PanelCommandLangKey {
