@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it, vi } from 'vitest'
+import type { RawBlockRecord } from '@/features/search-replace/global/types'
+import {
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import {
   cleanMarkdownFormatting,
   extractTableRowSnippet,
@@ -13,9 +19,8 @@ import {
   isBlockVisibleInActiveEditor,
   scrollAndHighlightTableRow,
 } from '@/features/search-replace/global/store'
-import type { RawBlockRecord } from '@/features/search-replace/global/types'
 
-describe('Global search table row parsing and positioning', () => {
+describe('global search table row parsing and positioning', () => {
   const sampleTableMarkdown = `
 | 排名 | 文件名 | 文档大小 |
 | ------| --------| ----------|
@@ -73,11 +78,15 @@ describe('Global search table row parsing and positioning', () => {
       const line = '4 | 2元起淘，深圳的「旧货市场」是有多好逛？ | 171.6 MB'
       const start = line.indexOf('深圳')
       const snippet = extractTableRowSnippet(line, [
-        { start, end: start + 2, text: '深圳' },
+        {
+          start,
+          end: start + 2,
+          text: '深圳',
+        },
       ])
 
       expect(snippet.previewText).toBe(line)
-      expect(snippet.segments.some(s => s.text === '深圳' && s.isMatch)).toBe(true)
+      expect(snippet.segments.some((s) => s.text === '深圳' && s.isMatch)).toBe(true)
       expect(snippet.segments[0].text).toBe('4 | 2元起淘，')
       expect(snippet.segments[0].isMatch).toBe(false)
     })
@@ -88,11 +97,19 @@ describe('Global search table row parsing and positioning', () => {
       const secondIdx = line.lastIndexOf('深圳')
 
       const snippet = extractTableRowSnippet(line, [
-        { start: firstIdx, end: firstIdx + 2, text: '深圳' },
-        { start: secondIdx, end: secondIdx + 2, text: '深圳' },
+        {
+          start: firstIdx,
+          end: firstIdx + 2,
+          text: '深圳',
+        },
+        {
+          start: secondIdx,
+          end: secondIdx + 2,
+          text: '深圳',
+        },
       ])
 
-      const matchSegments = snippet.segments.filter(s => s.isMatch)
+      const matchSegments = snippet.segments.filter((s) => s.isMatch)
       expect(matchSegments).toHaveLength(2)
       expect(matchSegments[0].text).toBe('深圳')
       expect(matchSegments[1].text).toBe('深圳')
@@ -116,7 +133,7 @@ describe('Global search table row parsing and positioning', () => {
       expect(matches[1].tableRowIndex).toBe(4)
       expect(matches[1].tableRowText).toContain('6 | 深圳最冷门海边小镇')
       expect(matches[1].matchedCellText).toBe('深圳最冷门海边小镇，藏着一片深圳小众蓝宝石海')
-      const highlightedSegs = matches[1].segments.filter(s => s.isMatch)
+      const highlightedSegs = matches[1].segments.filter((s) => s.isMatch)
       expect(highlightedSegs).toHaveLength(2)
     })
   })

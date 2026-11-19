@@ -9,6 +9,11 @@ import {
   vi,
 } from 'vitest'
 
+import {
+  destroyReplaceHistoryTab,
+  initReplaceHistoryTab,
+} from '@/features/search-replace/global/history-tab-manager'
+
 const unmountSpy = vi.fn()
 
 vi.mock('vue', async (importOriginal) => {
@@ -26,11 +31,6 @@ vi.mock('vue', async (importOriginal) => {
     }),
   }
 })
-
-import {
-  destroyReplaceHistoryTab,
-  initReplaceHistoryTab,
-} from '@/features/search-replace/global/history-tab-manager'
 
 describe('replace history tab manager lifecycle', () => {
   beforeEach(() => {

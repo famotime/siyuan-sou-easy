@@ -1,23 +1,19 @@
 export {
-  createEditorContextFromElement,
-  createEditorContextFromProtyleLike,
-  findEditorContextByRootId,
-  getActiveEditorContext,
-  type EditorProtyleLike,
-} from './editor/context'
-export {
   collectSearchableBlocks,
   collectSearchableBlocksFromDocumentContent,
   createBlockElementFromDom,
-  getBlockTextLength,
   getBlockElement,
   getBlockPlainText,
+  getBlockTextLength,
   getUniqueBlockElements,
 } from './editor/blocks'
 export {
-  getCurrentSelectionScope,
-  getCurrentSelectionText,
-} from './editor/selection'
+  createEditorContextFromElement,
+  createEditorContextFromProtyleLike,
+  type EditorProtyleLike,
+  findEditorContextByRootId,
+  getActiveEditorContext,
+} from './editor/context'
 export {
   buildPreview,
   clearSearchDecorations,
@@ -29,3 +25,7 @@ export {
   applyReplacementsToClone,
   isRangeReplaceable,
 } from './editor/replacement'
+export {
+  getCurrentSelectionScope,
+  getCurrentSelectionText,
+} from './editor/selection'

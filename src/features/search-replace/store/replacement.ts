@@ -1,6 +1,16 @@
-import { showMessage, type IOperation } from 'siyuan'
-import { debugLog } from '../debug'
+import type { IOperation } from 'siyuan'
+import type {
+  EditorContext,
+  SearchMatch,
+} from '../types'
+import type { SearchReplaceState } from './state'
+import {
+
+  showMessage,
+} from 'siyuan'
+import { t } from '@/i18n/runtime'
 import { replaceCanvasMatchGroups } from '../canvas/replacement'
+import { debugLog } from '../debug'
 import {
   hasAttributeViewMatches,
   hasCanvasMatches,
@@ -8,12 +18,6 @@ import {
   isAttributeViewMatch,
   isCanvasMatch,
 } from '../match-utils'
-import type {
-  EditorContext,
-  SearchMatch,
-} from '../types'
-import { t } from '@/i18n/runtime'
-import type { SearchReplaceState } from './state'
 
 interface ReplaceCurrentDependencies {
   applyReplacementsToClone: typeof import('../editor').applyReplacementsToClone
@@ -251,7 +255,7 @@ export async function replaceAllMatches({
     let preparedReplacedCount = 0
     let preparedSkippedCount = 0
 
-    const missingBlockIds = Array.from(groupedMatches.keys()).filter(blockId => !getBlockElement(context, blockId))
+    const missingBlockIds = Array.from(groupedMatches.keys()).filter((blockId) => !getBlockElement(context, blockId))
     const fallbackDoms = missingBlockIds.length
       ? await getBlockDoms(missingBlockIds)
       : {}
@@ -277,8 +281,16 @@ export async function replaceAllMatches({
       }
 
       if (canUseTransaction) {
-        doOperations.push({ action: 'update', id: blockId, data: outcome.clone.outerHTML })
-        undoOperations.push({ action: 'update', id: blockId, data: blockElement.outerHTML })
+        doOperations.push({
+          action: 'update',
+          id: blockId,
+          data: outcome.clone.outerHTML,
+        })
+        undoOperations.push({
+          action: 'update',
+          id: blockId,
+          data: blockElement.outerHTML,
+        })
         preparedReplacedCount += outcome.appliedCount
         preparedSkippedCount += Math.max(0, matches.length - outcome.appliedCount)
       } else {
@@ -322,7 +334,10 @@ export async function replaceAllMatches({
       replacedCount,
       skippedCount,
     })
-    showMessage(t('replaceAllResult', { replacedCount, skippedCount }), 4000, 'info')
+    showMessage(t('replaceAllResult', {
+      replacedCount,
+      skippedCount,
+    }), 4000, 'info')
   })
 }
 

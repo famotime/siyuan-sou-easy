@@ -56,8 +56,14 @@ describe('selection search scope', () => {
     const scope = getCurrentSelectionScope(context!)
 
     expect(Array.from(scope.entries())).toEqual([
-      ['block-1', [{ start: 6, end: 10 }]],
-      ['block-2', [{ start: 0, end: 5 }]],
+      ['block-1', [{
+        start: 6,
+        end: 10,
+      }]],
+      ['block-2', [{
+        start: 0,
+        end: 5,
+      }]],
     ])
   })
 
@@ -93,7 +99,10 @@ describe('selection search scope', () => {
     const scope = getCurrentSelectionScope(context!)
 
     expect(Array.from(scope.entries())).toEqual([
-      ['block-1', [{ start: 3, end: 6 }]],
+      ['block-1', [{
+        start: 3,
+        end: 6,
+      }]],
     ])
   })
 
@@ -125,33 +134,45 @@ describe('selection search scope', () => {
     const scope = getCurrentSelectionScope(context!)
 
     expect(Array.from(scope.entries())).toEqual([
-      ['cell-1', [{ start: 5, end: 10 }]],
-      ['block-table', [{ start: 5, end: 10 }]],
+      ['cell-1', [{
+        start: 5,
+        end: 10,
+      }]],
+      ['block-table', [{
+        start: 5,
+        end: 10,
+      }]],
     ])
   })
 
   it('treats selected list items as full selection ranges when the selection class is applied on inner content', () => {
-    document.body.innerHTML =       '<div class="protyle">' +
-      '<div class="protyle-background" data-node-id="root-1"></div>' +
-      '<div class="protyle-title" data-node-id="root-1"></div>' +
-      '<input class="protyle-title__input" value="Doc 1" />' +
-      '<div class="protyle-wysiwyg">' +
-      '  <div data-node-id="item-1" data-type="NodeListItem">' +
-      '    <div contenteditable="true" class="protyle-wysiwyg--select">First item foo</div>' +
-      '  </div>' +
-      '  <div data-node-id="item-2" data-type="NodeListItem">' +
-      '    <div contenteditable="true" class="protyle-wysiwyg--select">Second item bar</div>' +
-      '  </div>' +
-      '</div>' +
-      '</div>'
+    document.body.innerHTML = '<div class="protyle">'
+      + '<div class="protyle-background" data-node-id="root-1"></div>'
+      + '<div class="protyle-title" data-node-id="root-1"></div>'
+      + '<input class="protyle-title__input" value="Doc 1" />'
+      + '<div class="protyle-wysiwyg">'
+      + '  <div data-node-id="item-1" data-type="NodeListItem">'
+      + '    <div contenteditable="true" class="protyle-wysiwyg--select">First item foo</div>'
+      + '  </div>'
+      + '  <div data-node-id="item-2" data-type="NodeListItem">'
+      + '    <div contenteditable="true" class="protyle-wysiwyg--select">Second item bar</div>'
+      + '  </div>'
+      + '</div>'
+      + '</div>'
 
     const protyle = document.querySelector<HTMLElement>('.protyle')!
     const context = createEditorContextFromElement(protyle)
     const scope = getCurrentSelectionScope(context!)
 
     expect(Array.from(scope.entries())).toEqual([
-      ['item-1', [{ start: 0, end: 14 }]],
-      ['item-2', [{ start: 0, end: 15 }]],
+      ['item-1', [{
+        start: 0,
+        end: 14,
+      }]],
+      ['item-2', [{
+        start: 0,
+        end: 15,
+      }]],
     ])
   })
 
@@ -177,8 +198,14 @@ describe('selection search scope', () => {
     const scope = getCurrentSelectionScope(context!)
 
     expect(Array.from(scope.entries())).toEqual([
-      ['block-1', [{ start: 0, end: 10 }]],
-      ['block-2', [{ start: 0, end: 11 }]],
+      ['block-1', [{
+        start: 0,
+        end: 10,
+      }]],
+      ['block-2', [{
+        start: 0,
+        end: 11,
+      }]],
     ])
   })
 
@@ -210,8 +237,14 @@ describe('selection search scope', () => {
     const scope = getCurrentSelectionScope(context!)
 
     expect(Array.from(scope.entries())).toEqual([
-      ['paragraph-1', [{ start: 0, end: 14 }]],
-      ['paragraph-2', [{ start: 0, end: 15 }]],
+      ['paragraph-1', [{
+        start: 0,
+        end: 14,
+      }]],
+      ['paragraph-2', [{
+        start: 0,
+        end: 15,
+      }]],
     ])
   })
 })

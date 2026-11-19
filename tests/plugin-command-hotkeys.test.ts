@@ -1,5 +1,9 @@
 // @vitest-environment jsdom
 
+import type {
+  App,
+  IProtyle,
+} from 'siyuan'
 import {
   beforeEach,
   describe,
@@ -7,10 +11,13 @@ import {
   it,
   vi,
 } from 'vitest'
-import type { App, IProtyle } from 'siyuan'
 
 // siyuan 类型声明的 Plugin 构造需要 { app, name, i18n }；运行时 mock 无参构造会忽略该参数
-const pluginOptions = { app: {} as App, name: 'siyuan-sou-easy', i18n: {} }
+const pluginOptions = {
+  app: {} as App,
+  name: 'siyuan-sou-easy',
+  i18n: {},
+}
 
 const storeState = vi.hoisted(() => ({
   searchReplaceState: {
@@ -74,7 +81,7 @@ vi.mock('@/settings', () => ({
   },
   SETTINGS_STORAGE: 'settings.json',
   loadSettings,
-  normalizeSettings: vi.fn(value => value),
+  normalizeSettings: vi.fn((value) => value),
   saveSettings: vi.fn(),
 }))
 
@@ -125,7 +132,7 @@ describe('plugin command hotkeys', () => {
 
     await plugin.onload()
 
-    const panelCommand = plugin.commands.find(command => command.langKey === 'togglePanel')
+    const panelCommand = plugin.commands.find((command) => command.langKey === 'togglePanel')
     const protyle = {
       block: {
         rootID: 'root-1',

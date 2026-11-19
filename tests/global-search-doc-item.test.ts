@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import type { DocAggregateNode } from '@/features/search-replace/global/types'
 import {
   afterEach,
   beforeEach,
@@ -12,9 +13,8 @@ import {
   nextTick,
 } from 'vue'
 import DocAggregateItem from '@/features/search-replace/global/ui/DocAggregateItem.vue'
-import type { DocAggregateNode } from '@/features/search-replace/global/types'
 
-describe('DocAggregateItem badge rendering', () => {
+describe('docAggregateItem badge rendering', () => {
   let host: HTMLDivElement | null = null
   let app: ReturnType<typeof createApp> | null = null
 
@@ -51,8 +51,14 @@ describe('DocAggregateItem badge rendering', () => {
           suffixText: '最长环湖绿道...',
           previewText: '深圳最长环湖绿道...',
           segments: [
-            { text: '深圳', isMatch: true },
-            { text: '最长环湖绿道...', isMatch: false },
+            {
+              text: '深圳',
+              isMatch: true,
+            },
+            {
+              text: '最长环湖绿道...',
+              isMatch: false,
+            },
           ],
           fullContent: '深圳最长环湖绿道...',
           sort: 0,
@@ -74,9 +80,18 @@ describe('DocAggregateItem badge rendering', () => {
           suffixText: '亲子部落',
           previewText: '本文转载自深圳亲子部落',
           segments: [
-            { text: '本文转载自', isMatch: false },
-            { text: '深圳', isMatch: true },
-            { text: '亲子部落', isMatch: false },
+            {
+              text: '本文转载自',
+              isMatch: false,
+            },
+            {
+              text: '深圳',
+              isMatch: true,
+            },
+            {
+              text: '亲子部落',
+              isMatch: false,
+            },
           ],
           fullContent: '本文转载自深圳亲子部落',
           sort: 1,
@@ -125,7 +140,10 @@ describe('DocAggregateItem badge rendering', () => {
           prefixText: '',
           suffixText: '',
           previewText: '二级标题内容',
-          segments: [{ text: '标题词', isMatch: true }],
+          segments: [{
+            text: '标题词',
+            isMatch: true,
+          }],
           fullContent: '二级标题内容',
           sort: 1,
           updated: '20261005120000',
@@ -146,7 +164,10 @@ describe('DocAggregateItem badge rendering', () => {
           prefixText: '',
           suffixText: '',
           previewText: '三级标题',
-          segments: [{ text: '标题词', isMatch: true }],
+          segments: [{
+            text: '标题词',
+            isMatch: true,
+          }],
           fullContent: '三级标题',
           sort: 2,
           updated: '20261005120000',
@@ -166,7 +187,10 @@ describe('DocAggregateItem badge rendering', () => {
           prefixText: '',
           suffixText: '',
           previewText: '自定义组件内容',
-          segments: [{ text: '组件词', isMatch: true }],
+          segments: [{
+            text: '组件词',
+            isMatch: true,
+          }],
           fullContent: '自定义组件内容',
           sort: 3,
           updated: '20261005120000',

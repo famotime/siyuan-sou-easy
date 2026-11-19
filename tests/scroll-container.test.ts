@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import type { EditorContext } from '@/features/search-replace/types'
+
 import {
   afterEach,
   describe,
@@ -7,9 +9,7 @@ import {
   it,
   vi,
 } from 'vitest'
-
 import { resolveEditorScrollContainer } from '@/features/search-replace/editor/scroll-container'
-import type { EditorContext } from '@/features/search-replace/types'
 
 describe('editor scroll container', () => {
   afterEach(() => {

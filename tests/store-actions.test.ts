@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { showMessage } from 'siyuan'
+
 import {
   afterEach,
   beforeEach,
@@ -8,9 +10,22 @@ import {
   it,
   vi,
 } from 'vitest'
+import {
+  applyPluginSettings,
+  closePanel,
+  extractAll,
+  onEditorContextChanged,
+  openPanel,
+  replaceAll,
+  replaceCurrent,
+  searchReplaceState,
+  unbindPlugin,
+} from '@/features/search-replace/store'
 
-import { showMessage } from 'siyuan'
-import { DEFAULT_SETTINGS, createSearchOptionsFromSettings } from '@/settings'
+import {
+  createSearchOptionsFromSettings,
+  DEFAULT_SETTINGS,
+} from '@/settings'
 
 const editorMocks = vi.hoisted(() => {
   const state = {
@@ -68,18 +83,6 @@ const kernelMocks = vi.hoisted(() => ({
 vi.mock('@/features/search-replace/editor', () => editorMocks)
 vi.mock('@/features/search-replace/search-engine', () => searchEngineMocks)
 vi.mock('@/features/search-replace/kernel', () => kernelMocks)
-
-import {
-  applyPluginSettings,
-  closePanel,
-  extractAll,
-  onEditorContextChanged,
-  openPanel,
-  replaceAll,
-  replaceCurrent,
-  searchReplaceState,
-  unbindPlugin,
-} from '@/features/search-replace/store'
 
 describe('search store actions', () => {
   beforeEach(() => {
@@ -236,8 +239,14 @@ describe('search store actions', () => {
       1,
       blockElements['block-1'],
       expect.arrayContaining([
-        expect.objectContaining({ blockId: 'block-1', start: 0 }),
-        expect.objectContaining({ blockId: 'block-1', start: 8 }),
+        expect.objectContaining({
+          blockId: 'block-1',
+          start: 0,
+        }),
+        expect.objectContaining({
+          blockId: 'block-1',
+          start: 8,
+        }),
       ]),
       'bar',
       { preserveCase: false },
@@ -245,7 +254,10 @@ describe('search store actions', () => {
     expect(editorMocks.applyReplacementsToClone).toHaveBeenNthCalledWith(
       2,
       blockElements['block-2'],
-      [expect.objectContaining({ blockId: 'block-2', start: 0 })],
+      [expect.objectContaining({
+        blockId: 'block-2',
+        start: 0,
+      })],
       'bar',
       { preserveCase: false },
     )
@@ -292,9 +304,18 @@ describe('search store actions', () => {
 
     // Simulate SQL returning records in reverse or random order
     kernelMocks.querySql.mockResolvedValueOnce([
-      { id: 'block-third', markdown: 'Third block content' },
-      { id: 'block-first', markdown: 'First block content' },
-      { id: 'block-second', markdown: 'Second block content' },
+      {
+        id: 'block-third',
+        markdown: 'Third block content',
+      },
+      {
+        id: 'block-first',
+        markdown: 'First block content',
+      },
+      {
+        id: 'block-second',
+        markdown: 'Second block content',
+      },
     ])
 
     await extractAll()
@@ -317,8 +338,16 @@ describe('search store actions', () => {
 
     searchReplaceState.settings.extractAsBlockRef = true
     searchReplaceState.matches = [
-      { ...createMatch('block-1', 0, 3), matchedText: 'First', previewText: '[First]' },
-      { ...createMatch('block-2', 0, 3), matchedText: 'Second', previewText: '[Second]' },
+      {
+        ...createMatch('block-1', 0, 3),
+        matchedText: 'First',
+        previewText: '[First]',
+      },
+      {
+        ...createMatch('block-2', 0, 3),
+        matchedText: 'Second',
+        previewText: '[Second]',
+      },
     ]
 
     await extractAll()

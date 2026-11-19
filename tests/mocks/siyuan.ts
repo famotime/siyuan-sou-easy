@@ -25,7 +25,7 @@ export const showMessage = vi.fn()
 export const getAllEditor = vi.fn(() => [])
 
 export const adaptHotkey = vi.fn((hotkey: string) => {
-  const tokens = hotkey.split('+').map(token => token.trim()).filter(Boolean)
+  const tokens = hotkey.split('+').map((token) => token.trim()).filter(Boolean)
   const modifierMap: Record<string, string> = {
     Win: '⌃',
     Alt: '⌥',
@@ -34,10 +34,10 @@ export const adaptHotkey = vi.fn((hotkey: string) => {
   }
   const modifierOrder = ['Win', 'Alt', 'Shift', 'Ctrl']
   const modifiers = modifierOrder
-    .filter(modifier => tokens.includes(modifier))
-    .map(modifier => modifierMap[modifier] ?? '')
+    .filter((modifier) => tokens.includes(modifier))
+    .map((modifier) => modifierMap[modifier] ?? '')
     .join('')
-  const key = tokens.find(token => !modifierOrder.includes(token)) ?? ''
+  const key = tokens.find((token) => !modifierOrder.includes(token)) ?? ''
   return `${modifiers}${key}`
 })
 
@@ -55,6 +55,7 @@ export class Plugin {
     off() {},
     on() {},
   }
+
   public i18n: Record<string, string> = {}
 
   addCommand(command: any) {

@@ -55,16 +55,18 @@ const editorMocks = vi.hoisted(() => {
 const searchEngineMocks = vi.hoisted(() => ({
   findMatches: vi.fn((_blocks: any, query: string) => ({
     error: '',
-    matches: query ? [
-      {
-        blockId: 'block-1',
-        end: 3,
-        id: 'm1',
-        matchedText: query,
-        occ: 0,
-        start: 0,
-      },
-    ] : [],
+    matches: query
+      ? [
+          {
+            blockId: 'block-1',
+            end: 3,
+            id: 'm1',
+            matchedText: query,
+            occ: 0,
+            start: 0,
+          },
+        ]
+      : [],
   })),
 }))
 
@@ -207,8 +209,22 @@ describe('searchOnEnter behavior', () => {
     searchEngineMocks.findMatches.mockReturnValue({
       error: '',
       matches: [
-        { blockId: 'block-1', end: 3, id: 'm1', matchedText: 'foo', occ: 0, start: 0 },
-        { blockId: 'block-1', end: 11, id: 'm2', matchedText: 'foo', occ: 0, start: 8 },
+        {
+          blockId: 'block-1',
+          end: 3,
+          id: 'm1',
+          matchedText: 'foo',
+          occ: 0,
+          start: 0,
+        },
+        {
+          blockId: 'block-1',
+          end: 11,
+          id: 'm2',
+          matchedText: 'foo',
+          occ: 0,
+          start: 8,
+        },
       ],
     })
 

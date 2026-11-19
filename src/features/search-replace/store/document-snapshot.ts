@@ -1,12 +1,12 @@
-import {
-  collectSearchableBlocksFromDocumentContent,
-  collectSearchableBlocks,
-} from '../editor'
 import type {
   EditorContext,
-  SearchOptions,
   SearchableBlock,
+  SearchOptions,
 } from '../types'
+import {
+  collectSearchableBlocks,
+  collectSearchableBlocksFromDocumentContent,
+} from '../editor'
 
 interface SnapshotCacheEntry {
   blocks: SearchableBlock[]

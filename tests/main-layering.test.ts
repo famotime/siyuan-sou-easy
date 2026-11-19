@@ -82,7 +82,10 @@ describe('plugin host layering', () => {
   })
 
   it('resets the module session state when the host is destroyed', async () => {
-    const { init, destroy } = await import('@/main')
+    const {
+      init,
+      destroy,
+    } = await import('@/main')
     await init({} as any)
 
     destroy()

@@ -1,5 +1,10 @@
 // @vitest-environment jsdom
 
+import type {
+  EditorContext,
+  SearchMatch,
+} from '@/features/search-replace/types'
+
 import {
   afterEach,
   describe,
@@ -7,15 +12,10 @@ import {
   it,
   vi,
 } from 'vitest'
-
 import {
   isMatchVisible,
   scrollMatchIntoView,
 } from '@/features/search-replace/editor'
-import type {
-  EditorContext,
-  SearchMatch,
-} from '@/features/search-replace/types'
 
 const originalRangeGetBoundingClientRect = Object.getOwnPropertyDescriptor(Range.prototype, 'getBoundingClientRect')
 const originalRangeGetClientRects = Object.getOwnPropertyDescriptor(Range.prototype, 'getClientRects')
@@ -28,7 +28,10 @@ describe('match scrolling', () => {
   })
 
   it('does not scroll when the current match is already visible and scrolling is if-needed', () => {
-    const { block, context } = setupEditor()
+    const {
+      block,
+      context,
+    } = setupEditor()
     const scrollSpy = vi.fn()
     block.scrollIntoView = scrollSpy
 
@@ -50,7 +53,10 @@ describe('match scrolling', () => {
   })
 
   it('scrolls when the current match is outside the visible range and scrolling is if-needed', () => {
-    const { block, context } = setupEditor()
+    const {
+      block,
+      context,
+    } = setupEditor()
     const scrollSpy = vi.fn()
     block.scrollIntoView = scrollSpy
 
@@ -237,7 +243,8 @@ describe('match scrolling', () => {
       previewText: 'Alpha Beta [Gamma] Delta',
       replaceable: true,
       rootId: 'root-1',
-      start: 11, occ: 0,
+      start: 11,
+      occ: 0,
     }, 'if-needed')
 
     expect(result).toBe('scrolled')
@@ -329,7 +336,8 @@ describe('match scrolling', () => {
       previewText: 'const beta = 2; const [gamma] = 3;',
       replaceable: true,
       rootId: 'root-1',
-      start: 45, occ: 0,
+      start: 45,
+      occ: 0,
     }, 'if-needed')
 
     expect(result).toBe('scrolled')
@@ -412,7 +420,8 @@ describe('match scrolling', () => {
       previewText: 'Cell AlphaCell [Beta]',
       replaceable: true,
       rootId: 'root-1',
-      start: 15, occ: 0,
+      start: 15,
+      occ: 0,
     }, 'if-needed')
 
     expect(result).toBe('scrolled')
@@ -485,7 +494,8 @@ describe('match scrolling', () => {
       previewText: 'Cell AlphaCell [Beta]',
       replaceable: true,
       rootId: 'root-1',
-      start: 15, occ: 0,
+      start: 15,
+      occ: 0,
     }, 'if-needed')
 
     expect(result).toBe('scrolled')
@@ -582,7 +592,8 @@ describe('match scrolling', () => {
       previewText: 'Cell AlphaCell [Beta]',
       replaceable: true,
       rootId: 'root-1',
-      start: 15, occ: 0,
+      start: 15,
+      occ: 0,
     }, 'if-needed')
 
     expect(result).toBe('scrolled')
@@ -681,7 +692,8 @@ describe('match scrolling', () => {
       previewText: 'Cell [Alpha]',
       replaceable: true,
       rootId: 'root-1',
-      start: 5, occ: 0,
+      start: 5,
+      occ: 0,
     }
 
     const context = protyleContext(protyle)
@@ -787,7 +799,8 @@ describe('match scrolling', () => {
       previewText: 'Cell AlphaCell [Beta]',
       replaceable: true,
       rootId: 'root-1',
-      start: 100, occ: 0,
+      start: 100,
+      occ: 0,
       table: {
         cellEnd: 19,
         cellId: 'cell-2',
@@ -894,7 +907,8 @@ describe('match scrolling', () => {
       previewText: 'Cell AlphaCell [Beta]',
       replaceable: true,
       rootId: 'root-1',
-      start: 100, occ: 0,
+      start: 100,
+      occ: 0,
       table: {
         cellEnd: 19,
         cellId: 'cell-2',
@@ -1029,7 +1043,8 @@ describe('match scrolling', () => {
       previewText: '...[Codex]...',
       replaceable: true,
       rootId: 'root-1',
-      start: 495, occ: 0,
+      start: 495,
+      occ: 0,
       table: {
         cellEnd: 63,
         cellId: '',
@@ -1188,7 +1203,7 @@ describe('match scrolling', () => {
 
     const protyle = document.querySelector<HTMLElement>('.protyle')!
     const targetCell = Array.from(document.querySelectorAll('td')).find(
-      td => td.textContent?.includes('Target In Merged Table')
+      (td) => td.textContent?.includes('Target In Merged Table'),
     )!
     const tableBlock = document.querySelector<HTMLElement>('[data-node-id="complex-table-1"]')!
     const cellScrollSpy = vi.fn()
@@ -1301,7 +1316,8 @@ function createMatch(): SearchMatch {
     previewText: '[foo] bar',
     replaceable: true,
     rootId: 'root-1',
-    start: 0, occ: 0,
+    start: 0,
+    occ: 0,
   }
 }
 

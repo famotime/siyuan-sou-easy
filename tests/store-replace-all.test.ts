@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import * as siyuan from 'siyuan'
+
 import {
   afterEach,
   beforeEach,
@@ -8,9 +10,17 @@ import {
   it,
   vi,
 } from 'vitest'
+import {
+  applyPluginSettings,
+  closePanel,
+  replaceAll,
+  searchReplaceState,
+} from '@/features/search-replace/store'
 
-import * as siyuan from 'siyuan'
-import { DEFAULT_SETTINGS, createSearchOptionsFromSettings } from '@/settings'
+import {
+  createSearchOptionsFromSettings,
+  DEFAULT_SETTINGS,
+} from '@/settings'
 
 const editorMocks = vi.hoisted(() => {
   const state = {
@@ -78,13 +88,6 @@ vi.mock('@/features/search-replace/editor', () => editorMocks)
 vi.mock('@/features/search-replace/search-engine', () => searchEngineMocks)
 vi.mock('@/features/search-replace/kernel', () => kernelMocks)
 
-import {
-  applyPluginSettings,
-  closePanel,
-  replaceAll,
-  searchReplaceState,
-} from '@/features/search-replace/store'
-
 describe('search store replaceAll', () => {
   beforeEach(() => {
     resetState()
@@ -145,7 +148,8 @@ describe('search store replaceAll', () => {
         previewText: '[foo] foo',
         replaceable: true,
         rootId: 'root-1',
-        start: 0, occ: 0,
+        start: 0,
+        occ: 0,
       },
       {
         blockId: 'block-1',
@@ -157,7 +161,8 @@ describe('search store replaceAll', () => {
         previewText: 'foo [foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 4, occ: 0,
+        start: 4,
+        occ: 0,
       },
       {
         blockId: 'block-2',
@@ -169,7 +174,8 @@ describe('search store replaceAll', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0, occ: 0,
+        start: 0,
+        occ: 0,
       },
       {
         blockId: 'block-ignored',
@@ -181,7 +187,8 @@ describe('search store replaceAll', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-other',
-        start: 0, occ: 0,
+        start: 0,
+        occ: 0,
       },
     ]
 
@@ -234,7 +241,8 @@ describe('search store replaceAll', () => {
       previewText: '[foo]',
       replaceable: true,
       rootId: 'root-1',
-      start: 0, occ: 0,
+      start: 0,
+      occ: 0,
     }]
 
     await replaceAll()
@@ -259,7 +267,8 @@ describe('search store replaceAll', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0, occ: 0,
+        start: 0,
+        occ: 0,
       },
       {
         blockId: 'block-2',
@@ -271,7 +280,8 @@ describe('search store replaceAll', () => {
         previewText: '[foo]',
         replaceable: true,
         rootId: 'root-1',
-        start: 0, occ: 0,
+        start: 0,
+        occ: 0,
       },
     ]
 
@@ -328,7 +338,8 @@ describe('search store replaceAll', () => {
       previewText: '[FOO]',
       replaceable: true,
       rootId: 'root-1',
-      start: 0, occ: 0,
+      start: 0,
+      occ: 0,
     }]
 
     editorMocks.getBlockElement.mockReturnValue({
@@ -373,7 +384,8 @@ describe('search store replaceAll', () => {
       replaceable: false,
       rootId: 'root-1',
       sourceKind: 'attribute-view',
-      start: 0, occ: 0,
+      start: 0,
+      occ: 0,
     }]
 
     await replaceAll()
@@ -406,7 +418,8 @@ describe('search store replaceAll', () => {
       replaceable: false,
       rootId: 'canvas:/data/a.canvas',
       sourceKind: 'canvas',
-      start: 0, occ: 0,
+      start: 0,
+      occ: 0,
     }]
 
     await replaceAll()
@@ -436,7 +449,8 @@ describe('search store replaceAll', () => {
       previewText: '[foo]',
       replaceable: true,
       rootId: 'root-1',
-      start: 0, occ: 0,
+      start: 0,
+      occ: 0,
     }]
 
     editorMocks.getBlockElement.mockReturnValue({ dataset: { nodeId: 'block-1' } } as unknown as HTMLElement)
@@ -450,7 +464,7 @@ describe('search store replaceAll', () => {
     })
     // applyReplacementsToClone 是同步契约，用延迟的内核写盘制造并发交叠窗口
     kernelMocks.updateDomBlock.mockImplementation(async () => {
-      await new Promise(resolve => setTimeout(resolve, 20))
+      await new Promise((resolve) => setTimeout(resolve, 20))
       return null
     })
 
@@ -478,7 +492,8 @@ describe('search store replaceAll', () => {
       previewText: '[foo]',
       replaceable: true,
       rootId: 'root-1',
-      start: 0, occ: 0,
+      start: 0,
+      occ: 0,
     }]
 
     editorMocks.getBlockElement.mockReturnValue({ dataset: { nodeId: 'block-1' } } as unknown as HTMLElement)
@@ -521,7 +536,8 @@ describe('search store replaceAll', () => {
       previewText: '[foo]',
       replaceable: true,
       rootId: 'root-1',
-      start: 0, occ: 0,
+      start: 0,
+      occ: 0,
     }]
 
     editorMocks.getBlockElement.mockReturnValue({ dataset: { nodeId: 'block-1' } } as unknown as HTMLElement)

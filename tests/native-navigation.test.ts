@@ -1,7 +1,12 @@
-import { beforeEach, describe, expect, it } from 'vitest'
-import { setPluginInstance } from '@/plugin-instance'
-import { canTriggerNativeMatchNavigation } from '@/features/search-replace/native-navigation'
 import type { SearchMatch } from '@/features/search-replace/types'
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from 'vitest'
+import { canTriggerNativeMatchNavigation } from '@/features/search-replace/native-navigation'
+import { setPluginInstance } from '@/plugin-instance'
 
 function createMatch(overrides: Partial<SearchMatch>): SearchMatch {
   return {
@@ -14,7 +19,8 @@ function createMatch(overrides: Partial<SearchMatch>): SearchMatch {
     previewText: '[foo]',
     replaceable: true,
     rootId: 'root-1',
-    start: 0, occ: 0,
+    start: 0,
+    occ: 0,
     ...overrides,
   }
 }

@@ -1,16 +1,26 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { setPluginInstance } from '@/plugin-instance'
+import type {
+  ReplaceTransaction,
+  ReplaceTransactionItem,
+} from '@/features/search-replace/global/transaction-history'
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import {
   clearTransactionsMemoryForTesting,
   getTransactions,
   persistTransactions,
   recordTransaction,
+
+
   revertTransaction,
   TRANSACTION_STORAGE,
-  type ReplaceTransaction,
-  type ReplaceTransactionItem,
 } from '@/features/search-replace/global/transaction-history'
 import * as kernel from '@/features/search-replace/kernel'
+import { setPluginInstance } from '@/plugin-instance'
 
 // originalContent 为 ReplaceTransactionItem 之外的遗留冗余字段（未被读取），用局部扩展类型保持 fixture 原样
 type TransactionItemFixture = ReplaceTransactionItem & { originalContent?: string }
@@ -162,7 +172,11 @@ describe('transaction-history', () => {
     let lastTx: ReplaceTransaction | null = null
     for (let i = 0; i < 55; i++) {
       lastTx = await recordTransaction(`query-${i}`, 'replacement', [
-        { blockId: `b${i}`, rootId: 'd1', originalDom: `<div>original ${i}</div>` },
+        {
+          blockId: `b${i}`,
+          rootId: 'd1',
+          originalDom: `<div>original ${i}</div>`,
+        },
       ])
     }
 

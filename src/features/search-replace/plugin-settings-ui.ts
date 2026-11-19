@@ -1,17 +1,24 @@
 import type { Setting } from 'siyuan'
+import type {
+  BooleanSettingKey,
+  ColorSettingKey,
+  HotkeySettingKey,
+  NumberSettingKey,
+} from './settings-panel'
+import type { PluginSettings } from '@/settings'
+import { DEFAULT_SEARCH_HIGHLIGHT_COLOR } from '@/settings'
 import {
   BOOLEAN_SETTING_DEFINITIONS,
-  COLOR_SETTING_DEFINITIONS,
-  HOTKEY_SETTING_DEFINITIONS,
-  NUMBER_SETTING_DEFINITIONS,
-  type BooleanSettingKey,
-  type ColorSettingKey,
-  type HotkeySettingKey,
-  type NumberSettingKey,
-} from './settings-panel'
-import { DEFAULT_SEARCH_HIGHLIGHT_COLOR, type PluginSettings } from '@/settings'
 
-const NESTED_SETTING_INDENT = '\u00a0\u00a0\u00a0\u00a0'
+  COLOR_SETTING_DEFINITIONS,
+
+  HOTKEY_SETTING_DEFINITIONS,
+
+  NUMBER_SETTING_DEFINITIONS,
+
+} from './settings-panel'
+
+const NESTED_SETTING_INDENT = '\u00A0\u00A0\u00A0\u00A0'
 
 export function registerSearchReplaceSettings({
   createCheckbox,
@@ -56,7 +63,11 @@ export function registerSearchReplaceSettings({
 
   const formatNestedSettingText = (text: string) => `${NESTED_SETTING_INDENT}${text}`
 
-  COLOR_SETTING_DEFINITIONS.forEach(({ descriptionKey, settingKey, titleKey }) => {
+  COLOR_SETTING_DEFINITIONS.forEach(({
+    descriptionKey,
+    settingKey,
+    titleKey,
+  }) => {
     setting.addItem({
       title: i18n[titleKey],
       description: i18n[descriptionKey],
@@ -66,7 +77,11 @@ export function registerSearchReplaceSettings({
     })
   })
 
-  HOTKEY_SETTING_DEFINITIONS.forEach(({ descriptionKey, settingKey, titleKey }) => {
+  HOTKEY_SETTING_DEFINITIONS.forEach(({
+    descriptionKey,
+    settingKey,
+    titleKey,
+  }) => {
     setting.addItem({
       title: i18n[titleKey],
       description: i18n[descriptionKey],
@@ -76,7 +91,11 @@ export function registerSearchReplaceSettings({
     })
   })
 
-  BOOLEAN_SETTING_DEFINITIONS.forEach(({ descriptionKey, settingKey, titleKey }) => {
+  BOOLEAN_SETTING_DEFINITIONS.forEach(({
+    descriptionKey,
+    settingKey,
+    titleKey,
+  }) => {
     const isIncludeCodeBlockSetting = settingKey === 'includeCodeBlock'
     const isNestedCodeBlockSetting = settingKey === 'optimizeLargeCodeBlocks'
     setting.addItem({
@@ -104,7 +123,11 @@ export function registerSearchReplaceSettings({
       return
     }
 
-    NUMBER_SETTING_DEFINITIONS.forEach(({ descriptionKey, settingKey, titleKey }) => {
+    NUMBER_SETTING_DEFINITIONS.forEach(({
+      descriptionKey,
+      settingKey,
+      titleKey,
+    }) => {
       setting.addItem({
         title: formatNestedSettingText(i18n[titleKey]),
         description: formatNestedSettingText(i18n[descriptionKey]),

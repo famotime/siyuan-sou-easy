@@ -35,8 +35,8 @@ const TYPE_ALIAS_MAP: Record<string, string> = {
 export function stripQuotes(str: string): string {
   const trimmed = str.trim()
   if (
-    (trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length >= 2) ||
-    (trimmed.startsWith('“') && trimmed.endsWith('”') && trimmed.length >= 2)
+    (trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length >= 2)
+    || (trimmed.startsWith('“') && trimmed.endsWith('”') && trimmed.length >= 2)
   ) {
     return trimmed.slice(1, -1).trim()
   }
@@ -52,9 +52,8 @@ export function tokenizeGlobalQuery(raw: string): string[] {
   // 2: 减号带引号短语: -(".*?"|“.*?”)
   // 3: 独立引号短语: (".*?"|“.*?”)
   // 4: 非空白连续字符: \S+
-  const regex = /([a-zA-Z]+:(?:"[^"]*"|“[^”]*”))|(-(?:"[^"]*"|“[^”]*”))|("[^"]*"|“[^”]*”)|(\S+)/g
-  let match: RegExpExecArray | null
-  while ((match = regex.exec(raw)) !== null) {
+  const regex = /([a-z]+:(?:"[^"]*"|“[^”]*”))|(-(?:"[^"]*"|“[^”]*”))|("[^"]*"|“[^”]*”)|(\S+)/gi
+  for (let match = regex.exec(raw); match !== null; match = regex.exec(raw)) {
     const token = match[0].trim()
     if (token) {
       tokens.push(token)
@@ -201,16 +200,16 @@ export function parseGlobalQuery(raw: string): ParsedGlobalQuery {
   // 拼接规范的 textQuery（用于概览和回显）
   const allTermsForDisplay = [
     ...mustInclude,
-    ...orGroups.map(g => g.join(' OR ')),
+    ...orGroups.map((g) => g.join(' OR ')),
   ]
   const textQuery = allTermsForDisplay.join(' ')
 
   // 判定是否为多关键词组合搜索
   // 规则：只要有排除词、OR分组、或有 2 个及以上的普通词，就视为组合搜索
   const isMultiTermQuery =
-    exclude.length > 0 ||
-    orGroups.length > 0 ||
-    mustInclude.length > 1
+    exclude.length > 0
+    || orGroups.length > 0
+    || mustInclude.length > 1
 
   // 提取单一关键词（仅当只有 1 个 mustInclude 且无任何其他修饰符时生效）
   const singleKeyword =
@@ -304,7 +303,10 @@ export function parseDateFilterValue(
     const Y = endDate.getFullYear()
     const M = String(endDate.getMonth() + 1).padStart(2, '0')
     const D = String(endDate.getDate()).padStart(2, '0')
-    return { start, end: `${Y}${M}${D}235959` }
+    return {
+      start,
+      end: `${Y}${M}${D}235959`,
+    }
   }
   return { start }
 }

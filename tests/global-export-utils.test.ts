@@ -1,10 +1,14 @@
-import { describe, expect, it } from 'vitest'
+import type { DocAggregateNode } from '@/features/search-replace/global/types'
+import {
+  describe,
+  expect,
+  it,
+} from 'vitest'
 import {
   exportAsBlockRefs,
   exportAsEmbedQuery,
   exportAsMarkdownLinks,
 } from '@/features/search-replace/global/export-utils'
-import type { DocAggregateNode } from '@/features/search-replace/global/types'
 
 describe('export-utils', () => {
   const sampleDocs: DocAggregateNode[] = [

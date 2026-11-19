@@ -1,12 +1,16 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it } from 'vitest'
+import {
+  describe,
+  expect,
+  it,
+} from 'vitest'
 import { createApp } from 'vue'
-import SearchToolbarRow from '@/features/search-replace/ui/SearchToolbarRow.vue'
 import ReplaceActionRow from '@/features/search-replace/ui/ReplaceActionRow.vue'
+import SearchToolbarRow from '@/features/search-replace/ui/SearchToolbarRow.vue'
 
-describe('In-Page Floating Panel Toolbar UI Redesign (阶段四测试)', () => {
-  it('SearchToolbarRow equips all buttons with aria-label, consistent title, and explicit SVG wireframe protection', () => {
+describe('in-Page Floating Panel Toolbar UI Redesign (阶段四测试)', () => {
+  it('searchToolbarRow equips all buttons with aria-label, consistent title, and explicit SVG wireframe protection', () => {
     const container = document.createElement('div')
     const app = createApp(SearchToolbarRow, {
       currentIndex: 1,
@@ -51,7 +55,7 @@ describe('In-Page Floating Panel Toolbar UI Redesign (阶段四测试)', () => {
     app.unmount()
   })
 
-  it('ReplaceActionRow equips all buttons with aria-label, consistent title, and explicit SVG wireframe protection', () => {
+  it('replaceActionRow equips all buttons with aria-label, consistent title, and explicit SVG wireframe protection', () => {
     const container = document.createElement('div')
     const app = createApp(ReplaceActionRow, {
       canReplaceAll: true,

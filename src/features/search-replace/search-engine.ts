@@ -1,18 +1,18 @@
-import {
-  buildPreview,
-  isRangeReplaceable,
-} from './editor'
 import type {
+  SearchableBlock,
   SearchMatch,
   SearchOptions,
-  SearchableBlock,
   SelectionScope,
   TableCellSearchMetadata,
   TableMatchMetadata,
   TextOffsetRange,
 } from './types'
+import {
+  buildPreview,
+  isRangeReplaceable,
+} from './editor'
 
-const ASCII_WORD_CHAR = /[A-Za-z0-9_]/
+const ASCII_WORD_CHAR = /\w/
 
 export function findMatches(
   blocks: SearchableBlock[],
@@ -123,12 +123,12 @@ function resolveTableMatchMetadata(block: SearchableBlock, start: number, end: n
 }
 
 function findMatchedTableCell(cells: TableCellSearchMetadata[], start: number, end: number) {
-  const containingCell = cells.find(cell => start >= cell.start && end <= cell.end)
+  const containingCell = cells.find((cell) => start >= cell.start && end <= cell.end)
   if (containingCell) {
     return containingCell
   }
 
-  const overlappingCell = cells.find(cell => start < cell.end && end > cell.start)
+  const overlappingCell = cells.find((cell) => start < cell.end && end > cell.start)
   if (overlappingCell) {
     return overlappingCell
   }
@@ -176,7 +176,7 @@ function isMatchWithinSelection(
   }
 
   const ranges = selectionScope.get(blockId) ?? []
-  return ranges.some(range => isRangeContained(range, start, end))
+  return ranges.some((range) => isRangeContained(range, start, end))
 }
 
 function isRangeContained(range: TextOffsetRange, start: number, end: number) {

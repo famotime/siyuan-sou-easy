@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import type { App } from 'siyuan'
 import {
   beforeEach,
   describe,
@@ -7,10 +8,13 @@ import {
   it,
   vi,
 } from 'vitest'
-import type { App } from 'siyuan'
 
 // siyuan 类型声明的 Plugin 构造需要 { app, name, i18n }；运行时 mock 无参构造会忽略该参数
-const pluginOptions = { app: {} as App, name: 'siyuan-sou-easy', i18n: {} }
+const pluginOptions = {
+  app: {} as App,
+  name: 'siyuan-sou-easy',
+  i18n: {},
+}
 
 const loadSettings = vi.fn().mockResolvedValue({
   debugLog: false,
@@ -61,7 +65,7 @@ vi.mock('@/settings', () => ({
   SETTINGS_STORAGE: 'settings.json',
   isSupportedSearchHighlightColor: vi.fn((value: string) => typeof value === 'string' && value.trim().length > 0),
   loadSettings,
-  normalizeSettings: vi.fn(value => value),
+  normalizeSettings: vi.fn((value) => value),
   saveSettings: vi.fn(),
 }))
 
@@ -162,12 +166,12 @@ describe('plugin settings panel', () => {
         title: 'Include code',
       },
       {
-        description: '\u00a0\u00a0\u00a0\u00a0optimize large code blocks',
-        title: '\u00a0\u00a0\u00a0\u00a0Optimize large code blocks',
+        description: '\u00A0\u00A0\u00A0\u00A0optimize large code blocks',
+        title: '\u00A0\u00A0\u00A0\u00A0Optimize large code blocks',
       },
       {
-        description: '\u00a0\u00a0\u00a0\u00a0large code threshold',
-        title: '\u00a0\u00a0\u00a0\u00a0Large code threshold',
+        description: '\u00A0\u00A0\u00A0\u00A0large code threshold',
+        title: '\u00A0\u00A0\u00A0\u00A0Large code threshold',
       },
       {
         description: 'search database blocks',

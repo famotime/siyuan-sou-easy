@@ -1,5 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { setPluginInstance } from '@/plugin-instance'
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import {
   clearPresetsForTesting,
   deletePreset,
@@ -7,6 +12,7 @@ import {
   loadSavedPresets,
   savePreset,
 } from '@/features/search-replace/global/saved-presets'
+import { setPluginInstance } from '@/plugin-instance'
 
 describe('saved-presets', () => {
   beforeEach(() => {
@@ -48,7 +54,7 @@ describe('saved-presets', () => {
     const loadData = vi.fn()
     const saveData = vi.fn(async () => {
       // 模拟保存耗时窗口
-      await new Promise(resolve => setTimeout(resolve, 20))
+      await new Promise((resolve) => setTimeout(resolve, 20))
       return null
     })
     setPluginInstance({
@@ -72,11 +78,11 @@ describe('saved-presets', () => {
     // 保存尚未落盘时重开菜单触发磁盘加载：
     // 修复前磁盘旧态（空列表）会整体覆盖缓存，刚保存的预设消失
     const duringSave = await loadSavedPresets()
-    expect(duringSave.map(preset => preset.name)).toEqual(['保存中的预设'])
+    expect(duringSave.map((preset) => preset.name)).toEqual(['保存中的预设'])
 
     await saving
     await loadSavedPresets()
-    expect(getSavedPresets().map(preset => preset.name)).toEqual(['保存中的预设'])
+    expect(getSavedPresets().map((preset) => preset.name)).toEqual(['保存中的预设'])
   })
 
   it('loads presets from disk again after a failed persistence', async () => {
@@ -100,7 +106,10 @@ describe('saved-presets', () => {
         query: 'disk',
       },
     ])
-    setPluginInstance({ loadData, saveData } as any)
+    setPluginInstance({
+      loadData,
+      saveData,
+    } as any)
 
     await savePreset('本地新预设', {
       query: 'local',
@@ -117,14 +126,14 @@ describe('saved-presets', () => {
 
     // 落盘失败后缓存仍持有本地变更（dirty），磁盘数据不会覆盖它
     const list = await loadSavedPresets()
-    expect(list.map(preset => preset.name)).toContain('本地新预设')
-    expect(list.map(preset => preset.name)).not.toContain('磁盘预设')
+    expect(list.map((preset) => preset.name)).toContain('本地新预设')
+    expect(list.map((preset) => preset.name)).not.toContain('磁盘预设')
 
     // 落盘成功后 dirty 清除，磁盘加载恢复生效
     saveData.mockResolvedValue(null)
     const preset = getSavedPresets().at(-1)!
     await deletePreset(preset.id)
     const reloaded = await loadSavedPresets()
-    expect(reloaded.map(item => item.name)).toEqual(['磁盘预设'])
+    expect(reloaded.map((item) => item.name)).toEqual(['磁盘预设'])
   })
 })

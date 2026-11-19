@@ -1,14 +1,15 @@
-import { reactive } from 'vue'
-import {
-  DEFAULT_SETTINGS,
-  createSearchOptionsFromSettings,
-  type PluginSettings,
-} from '@/settings'
 import type {
+  SearchableBlockSummary,
   SearchMatch,
   SearchOptions,
-  SearchableBlockSummary,
 } from '../types'
+import type { PluginSettings } from '@/settings'
+import { reactive } from 'vue'
+import {
+  createSearchOptionsFromSettings,
+  DEFAULT_SETTINGS,
+
+} from '@/settings'
 
 export interface PanelPosition {
   left: number

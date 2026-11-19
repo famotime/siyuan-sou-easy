@@ -1,3 +1,23 @@
+import type {
+  EditorContext,
+  ScrollMatchResult,
+  SearchDecorationOptions,
+  SearchMatch,
+} from '../types'
+import {
+  clearCanvasSearchDecorations,
+  isCanvasMatchVisible,
+  scrollCanvasMatchIntoView,
+  syncCanvasSearchDecorations,
+} from '../canvas/decorations'
+import {
+  debugElement,
+  debugLog,
+  debugLogLazy,
+  debugRect,
+} from '../debug'
+import { findAttributeViewCellElements } from './attribute-view'
+import { getBlockElement } from './blocks'
 import {
   ATTRIBUTE_VIEW_CELL_CURRENT_CLASS,
   ATTRIBUTE_VIEW_CELL_MATCH_CLASS,
@@ -7,8 +27,6 @@ import {
   MATCH_TEXT_HIGHLIGHT_NAME,
   TABLE_NODE_TYPE,
 } from './constants'
-import { findAttributeViewCellElements } from './attribute-view'
-import { getBlockElement } from './blocks'
 import { locateTextRange } from './ranges'
 import {
   resolveVisibilityContainers,
@@ -23,19 +41,6 @@ import {
   getTableRowElements,
   resolveTableRowElementFromCell,
 } from './table-dom'
-import { debugElement, debugLog, debugLogLazy, debugRect } from '../debug'
-import {
-  clearCanvasSearchDecorations,
-  isCanvasMatchVisible,
-  scrollCanvasMatchIntoView,
-  syncCanvasSearchDecorations,
-} from '../canvas/decorations'
-import type {
-  EditorContext,
-  SearchDecorationOptions,
-  SearchMatch,
-  ScrollMatchResult,
-} from '../types'
 
 interface ScrollTarget {
   getRect: () => DOMRect | DOMRectReadOnly | null
@@ -95,14 +100,14 @@ export function syncSearchDecorations(
   applyAttributeViewCellHighlights(context, matches, currentMatch)
   const matchedBlockIds = new Set(
     matches
-      .filter(match => {
+      .filter((match) => {
         if (match.sourceKind === 'attribute-view') {
           return true
         }
 
         return !textHighlightedMatchIds.has(match.id) && !tableCellHighlightedMatchIds.has(match.id)
       })
-      .map(match => match.blockId),
+      .map((match) => match.blockId),
   )
 
   matchedBlockIds.forEach((blockId) => {
@@ -201,7 +206,7 @@ export function scrollMatchIntoView(
     target: debugElement(element),
     verticalRect: debugRect(verticalTarget.getRect()),
     verticalTarget: debugElement(verticalElement),
-    visibilityContainers: visibilityContainers.map(container => debugElement(container)),
+    visibilityContainers: visibilityContainers.map((container) => debugElement(container)),
   }))
 
   if (verticalElement !== element) {
@@ -271,7 +276,7 @@ export function isMatchVisible(context: EditorContext, match: SearchMatch | null
       target: debugElement(resolvedState.element),
       verticalRect: debugRect(resolvedState.verticalTarget.getRect()),
       verticalTarget: debugElement(resolvedState.verticalElement),
-      visibilityContainers: resolvedState.visibilityContainers.map(container => debugElement(container)),
+      visibilityContainers: resolvedState.visibilityContainers.map((container) => debugElement(container)),
     }))
   }
 
@@ -288,7 +293,7 @@ function isScrollTargetVisibleWithinContainers(
     return false
   }
 
-  if (containers.some(container => !isRectVisibleWithinBoundary(elementRect, container.getBoundingClientRect(), axis))) {
+  if (containers.some((container) => !isRectVisibleWithinBoundary(elementRect, container.getBoundingClientRect(), axis))) {
     return false
   }
 
@@ -395,7 +400,7 @@ function getRangeRect(range: Range) {
   const clientRects = typeof range.getClientRects === 'function'
     ? Array.from(range.getClientRects())
     : []
-  const firstVisibleRect = clientRects.find(rect => hasUsableRect(rect))
+  const firstVisibleRect = clientRects.find((rect) => hasUsableRect(rect))
   if (firstVisibleRect) {
     return firstVisibleRect
   }
@@ -730,7 +735,7 @@ function findTableCellElementByMetadata(context: EditorContext, match: SearchMat
     if (targetRow) {
       const rowCells = Array.from(targetRow.children)
         .filter((child): child is HTMLElement => child instanceof HTMLElement)
-        .filter(child => child.matches('[data-type="NodeTableCell"], .table__cell, td, th'))
+        .filter((child) => child.matches('[data-type="NodeTableCell"], .table__cell, td, th'))
 
       if (rowCells[columnIndex]) {
         return rowCells[columnIndex]
@@ -744,7 +749,7 @@ function findTableCellElementByMetadata(context: EditorContext, match: SearchMat
       tableBlock.querySelectorAll<HTMLElement>('[data-type="NodeTableCell"], .table__cell, td, th'),
     )
     const needle = match.matchedText.toLowerCase()
-    const matchingCell = allCells.find(cell => cell.textContent?.toLowerCase().includes(needle))
+    const matchingCell = allCells.find((cell) => cell.textContent?.toLowerCase().includes(needle))
     if (matchingCell) {
       return matchingCell
     }
@@ -847,7 +852,7 @@ function getReusableMatchRange(
 }
 
 function areCachedRangesReusable(context: EditorContext, entry: TextHighlightCacheEntry) {
-  if (!entry.ranges.every(range => isReusableRange(context, range))) {
+  if (!entry.ranges.every((range) => isReusableRange(context, range))) {
     return false
   }
 

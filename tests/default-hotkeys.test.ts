@@ -1,10 +1,10 @@
+import { Plugin } from 'siyuan'
+
 import {
   describe,
   expect,
   it,
 } from 'vitest'
-
-import { Plugin } from 'siyuan'
 
 import { loadSettings } from '@/settings'
 

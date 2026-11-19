@@ -1,12 +1,13 @@
+import type { EditorContext } from '../types'
+import type { AttributeViewBlockSummary } from './search-types'
 import {
   getBlockElement,
   getUniqueBlockElements,
 } from '../editor'
 import { getBlockAttrs } from '../kernel'
-import type { EditorContext } from '../types'
 import {
   ATTRIBUTE_VIEW_NODE_TYPE,
-  type AttributeViewBlockSummary,
+
 } from './search-types'
 
 export function collectAttributeViewBlocks(
@@ -20,7 +21,7 @@ export function collectAttributeViewBlocks(
   }
 
   return getUniqueBlockElements(context.protyle)
-    .filter(element => element.dataset.type === ATTRIBUTE_VIEW_NODE_TYPE)
+    .filter((element) => element.dataset.type === ATTRIBUTE_VIEW_NODE_TYPE)
     .map((element, index) => ({
       avBlockId: element.dataset.nodeId ?? `attribute-view-${index}`,
       avID: element.dataset.avId?.trim() || undefined,
@@ -91,7 +92,7 @@ function parseAttributeViewId(blockAttrs: Record<string, string>) {
   try {
     const parsed = JSON.parse(rawValue)
     if (Array.isArray(parsed)) {
-      const firstValue = parsed.find(value => typeof value === 'string' && value.trim())
+      const firstValue = parsed.find((value) => typeof value === 'string' && value.trim())
       return typeof firstValue === 'string' ? firstValue : ''
     }
   } catch {

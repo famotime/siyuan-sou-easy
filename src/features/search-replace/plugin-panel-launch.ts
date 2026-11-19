@@ -1,7 +1,8 @@
+import type { EditorProtyleLike } from './editor'
 import {
   createEditorContextFromElement,
   createEditorContextFromProtyleLike,
-  type EditorProtyleLike,
+
 } from './editor'
 import {
   onEditorContextChanged,

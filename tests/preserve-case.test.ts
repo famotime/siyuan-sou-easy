@@ -1,4 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import {
+  describe,
+  expect,
+  it,
+} from 'vitest'
 import { preserveReplacementCase } from '@/features/search-replace/preserve-case'
 
 describe('preserveReplacementCase', () => {

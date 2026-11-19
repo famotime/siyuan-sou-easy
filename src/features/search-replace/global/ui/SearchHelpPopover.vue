@@ -1,8 +1,15 @@
 <template>
-  <div class="sfsr-search-help-popover" @click.stop>
+  <div
+    class="sfsr-search-help-popover"
+    @click.stop
+  >
     <div class="sfsr-search-help-header">
       <div class="sfsr-search-help-title-wrap">
-        <WireframeIcon name="help" :size="13" class="sfsr-search-help-title-icon" />
+        <WireframeIcon
+          name="help"
+          :size="13"
+          class="sfsr-search-help-title-icon"
+        />
         <span class="sfsr-search-help-title">{{ t('searchHelpTitle') }}</span>
       </div>
       <button
@@ -11,7 +18,10 @@
         :aria-label="t('closePanel')"
         @click="$emit('close')"
       >
-        <WireframeIcon name="close" :size="11" />
+        <WireframeIcon
+          name="close"
+          :size="11"
+        />
       </button>
     </div>
 
@@ -41,8 +51,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { t } from '@/i18n/runtime'
 import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
+import { t } from '@/i18n/runtime'
 
 defineEmits<{
   (e: 'select-example', example: string): void

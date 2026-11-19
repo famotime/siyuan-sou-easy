@@ -1,19 +1,26 @@
-import { reactive } from 'vue'
-import { openTab, type TProtyleAction } from 'siyuan'
-import { getPluginInstance } from '@/plugin-instance'
-import { checkBlockFold, unfoldBlock } from '@/features/search-replace/kernel'
-import { createRevisionGuard } from '@/features/search-replace/store/revision'
+import type { TProtyleAction } from 'siyuan'
 import type {
   GlobalMatchSnippet,
   GlobalSearchSortMode,
   GlobalSearchStateModel,
 } from './types'
-import { parseDateFilterValue, parseGlobalQuery } from './query-parser'
-import { executeGlobalBlockQuery } from './kernel-query'
+import { openTab } from 'siyuan'
+import { reactive } from 'vue'
+import {
+  checkBlockFold,
+  unfoldBlock,
+} from '@/features/search-replace/kernel'
+import { createRevisionGuard } from '@/features/search-replace/store/revision'
+import { getPluginInstance } from '@/plugin-instance'
 import {
   aggregateBlocksToDocs,
   sortDocAggregateNodes,
 } from './doc-aggregator'
+import { executeGlobalBlockQuery } from './kernel-query'
+import {
+  parseDateFilterValue,
+  parseGlobalQuery,
+} from './query-parser'
 
 export const globalSearchState = reactive<GlobalSearchStateModel>({
   query: '',
@@ -62,7 +69,7 @@ function registerHighlightTimer(callback: () => void, delay: number) {
 }
 
 export function cancelGlobalHighlightTimers() {
-  activeHighlightTimers.forEach(timer => clearTimeout(timer))
+  activeHighlightTimers.forEach((timer) => clearTimeout(timer))
   activeHighlightTimers.clear()
 }
 
@@ -122,23 +129,23 @@ export function setGlobalSortMode(mode: GlobalSearchSortMode) {
 }
 
 export function toggleDocCollapse(rootId: string) {
-  const doc = globalSearchState.results.find(d => d.rootId === rootId)
+  const doc = globalSearchState.results.find((d) => d.rootId === rootId)
   if (doc) {
     doc.collapsed = !doc.collapsed
   }
 }
 
 export function expandAllDocs() {
-  globalSearchState.results.forEach(d => (d.collapsed = false))
+  globalSearchState.results.forEach((d) => (d.collapsed = false))
 }
 
 export function collapseAllDocs() {
-  globalSearchState.results.forEach(d => (d.collapsed = true))
+  globalSearchState.results.forEach((d) => (d.collapsed = true))
 }
 
 export function toggleAllDocsCollapse() {
   const isAllCollapsed = globalSearchState.results.length > 0
-    && globalSearchState.results.every(d => d.collapsed)
+    && globalSearchState.results.every((d) => d.collapsed)
   if (isAllCollapsed) {
     expandAllDocs()
   } else {
@@ -148,7 +155,7 @@ export function toggleAllDocsCollapse() {
 
 export function toggleMatchSelection(matchId: string) {
   for (const doc of globalSearchState.results) {
-    const match = doc.matches.find(m => m.matchId === matchId)
+    const match = doc.matches.find((m) => m.matchId === matchId)
     if (match) {
       match.selectedForReplace = !match.selectedForReplace
       break
@@ -157,11 +164,11 @@ export function toggleMatchSelection(matchId: string) {
 }
 
 export function toggleDocSelection(rootId: string) {
-  const doc = globalSearchState.results.find(d => d.rootId === rootId)
+  const doc = globalSearchState.results.find((d) => d.rootId === rootId)
   if (!doc) return
-  const anySelected = doc.matches.some(m => m.selectedForReplace)
+  const anySelected = doc.matches.some((m) => m.selectedForReplace)
   const targetState = !anySelected
-  doc.matches.forEach(m => (m.selectedForReplace = targetState))
+  doc.matches.forEach((m) => (m.selectedForReplace = targetState))
 }
 
 /**
@@ -209,13 +216,13 @@ export function findTargetTableRowElement(
   const keywords = keyword
     ? keyword
         .split(/,\s*/)
-        .map(k => k.trim())
+        .map((k) => k.trim())
         .filter(Boolean)
     : []
 
   const containsAnyKeyword = (text: string) => {
     if (!keywords.length) return true
-    return keywords.some(k => text.includes(k))
+    return keywords.some((k) => text.includes(k))
   }
 
   // 1. 最高优先级：直接按 1:1 对应的 rowIndex 索引查找并校验内容
@@ -247,7 +254,7 @@ export function findTargetTableRowElement(
     }
     // 如果 rowText 中包含的同一行其他列文本也出现在该行中，按命中加分
     if (rowText) {
-      const parts = rowText.split(' | ').map(p => p.trim()).filter(p => p.length >= 2)
+      const parts = rowText.split(' | ').map((p) => p.trim()).filter((p) => p.length >= 2)
       for (const part of parts) {
         if (text.includes(part)) {
           score += 20
@@ -295,10 +302,10 @@ export function scrollToCenterTableRow(targetRow: HTMLElement) {
       const rowRect = targetRow.getBoundingClientRect()
       const currentScrollTop = scrollContainer.scrollTop
       const targetScrollTop =
-        currentScrollTop +
-        (rowRect.top - containerRect.top) -
-        containerRect.height / 2 +
-        rowRect.height / 2
+        currentScrollTop
+        + (rowRect.top - containerRect.top)
+        - containerRect.height / 2
+        + rowRect.height / 2
 
       scrollContainer.scrollTo({
         top: Math.max(0, targetScrollTop),
@@ -345,7 +352,7 @@ export function scrollAndHighlightTableRow(
 
   // 施加高亮闪烁动画（先清除该表格内旧高亮）
   const HIGHLIGHT_CLASS = 'sfsr-table-row-target-highlight'
-  tableBlock.querySelectorAll(`.${HIGHLIGHT_CLASS}`).forEach(el => {
+  tableBlock.querySelectorAll(`.${HIGHLIGHT_CLASS}`).forEach((el) => {
     el.classList.remove(HIGHLIGHT_CLASS)
   })
 
@@ -378,7 +385,10 @@ export function scrollAndHighlightTableRow(
  */
 export function scrollAndHighlightBlock(blockElement: HTMLElement, shouldFocus = true) {
   // 1. 平滑滚动使目标块居中显示
-  blockElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  blockElement.scrollIntoView({
+    behavior: 'smooth',
+    block: 'center',
+  })
 
   // 2. 将光标聚焦到其可编辑区域（若需要）
   if (shouldFocus) {

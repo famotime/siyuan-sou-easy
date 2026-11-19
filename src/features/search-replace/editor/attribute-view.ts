@@ -1,8 +1,8 @@
-import { getBlockElement } from './blocks'
 import type {
   EditorContext,
   SearchMatch,
 } from '../types'
+import { getBlockElement } from './blocks'
 
 export function findAttributeViewCellElements(context: EditorContext, match: SearchMatch) {
   if (match.sourceKind !== 'attribute-view' || !match.attributeView) {
@@ -43,7 +43,7 @@ export function findAttributeViewCellElements(context: EditorContext, match: Sea
       return [exactCell]
     }
 
-    const matchedCells = rowCells.filter(cell => cellContainsMatchedText(cell, match.matchedText))
+    const matchedCells = rowCells.filter((cell) => cellContainsMatchedText(cell, match.matchedText))
     if (matchedCells.length) {
       return matchedCells
     }
@@ -55,8 +55,8 @@ export function findAttributeViewCellElements(context: EditorContext, match: Sea
   }
 
   return Array.from(blockElement.querySelectorAll<HTMLElement>('.av__cell'))
-    .filter(cell => !cell.classList.contains('av__cell--header'))
-    .filter(cell => cellContainsMatchedText(cell, match.matchedText))
+    .filter((cell) => !cell.classList.contains('av__cell--header'))
+    .filter((cell) => cellContainsMatchedText(cell, match.matchedText))
 }
 
 function findAttributeViewExactKeyedCellElements(blockElement: HTMLElement, match: SearchMatch) {
@@ -74,18 +74,18 @@ function findAttributeViewExactKeyedCellElements(blockElement: HTMLElement, matc
       `[data-col-id="${escapeAttributeValue(stableKeyID)}"]`,
     ]
 
-    return selectors.flatMap(selector => Array.from(rowElement.querySelectorAll<HTMLElement>(selector)))
+    return selectors.flatMap((selector) => Array.from(rowElement.querySelectorAll<HTMLElement>(selector)))
   })
 
   const exactMatchedCells = getTopLevelElements(keyedCells)
-    .filter(cell => !cell.classList.contains('av__cell--header'))
-    .filter(cell => cellContainsMatchedText(cell, match.matchedText))
+    .filter((cell) => !cell.classList.contains('av__cell--header'))
+    .filter((cell) => cellContainsMatchedText(cell, match.matchedText))
   if (exactMatchedCells.length) {
     return [exactMatchedCells[0]!]
   }
 
   const uniqueKeyedCells = getTopLevelElements(keyedCells)
-    .filter(cell => !cell.classList.contains('av__cell--header'))
+    .filter((cell) => !cell.classList.contains('av__cell--header'))
   if (uniqueKeyedCells.length) {
     return [uniqueKeyedCells[0]!]
   }
@@ -132,26 +132,26 @@ function getAttributeViewRowCells(rowElement: HTMLElement) {
 
   const directCells = Array.from(body.children)
     .filter((child): child is HTMLElement => child instanceof HTMLElement)
-    .filter(child => child.classList.contains('av__cell'))
-    .filter(child => !child.classList.contains('av__cell--header'))
+    .filter((child) => child.classList.contains('av__cell'))
+    .filter((child) => !child.classList.contains('av__cell--header'))
   if (directCells.length > 0) {
     return directCells
   }
 
   const descendantCells = Array.from(body.querySelectorAll<HTMLElement>('.av__cell'))
-    .filter(child => !child.classList.contains('av__cell--header'))
+    .filter((child) => !child.classList.contains('av__cell--header'))
   if (descendantCells.length > 0) {
     return getTopLevelElements(descendantCells)
   }
 
   const keyedCells = Array.from(body.querySelectorAll<HTMLElement>('[data-av-key-id], [data-key-id]'))
-    .filter(child => !child.classList.contains('av__cell--header'))
+    .filter((child) => !child.classList.contains('av__cell--header'))
   if (keyedCells.length > 0) {
     return getTopLevelElements(keyedCells)
   }
 
   const fieldCells = Array.from(body.querySelectorAll<HTMLElement>('[data-field-id], [data-col-id]'))
-    .filter(child => !child.classList.contains('av__cell--header'))
+    .filter((child) => !child.classList.contains('av__cell--header'))
   if (fieldCells.length > 0) {
     return getTopLevelElements(fieldCells)
   }
@@ -229,14 +229,14 @@ function findAttributeViewHeaderCellElements(blockElement: HTMLElement, match: S
     return [exactCell]
   }
 
-  return normalizedHeaderCells.filter(cell => cellContainsMatchedText(cell, match.matchedText))
+  return normalizedHeaderCells.filter((cell) => cellContainsMatchedText(cell, match.matchedText))
 }
 
 function findAttributeViewTitleElements(blockElement: HTMLElement, match: SearchMatch) {
   const candidates = Array.from(blockElement.querySelectorAll<HTMLElement>(
     '.av__title, .av__title-text, .av__header-title, .av__name',
   ))
-  const matchedCandidates = candidates.filter(candidate => cellContainsMatchedText(candidate, match.matchedText))
+  const matchedCandidates = candidates.filter((candidate) => cellContainsMatchedText(candidate, match.matchedText))
   if (matchedCandidates.length) {
     return matchedCandidates
   }
@@ -249,7 +249,7 @@ function findAttributeViewGroupTitleElements(blockElement: HTMLElement, match: S
     '.av__group-title, .av__group-name, .av__group-label',
   ))
 
-  return candidates.filter(candidate => cellContainsMatchedText(candidate, match.matchedText))
+  return candidates.filter((candidate) => cellContainsMatchedText(candidate, match.matchedText))
 }
 
 function buildLegacyAttributeViewCellSelectors(match: SearchMatch) {
@@ -308,7 +308,7 @@ function normalizeStableAttributeViewKeyID(keyID?: string) {
 
 function getTopLevelElements(elements: HTMLElement[]) {
   return elements.filter((element, index) => (
-    elements.findIndex(candidate => candidate === element) === index
-      && !elements.some(candidate => candidate !== element && candidate.contains(element))
+    elements.findIndex((candidate) => candidate === element) === index
+    && !elements.some((candidate) => candidate !== element && candidate.contains(element))
   ))
 }

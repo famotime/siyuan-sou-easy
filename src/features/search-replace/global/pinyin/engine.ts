@@ -77,7 +77,7 @@ function getAllSolutions(
     const piece = s.substring(start, i + 1)
     let match = false
     // 最后一个音特殊处理，不需要全部打完整
-    if (allPinyin.some(item => item.startsWith(piece)) && !s[i + 1] && possible[i + 1]) {
+    if (allPinyin.some((item) => item.startsWith(piece)) && !s[i + 1] && possible[i + 1]) {
       if (piece.length === 1) {
         result.push(piece)
       } else {
@@ -153,12 +153,12 @@ function point2point(test: string, key: string, last: boolean, extend: boolean):
   if (!last) {
     return a.includes(key)
   }
-  return a.some(item => item.startsWith(key))
+  return a.some((item) => item.startsWith(key))
 }
 
 function normalizeKey(keys: string): string {
   let normalized = keys.replace(/\s+/g, '').toLowerCase()
-  if (accentVList.some(v => normalized.includes(v))) {
+  if (accentVList.some((v) => normalized.includes(v))) {
     normalized = normalized.replace(/ü/g, 'v')
   }
   return normalized.normalize('NFD').replace(/[\u0300-\u036F]/g, '')
@@ -256,7 +256,7 @@ export function matchAllPinyinRanges(input: string, rawKeys: string): Array<[num
  */
 export function getCharPinyinInitial(ch: string): string {
   if (!ch) return ''
-  if (/[a-zA-Z0-9]/.test(ch)) {
+  if (/[a-z0-9]/i.test(ch)) {
     return ch.toLowerCase()
   }
   const pinyins = charPinyinMap[ch]

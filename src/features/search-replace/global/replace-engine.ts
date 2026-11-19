@@ -1,8 +1,15 @@
-import { getBlockDoms, updateDomBlock } from '../kernel'
-import type { DiffItem, DiffSummary } from './diff-builder'
+import type {
+  DiffItem,
+  DiffSummary,
+} from './diff-builder'
+import type { ReplaceTransactionItem } from './transaction-history'
 import {
-  type ReplaceTransactionItem,
+  getBlockDoms,
+  updateDomBlock,
+} from '../kernel'
+import {
   recordTransaction,
+
 } from './transaction-history'
 
 export interface ReplaceExecutionResult {
@@ -16,7 +23,7 @@ export interface ReplaceExecutionResult {
 }
 
 function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 // 模块级取消标志：批量替换不可重入（VisualDiffModal 有 executing 门禁），
@@ -107,7 +114,7 @@ export async function executeBatchReplace(
   const isCancelled = () => batchReplaceCancelled
 
   // 获取所有涉及的块 DOM
-  const blockIds = Array.from(new Set(activeItems.map(i => i.blockId)))
+  const blockIds = Array.from(new Set(activeItems.map((i) => i.blockId)))
   let domMap: Record<string, string> = {}
   try {
     domMap = await getBlockDoms(blockIds)

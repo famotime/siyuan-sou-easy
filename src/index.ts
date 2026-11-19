@@ -1,56 +1,65 @@
+import type { IProtyle } from 'siyuan'
+import type { EditorProtyleLike } from '@/features/search-replace/plugin-panel-launch'
+import type {
+  ColorSettingKey,
+  HotkeySettingKey,
+  NumberSettingKey,
+} from '@/features/search-replace/settings-panel'
+import type { HotkeySource } from '@/hotkeys'
+import type { PluginSettings } from '@/settings'
 import {
+  adaptHotkey,
   Plugin,
   Setting,
-  adaptHotkey,
   showMessage,
 } from 'siyuan'
-import type { IProtyle } from 'siyuan'
-import '@/index.scss'
 import PluginInfoString from '@/../plugin.json'
+import { createEditorContextFromProtyleLike } from '@/features/search-replace/editor'
+import { extractDocTitleFromHpath } from '@/features/search-replace/global/doc-aggregator'
 import {
-  collectKeymapHotkeys,
-  findHotkeyConflict,
-  formatHotkeyFromEvent,
-  normalizeHotkey,
-  type HotkeySource,
-} from '@/hotkeys'
+  closeGlobalSearchDockAndReturnFocus,
+  destroyGlobalSearchDock,
+  initGlobalSearchDock,
+  toggleGlobalSearchDock,
+} from '@/features/search-replace/global/dock-manager'
 import {
-  SEARCH_REPLACE_TOP_BAR_ICON,
-  SEARCH_REPLACE_TOP_BAR_ICON_ID,
-} from '@/icons'
-import {
-  bindEditorContextEvents,
-  unbindEditorContextEvents,
-} from '@/features/search-replace/plugin-events'
-import { detectPluginEnvironment } from '@/features/search-replace/plugin-environment'
-import {
-  HOTKEY_CAPTURE_INPUT_ATTRIBUTE,
-  createCheckboxElement,
-  createColorSettingElement,
-  createHotkeyInputElement,
-  createNumberInputElement,
-} from '@/features/search-replace/plugin-setting-elements'
-import {
-  buildIgnoredHotkeys,
-  buildKnownHotkeySources,
-} from '@/features/search-replace/plugin-hotkey-conflict'
-import {
-  isHotkeyCaptureTarget,
-  openSearchReplacePanelFromCommand,
-  openSearchReplacePanelFromKeyboardEvent,
-  type EditorProtyleLike,
-} from '@/features/search-replace/plugin-panel-launch'
-import {
-  type ColorSettingKey,
-  type HotkeySettingKey,
-  type NumberSettingKey,
-} from '@/features/search-replace/settings-panel'
+  destroyReplaceHistoryTab,
+  initReplaceHistoryTab,
+  REPLACE_HISTORY_TAB_TYPE,
+} from '@/features/search-replace/global/history-tab-manager'
+import { executeGlobalBlockQuery } from '@/features/search-replace/global/kernel-query'
+import { PRESETS_STORAGE } from '@/features/search-replace/global/saved-presets'
+import { closeGlobalSearch } from '@/features/search-replace/global/store'
+import { TRANSACTION_STORAGE } from '@/features/search-replace/global/transaction-history'
+import { setKeymap } from '@/features/search-replace/kernel'
 import {
   createPanelCommands,
   resolveHotkeySettingsFromRuntime,
   syncPanelCommandHotkeys,
   updatePanelCommandKeymap,
 } from '@/features/search-replace/plugin-command-config'
+import { detectPluginEnvironment } from '@/features/search-replace/plugin-environment'
+import {
+  bindEditorContextEvents,
+  unbindEditorContextEvents,
+} from '@/features/search-replace/plugin-events'
+import {
+  buildIgnoredHotkeys,
+  buildKnownHotkeySources,
+} from '@/features/search-replace/plugin-hotkey-conflict'
+import {
+
+  isHotkeyCaptureTarget,
+  openSearchReplacePanelFromCommand,
+  openSearchReplacePanelFromKeyboardEvent,
+} from '@/features/search-replace/plugin-panel-launch'
+import {
+  createCheckboxElement,
+  createColorSettingElement,
+  createHotkeyInputElement,
+  createNumberInputElement,
+  HOTKEY_CAPTURE_INPUT_ATTRIBUTE,
+} from '@/features/search-replace/plugin-setting-elements'
 import { registerSearchReplaceSettings } from '@/features/search-replace/plugin-settings-ui'
 import {
   applyPluginSettings,
@@ -59,25 +68,19 @@ import {
   openPanel,
   searchReplaceState,
 } from '@/features/search-replace/store'
-import { closeGlobalSearch } from '@/features/search-replace/global/store'
-import {
-  closeGlobalSearchDockAndReturnFocus,
-  destroyGlobalSearchDock,
-  initGlobalSearchDock,
-  toggleGlobalSearchDock,
-} from '@/features/search-replace/global/dock-manager'
-import {
-  REPLACE_HISTORY_TAB_TYPE,
-  destroyReplaceHistoryTab,
-  initReplaceHistoryTab,
-} from '@/features/search-replace/global/history-tab-manager'
 import { UI_STATE_STORAGE } from '@/features/search-replace/store/ui-state'
-import { PRESETS_STORAGE } from '@/features/search-replace/global/saved-presets'
-import { TRANSACTION_STORAGE } from '@/features/search-replace/global/transaction-history'
-import { createEditorContextFromProtyleLike } from '@/features/search-replace/editor'
-import { setKeymap } from '@/features/search-replace/kernel'
-import { executeGlobalBlockQuery } from '@/features/search-replace/global/kernel-query'
-import { extractDocTitleFromHpath } from '@/features/search-replace/global/doc-aggregator'
+import {
+  collectKeymapHotkeys,
+  findHotkeyConflict,
+  formatHotkeyFromEvent,
+
+  normalizeHotkey,
+} from '@/hotkeys'
+import { t } from '@/i18n/runtime'
+import {
+  SEARCH_REPLACE_TOP_BAR_ICON,
+  SEARCH_REPLACE_TOP_BAR_ICON_ID,
+} from '@/icons'
 import {
   destroy,
   init,
@@ -85,14 +88,14 @@ import {
 import {
   DEFAULT_SEARCH_HIGHLIGHT_COLOR,
   DEFAULT_SETTINGS,
-  SETTINGS_STORAGE,
   isSupportedSearchHighlightColor,
-  type PluginSettings,
   loadSettings,
   normalizeSettings,
+
   saveSettings,
+  SETTINGS_STORAGE,
 } from '@/settings'
-import { t } from '@/i18n/runtime'
+import '@/index.scss'
 
 const { version } = PluginInfoString
 
@@ -222,7 +225,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
       settings: this.settingsData,
       toRegisteredHotkey: this.toRegisteredHotkey.bind(this),
     })
-    panelCommands.forEach(command => this.addCommand(command))
+    panelCommands.forEach((command) => this.addCommand(command))
 
     if (!this.isMobile) {
       this.addCommand({
@@ -240,7 +243,10 @@ export default class FriendlySearchReplacePlugin extends Plugin {
           hotkey: this.toRegisteredHotkey(this.settingsData.globalSearchHotkey || 'Ctrl+Shift+F'),
           icon: SEARCH_REPLACE_TOP_BAR_ICON_ID,
           position: 'RightTop',
-          size: { height: 0, width: 340 },
+          size: {
+            height: 0,
+            width: 340,
+          },
           title: this.i18n.globalSearchDockTitle || '搜 easy 全库搜索',
         },
         data: {},
@@ -377,7 +383,10 @@ export default class FriendlySearchReplacePlugin extends Plugin {
 
     const conflict = this.findHotkeySettingConflict(settingKey, normalizedHotkey)
     if (conflict) {
-      showMessage(t('hotkeyConflict', { 0: normalizedHotkey, 1: conflict.label }), 4000, 'error')
+      showMessage(t('hotkeyConflict', {
+        0: normalizedHotkey,
+        1: conflict.label,
+      }), 4000, 'error')
       return false
     }
 
@@ -428,6 +437,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     expiresAt: number
     value: ReturnType<typeof resolveHotkeySettingsFromRuntime>
   } | null = null
+
   private static readonly RUNTIME_HOTKEY_CACHE_TTL_MS = 5000
 
   private invalidateRuntimeHotkeySettingsCache() {
@@ -543,7 +553,11 @@ export default class FriendlySearchReplacePlugin extends Plugin {
               const keywords: string[] = Array.isArray(params?.keywords) ? params.keywords : []
               const limit = typeof params?.limit === 'number' ? params.limit : 5
               if (keywords.length === 0) {
-                return { success: true, code: 200, data: [] }
+                return {
+                  success: true,
+                  code: 200,
+                  data: [],
+                }
               }
               const searchKeyword = keywords[0] || ''
               const records = await executeGlobalBlockQuery(searchKeyword, {}, {
@@ -554,7 +568,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
                   exclude: [],
                 },
               })
-              const docMap = new Map<string, { docId: string; title: string; snippet: string; score: number }>()
+              const docMap = new Map<string, { docId: string, title: string, snippet: string, score: number }>()
               for (const record of records) {
                 const docId = record.root_id || record.id
                 if (!docId) continue

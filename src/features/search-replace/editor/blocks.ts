@@ -1,25 +1,28 @@
+import type {
+  EditorContext,
+  SearchableBlock,
+  SearchOptions,
+  TableCellSearchMetadata,
+  TableSearchMetadata,
+} from '../types'
+import {
+  debugElement,
+  debugLogLazy,
+} from '../debug'
+import {
+  pickPreferredBlockElement,
+  pickPreferredSearchRoot,
+} from './block-selection'
 import {
   CODE_NODE_TYPE,
   SUPPORTED_NODE_TYPES,
   TABLE_NODE_TYPE,
 } from './constants'
-import {
-  pickPreferredBlockElement,
-  pickPreferredSearchRoot,
-} from './block-selection'
-import { debugElement, debugLogLazy } from '../debug'
+import { resolveEditorScrollContainer } from './scroll-container'
 import {
   getTableRowCells,
   getTableRowElements,
 } from './table-dom'
-import { resolveEditorScrollContainer } from './scroll-container'
-import type {
-  EditorContext,
-  SearchOptions,
-  SearchableBlock,
-  TableCellSearchMetadata,
-  TableSearchMetadata,
-} from '../types'
 
 export function collectSearchableBlocks(context: EditorContext, options: SearchOptions): SearchableBlock[] {
   const searchRoot = resolveEditorSearchRoot(context)
@@ -44,7 +47,7 @@ export function getBlockElement(context: EditorContext, blockId: string) {
     debugLogLazy('get-block-element:resolved', () => ({
       blockId,
       candidates: (primaryCandidates.length > 0 ? primaryCandidates : fallbackCandidates)
-        .map(candidate => debugElement(candidate)),
+        .map((candidate) => debugElement(candidate)),
       chosen: debugElement(chosen),
       fallbackCandidateCount: fallbackCandidates.length,
       primaryCandidateCount: primaryCandidates.length,
@@ -58,7 +61,7 @@ export function getBlockElement(context: EditorContext, blockId: string) {
 
 export function getBlockPlainText(blockElement: HTMLElement) {
   const textNodes = getSearchTextNodes(blockElement)
-  return textNodes.map(node => node.nodeValue ?? '').join('')
+  return textNodes.map((node) => node.nodeValue ?? '').join('')
 }
 
 export function collectSearchableBlocksFromDocumentContent(
@@ -97,7 +100,7 @@ export function resolveEditorSearchRoot(
   if (chosen) {
     if (candidates.length > 1) {
       debugLogLazy('search-root:resolved', () => ({
-        candidates: candidates.map(candidate => debugElement(candidate)),
+        candidates: candidates.map((candidate) => debugElement(candidate)),
         chosen: debugElement(chosen),
         rootId: context.rootId,
         scrollContainer: debugElement(scrollContainer),
@@ -263,13 +266,13 @@ export function getOwnedTextNodes(blockElement: HTMLElement) {
     return []
   }
 
-  return editableRoots.flatMap(root => collectTextNodes(root, blockElement))
+  return editableRoots.flatMap((root) => collectTextNodes(root, blockElement))
 }
 
 export function getSearchTextNodes(blockElement: HTMLElement) {
   const editableRoots = getEditableRoots(blockElement)
   if (editableRoots.length) {
-    return editableRoots.flatMap(root => collectTextNodes(root, blockElement))
+    return editableRoots.flatMap((root) => collectTextNodes(root, blockElement))
   }
 
   return collectTextNodes(blockElement, blockElement, { ignoreWhitespaceOnly: true })

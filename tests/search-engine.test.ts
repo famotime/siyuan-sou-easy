@@ -1,12 +1,21 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type {
+  SearchableBlock,
+  SearchOptions,
+} from '@/features/search-replace/types'
+
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
+import { findMatches } from '@/features/search-replace/search-engine'
 
 vi.mock('@/features/search-replace/editor', () => ({
   buildPreview: (text: string, start: number, end: number) => `${text.slice(0, start)}[${text.slice(start, end)}]${text.slice(end)}`,
   isRangeReplaceable: () => true,
 }))
-
-import { findMatches } from '@/features/search-replace/search-engine'
-import type { SearchOptions, SearchableBlock } from '@/features/search-replace/types'
 
 const defaultOptions = {
   includeCodeBlock: false,
@@ -71,7 +80,7 @@ describe('findMatches', () => {
     ], 'foo', defaultOptions)
 
     expect(result.error).toBe('')
-    expect(result.matches.map(match => ({
+    expect(result.matches.map((match) => ({
       blockId: match.blockId,
       blockIndex: match.blockIndex,
       matchedText: match.matchedText,
@@ -111,7 +120,7 @@ describe('findMatches', () => {
     })
 
     expect(result.error).toBe('')
-    expect(result.matches.map(match => match.start)).toEqual([7])
+    expect(result.matches.map((match) => match.start)).toEqual([7])
   })
 
   it('returns an error for invalid regex input', () => {
@@ -134,8 +143,14 @@ describe('findMatches', () => {
       ...defaultOptions,
       selectionOnly: true,
     }, new Map([
-      ['block-0', [{ start: 4, end: 11 }]],
-      ['block-1', [{ start: 0, end: 3 }]],
+      ['block-0', [{
+        start: 4,
+        end: 11,
+      }]],
+      ['block-1', [{
+        start: 0,
+        end: 3,
+      }]],
     ]))
 
     expect(result.error).toBe('')
@@ -221,23 +236,38 @@ describe('findMatches', () => {
       } as SearchableBlock,
     ], 'Alpha', defaultOptions)
 
-    expect(result.matches.map(match => ({
+    expect(result.matches.map((match) => ({
       canvas: match.canvas,
       replaceable: match.replaceable,
       sourceKind: match.sourceKind,
     }))).toEqual([
       {
-        canvas: { field: 'text', nodeId: 't1', targetId: 'node:t1:text', targetType: 'node' },
+        canvas: {
+          field: 'text',
+          nodeId: 't1',
+          targetId: 'node:t1:text',
+          targetType: 'node',
+        },
         replaceable: true,
         sourceKind: 'canvas',
       },
       {
-        canvas: { field: 'text', nodeId: 't1', targetId: 'node:t1:text', targetType: 'node' },
+        canvas: {
+          field: 'text',
+          nodeId: 't1',
+          targetId: 'node:t1:text',
+          targetType: 'node',
+        },
         replaceable: true,
         sourceKind: 'canvas',
       },
       {
-        canvas: { field: 'note', nodeId: 'f1', targetId: 'node:f1:note', targetType: 'node' },
+        canvas: {
+          field: 'note',
+          nodeId: 'f1',
+          targetId: 'node:f1:note',
+          targetType: 'node',
+        },
         replaceable: false,
         sourceKind: 'canvas',
       },

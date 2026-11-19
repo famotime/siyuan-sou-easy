@@ -1,7 +1,7 @@
 import type {
   EditorContext,
-  SearchMatch,
   ScrollMatchResult,
+  SearchMatch,
 } from '../types'
 
 export function syncCanvasSearchDecorations({
@@ -15,8 +15,8 @@ export function syncCanvasSearchDecorations({
 }) {
   context.canvas?.host.syncDecorations(
     matches
-      .filter(match => match.sourceKind === 'canvas' && match.canvas?.targetId)
-      .map(match => ({
+      .filter((match) => match.sourceKind === 'canvas' && match.canvas?.targetId)
+      .map((match) => ({
         current: currentMatch?.id === match.id,
         end: match.end,
         start: match.start,

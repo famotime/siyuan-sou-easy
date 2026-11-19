@@ -1,5 +1,5 @@
-import { preserveReplacementCase } from '../preserve-case'
 import type { SearchMatch } from '../types'
+import { preserveReplacementCase } from '../preserve-case'
 
 export async function replaceCanvasMatchGroups({
   getReplacementText,
@@ -36,7 +36,7 @@ export async function replaceCanvasMatchGroups({
   for (const [targetId, group] of groups) {
     const result = await group.host.replaceTextRanges(
       targetId,
-      group.matches.map(match => ({
+      group.matches.map((match) => ({
         end: match.end,
         start: match.start,
         text: preserveCase

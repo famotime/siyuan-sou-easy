@@ -131,16 +131,26 @@ export async function revertTransaction(txId: string): Promise<RevertTransaction
   }
 
   const execution = (async (): Promise<RevertTransactionResult> => {
-    const tx = transactionsMemoryCache.find(t => t.id === txId)
+    const tx = transactionsMemoryCache.find((t) => t.id === txId)
     if (!tx) {
-      return { success: false, revertedCount: 0, skippedCount: 0, error: '未找到对应事务记录' }
+      return {
+        success: false,
+        revertedCount: 0,
+        skippedCount: 0,
+        error: '未找到对应事务记录',
+      }
     }
     if (tx.reverted) {
-      return { success: false, revertedCount: 0, skippedCount: 0, error: '该事务已经回滚，不能重复回滚' }
+      return {
+        success: false,
+        revertedCount: 0,
+        skippedCount: 0,
+        error: '该事务已经回滚，不能重复回滚',
+      }
     }
 
     // 缺少原始 DOM 记录的条目禁止回退：绝不使用猜测/伪造的内容覆盖文档块
-    const revertableItems = tx.items.filter(item => typeof item.originalDom === 'string' && item.originalDom.trim().length > 0)
+    const revertableItems = tx.items.filter((item) => typeof item.originalDom === 'string' && item.originalDom.trim().length > 0)
     if (!revertableItems.length) {
       return {
         success: false,

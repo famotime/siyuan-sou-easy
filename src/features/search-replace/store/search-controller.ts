@@ -1,3 +1,15 @@
+import type {
+  EditorContext,
+  SearchMatch,
+} from '../types'
+import type { SearchReplaceState } from './state'
+import { t } from '@/i18n/runtime'
+import { searchAttributeViewMatches } from '../attribute-view'
+import {
+  debugElement,
+  debugLog,
+  debugLogLazy,
+} from '../debug'
 import {
   clearSearchDecorations,
   findEditorContextByRootId,
@@ -7,15 +19,8 @@ import {
   scrollMatchIntoView,
   syncSearchDecorations,
 } from '../editor'
-import { searchAttributeViewMatches } from '../attribute-view'
-import { debugElement, debugLog, debugLogLazy } from '../debug'
-import { findMatches } from '../search-engine'
-import type {
-  EditorContext,
-  SearchMatch,
-} from '../types'
-import { t } from '@/i18n/runtime'
 import { getBlockAttrs } from '../kernel'
+import { findMatches } from '../search-engine'
 import {
   clearSelectionScope,
   rememberEditorContext,
@@ -28,11 +33,10 @@ import {
   clearDocumentSnapshotCache,
   invalidateDocumentSnapshot,
 } from './document-snapshot'
+import { resolveBlocksForSearch } from './search-blocks'
 import { createSearchDocumentEventController } from './search-document-events'
 import { createPendingNavigationController } from './search-pending-navigation'
-import { resolveBlocksForSearch } from './search-blocks'
 import { clearQueryEditState } from './search-session-state'
-import type { SearchReplaceState } from './state'
 
 interface SearchControllerOptions {
   getCurrentMatch: () => SearchMatch | null
@@ -147,7 +151,10 @@ export function createSearchController({
 
     state.searching = true
     try {
-      const { blocks, documentContent } = await resolveBlocksForSearch(context, state.options)
+      const {
+        blocks,
+        documentContent,
+      } = await resolveBlocksForSearch(context, state.options)
       if (revision !== latestRefreshRevision) {
         return
       }
@@ -163,7 +170,7 @@ export function createSearchController({
       }
 
       const result = findMatches(blocks, state.query, state.options, selectionScope)
-      const minimapBlocks = blocks.map(block => ({
+      const minimapBlocks = blocks.map((block) => ({
         blockId: block.blockId,
         blockIndex: block.blockIndex,
         blockType: block.blockType,

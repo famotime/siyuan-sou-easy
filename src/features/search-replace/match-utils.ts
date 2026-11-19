@@ -5,7 +5,7 @@ export function isAttributeViewMatch(match: SearchMatch | null | undefined) {
 }
 
 export function hasAttributeViewMatches(matches: SearchMatch[]) {
-  return matches.some(match => isAttributeViewMatch(match))
+  return matches.some((match) => isAttributeViewMatch(match))
 }
 
 export function isCanvasMatch(match: SearchMatch | null | undefined) {
@@ -13,11 +13,11 @@ export function isCanvasMatch(match: SearchMatch | null | undefined) {
 }
 
 export function hasCanvasMatches(matches: SearchMatch[]) {
-  return matches.some(match => isCanvasMatch(match))
+  return matches.some((match) => isCanvasMatch(match))
 }
 
 export function hasUnsupportedCanvasReplacementMatches(matches: SearchMatch[]) {
-  return matches.some(match => isCanvasMatch(match) && !match.replaceable)
+  return matches.some((match) => isCanvasMatch(match) && !match.replaceable)
 }
 
 export interface PreviewSegment {
@@ -41,9 +41,15 @@ export function parsePreviewSegments(
     if (index !== -1) {
       const segments: PreviewSegment[] = []
       if (index > 0) {
-        segments.push({ text: previewText.slice(0, index), isMatch: false })
+        segments.push({
+          text: previewText.slice(0, index),
+          isMatch: false,
+        })
       }
-      segments.push({ text: targetMatch, isMatch: true })
+      segments.push({
+        text: targetMatch,
+        isMatch: true,
+      })
       if (index + bracketedMatch.length < previewText.length) {
         segments.push({
           text: previewText.slice(index + bracketedMatch.length),
@@ -59,16 +65,28 @@ export function parsePreviewSegments(
   if (match && match.index !== undefined) {
     const segments: PreviewSegment[] = []
     if (match.index > 0) {
-      segments.push({ text: previewText.slice(0, match.index), isMatch: false })
+      segments.push({
+        text: previewText.slice(0, match.index),
+        isMatch: false,
+      })
     }
-    segments.push({ text: match[1], isMatch: true })
+    segments.push({
+      text: match[1],
+      isMatch: true,
+    })
     const restIndex = match.index + match[0].length
     if (restIndex < previewText.length) {
-      segments.push({ text: previewText.slice(restIndex), isMatch: false })
+      segments.push({
+        text: previewText.slice(restIndex),
+        isMatch: false,
+      })
     }
     return segments
   }
 
-  return [{ text: previewText, isMatch: false }]
+  return [{
+    text: previewText,
+    isMatch: false,
+  }]
 }
 

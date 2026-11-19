@@ -1,4 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import {
+  describe,
+  expect,
+  it,
+} from 'vitest'
 import { computeReplacement } from '@/features/search-replace/global/diff-builder'
 
 describe('regex capture group replace', () => {

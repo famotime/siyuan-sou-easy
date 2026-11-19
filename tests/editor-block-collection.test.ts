@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import type { SearchOptions } from '@/features/search-replace/types'
+
 import {
   afterEach,
   describe,
@@ -7,7 +9,6 @@ import {
   it,
   vi,
 } from 'vitest'
-
 import {
   applyReplacementsToClone,
   collectSearchableBlocks,
@@ -17,7 +18,6 @@ import {
   getBlockPlainText,
 } from '@/features/search-replace/editor'
 import { findMatches } from '@/features/search-replace/search-engine'
-import type { SearchOptions } from '@/features/search-replace/types'
 
 const defaultOptions: SearchOptions = {
   includeCodeBlock: false,
@@ -68,7 +68,7 @@ describe('editor block collection', () => {
       includeCodeBlock: true,
     })
 
-    expect(withoutCodeBlocks.map(block => ({
+    expect(withoutCodeBlocks.map((block) => ({
       blockId: block.blockId,
       text: block.text,
     }))).toEqual([
@@ -81,7 +81,7 @@ describe('editor block collection', () => {
         text: 'Skip this block',
       },
     ])
-    expect(withCodeBlocks.map(block => block.blockId)).toEqual(['block-1', 'block-2', 'block-3'])
+    expect(withCodeBlocks.map((block) => block.blockId)).toEqual(['block-1', 'block-2', 'block-3'])
   })
 
   it('collects text from table cells so table content can be searched and replaced', () => {
@@ -114,7 +114,7 @@ describe('editor block collection', () => {
     const blocks = collectSearchableBlocks(context, defaultOptions)
     const matches = findMatches(blocks, 'Alpha', defaultOptions).matches
 
-    expect(blocks.map(block => ({
+    expect(blocks.map((block) => ({
       blockId: block.blockId,
       blockType: block.blockType,
       text: block.text,

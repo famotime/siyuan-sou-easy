@@ -1,11 +1,17 @@
 // @vitest-environment jsdom
 
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
+import { mapTerminalSearchResult } from '@/features/search-replace/terminal/adapter'
 import {
   getTerminalSearchRegistry,
   isTerminalSearchTarget,
 } from '@/features/search-replace/terminal/registry'
-import { mapTerminalSearchResult } from '@/features/search-replace/terminal/adapter'
 
 describe('terminal search registry adapter', () => {
   beforeEach(() => {

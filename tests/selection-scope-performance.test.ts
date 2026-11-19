@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import type { SelectionScope } from '@/features/search-replace/types'
+
 import {
   afterEach,
   describe,
@@ -7,12 +9,10 @@ import {
   it,
   vi,
 } from 'vitest'
-
 import {
   createEditorContextFromElement,
   getCurrentSelectionScope,
 } from '@/features/search-replace/editor'
-import type { SelectionScope } from '@/features/search-replace/types'
 
 // Cost guard for the selection scan that runs on every `selectionchange` (every
 // keystroke and every caret move). The scan must stay proportional to the selection
@@ -77,7 +77,7 @@ function measureScan(protyle: HTMLElement): ScanCost {
       comparePoints: comparePointSpy.mock.calls.length,
       ranges: rangeSpy.mock.calls.length,
       scope,
-      textWalks: treeWalkerSpy.mock.calls.filter(call => call[1] === NodeFilter.SHOW_TEXT).length,
+      textWalks: treeWalkerSpy.mock.calls.filter((call) => call[1] === NodeFilter.SHOW_TEXT).length,
     }
   } finally {
     vi.restoreAllMocks()
@@ -118,7 +118,10 @@ describe('selection scope scan cost', () => {
     expect(large.textWalks).toBeLessThanOrEqual(3)
     expect(large.comparePoints).toBeLessThanOrEqual(4)
     expect(Array.from(large.scope.entries())).toEqual([
-      ['block-1000', [{ start: 4, end: 8 }]],
+      ['block-1000', [{
+        start: 4,
+        end: 8,
+      }]],
     ])
   })
 

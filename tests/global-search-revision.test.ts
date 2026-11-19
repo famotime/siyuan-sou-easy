@@ -1,4 +1,17 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
+
+import {
+  clearGlobalSearchResults,
+  executeGlobalSearch,
+  globalSearchState,
+  setGlobalQuery,
+} from '@/features/search-replace/global/store'
 
 const { executeGlobalBlockQuery } = vi.hoisted(() => ({
   executeGlobalBlockQuery: vi.fn(),
@@ -7,13 +20,6 @@ const { executeGlobalBlockQuery } = vi.hoisted(() => ({
 vi.mock('@/features/search-replace/global/kernel-query', () => ({
   executeGlobalBlockQuery,
 }))
-
-import {
-  clearGlobalSearchResults,
-  executeGlobalSearch,
-  globalSearchState,
-  setGlobalQuery,
-} from '@/features/search-replace/global/store'
 
 function docRecord(id: string, content: string) {
   return {
@@ -55,13 +61,13 @@ describe('global search revision guard', () => {
     const freshSearch = executeGlobalSearch()
     await freshSearch
 
-    expect(globalSearchState.results.map(doc => doc.rootId)).toEqual(['root-fresh'])
+    expect(globalSearchState.results.map((doc) => doc.rootId)).toEqual(['root-fresh'])
 
     // 旧搜索此刻才完成：其结果必须被丢弃，不得覆盖新结果
     resolveStale([docRecord('stale', 'hello stale world')])
     await staleSearch
 
-    expect(globalSearchState.results.map(doc => doc.rootId)).toEqual(['root-fresh'])
+    expect(globalSearchState.results.map((doc) => doc.rootId)).toEqual(['root-fresh'])
     expect(globalSearchState.searchedQuery).toBe('hello')
     expect(globalSearchState.error).toBeUndefined()
   })
@@ -89,7 +95,7 @@ describe('global search revision guard', () => {
     resolveNew([docRecord('new', 'hello new')])
     await newSearch
     expect(globalSearchState.searching).toBe(false)
-    expect(globalSearchState.results.map(doc => doc.rootId)).toEqual(['root-new'])
+    expect(globalSearchState.results.map((doc) => doc.rootId)).toEqual(['root-new'])
   })
 
   it('discards in-flight search results after the query changes', async () => {
@@ -128,6 +134,6 @@ describe('global search revision guard', () => {
 
     expect(globalSearchState.searching).toBe(false)
     expect(globalSearchState.error).toBeUndefined()
-    expect(globalSearchState.results.map(doc => doc.rootId)).toEqual(['root-fresh'])
+    expect(globalSearchState.results.map((doc) => doc.rootId)).toEqual(['root-fresh'])
   })
 })

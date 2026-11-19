@@ -1,6 +1,6 @@
+import { getPluginInstance } from '@/plugin-instance'
 import enUS from './en_US.json'
 import zhCN from './zh_CN.json'
-import { getPluginInstance } from '@/plugin-instance'
 
 type Messages = typeof zhCN
 type I18nKey = keyof Messages

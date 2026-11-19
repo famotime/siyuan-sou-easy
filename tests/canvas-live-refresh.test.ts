@@ -1,6 +1,11 @@
 /* @vitest-environment jsdom */
 
-import { describe, expect, it, vi } from 'vitest'
+import {
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 
 import { createSearchDocumentEventController } from '@/features/search-replace/store/search-document-events'
 

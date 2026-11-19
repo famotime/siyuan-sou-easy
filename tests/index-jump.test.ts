@@ -1,8 +1,22 @@
 // @vitest-environment jsdom
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createApp, nextTick, h } from 'vue'
-import { jumpToMatchIndex, searchReplaceState } from '@/features/search-replace/store'
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
+import {
+  createApp,
+  h,
+  nextTick,
+} from 'vue'
+import {
+  jumpToMatchIndex,
+  searchReplaceState,
+} from '@/features/search-replace/store'
 import SearchToolbarRow from '@/features/search-replace/ui/SearchToolbarRow.vue'
 
 describe('jumpToMatchIndex store action', () => {
@@ -49,7 +63,7 @@ describe('jumpToMatchIndex store action', () => {
   })
 })
 
-describe('SearchToolbarRow editable index input', () => {
+describe('searchToolbarRow editable index input', () => {
   let container: HTMLDivElement | null = null
   let app: ReturnType<typeof createApp> | null = null
 
@@ -101,7 +115,10 @@ describe('SearchToolbarRow editable index input', () => {
   }
 
   it('renders disabled input when totalMatches is 0', async () => {
-    mountComponent(createProps({ currentIndex: 0, totalMatches: 0 }))
+    mountComponent(createProps({
+      currentIndex: 0,
+      totalMatches: 0,
+    }))
     await nextTick()
 
     const input = container!.querySelector<HTMLInputElement>('.sfsr-count__input')!
@@ -114,7 +131,10 @@ describe('SearchToolbarRow editable index input', () => {
   })
 
   it('renders enabled input with current index and total matches', async () => {
-    mountComponent(createProps({ currentIndex: 1, totalMatches: 5 }))
+    mountComponent(createProps({
+      currentIndex: 1,
+      totalMatches: 5,
+    }))
     await nextTick()
 
     const input = container!.querySelector<HTMLInputElement>('.sfsr-count__input')!
@@ -127,7 +147,11 @@ describe('SearchToolbarRow editable index input', () => {
 
   it('triggers onJumpToIndex on Enter with valid index', async () => {
     const onJumpToIndex = vi.fn()
-    mountComponent(createProps({ currentIndex: 1, totalMatches: 5, onJumpToIndex }))
+    mountComponent(createProps({
+      currentIndex: 1,
+      totalMatches: 5,
+      onJumpToIndex,
+    }))
     await nextTick()
 
     const input = container!.querySelector<HTMLInputElement>('.sfsr-count__input')!
@@ -135,7 +159,11 @@ describe('SearchToolbarRow editable index input', () => {
     input.dispatchEvent(new Event('input', { bubbles: true }))
     await nextTick()
 
-    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }))
+    input.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 'Enter',
+      code: 'Enter',
+      bubbles: true,
+    }))
     await nextTick()
 
     expect(onJumpToIndex).toHaveBeenCalledWith(4)
@@ -143,7 +171,11 @@ describe('SearchToolbarRow editable index input', () => {
 
   it('restores previous index on Enter with invalid out-of-bounds input', async () => {
     const onJumpToIndex = vi.fn()
-    mountComponent(createProps({ currentIndex: 2, totalMatches: 5, onJumpToIndex }))
+    mountComponent(createProps({
+      currentIndex: 2,
+      totalMatches: 5,
+      onJumpToIndex,
+    }))
     await nextTick()
 
     const input = container!.querySelector<HTMLInputElement>('.sfsr-count__input')!
@@ -152,7 +184,11 @@ describe('SearchToolbarRow editable index input', () => {
     input.value = '10'
     input.dispatchEvent(new Event('input', { bubbles: true }))
     await nextTick()
-    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }))
+    input.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 'Enter',
+      code: 'Enter',
+      bubbles: true,
+    }))
     await nextTick()
 
     expect(onJumpToIndex).not.toHaveBeenCalled()
@@ -162,7 +198,11 @@ describe('SearchToolbarRow editable index input', () => {
     input.value = 'abc'
     input.dispatchEvent(new Event('input', { bubbles: true }))
     await nextTick()
-    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }))
+    input.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 'Enter',
+      code: 'Enter',
+      bubbles: true,
+    }))
     await nextTick()
 
     expect(onJumpToIndex).not.toHaveBeenCalled()
@@ -170,7 +210,10 @@ describe('SearchToolbarRow editable index input', () => {
   })
 
   it('restores original index on Esc and blur', async () => {
-    mountComponent(createProps({ currentIndex: 2, totalMatches: 5 }))
+    mountComponent(createProps({
+      currentIndex: 2,
+      totalMatches: 5,
+    }))
     await nextTick()
 
     const input = container!.querySelector<HTMLInputElement>('.sfsr-count__input')!
@@ -179,7 +222,11 @@ describe('SearchToolbarRow editable index input', () => {
     input.value = '4'
     input.dispatchEvent(new Event('input', { bubbles: true }))
     await nextTick()
-    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))
+    input.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 'Escape',
+      code: 'Escape',
+      bubbles: true,
+    }))
     await nextTick()
     expect(input.value).toBe('2')
 

@@ -132,7 +132,7 @@ function resolveHintedEditorContext(resolver: EditorContextResolver) {
 
 function cloneSelectionScope(scope: SelectionScope): SelectionScope {
   return new Map(Array.from(scope.entries()).map(([blockId, ranges]) => {
-    return [blockId, ranges.map(range => ({ ...range }))]
+    return [blockId, ranges.map((range) => ({ ...range }))]
   }))
 }
 

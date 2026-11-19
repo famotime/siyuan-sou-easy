@@ -21,8 +21,8 @@ import {
 } from '@/features/search-replace/store'
 import { setPluginInstance } from '@/plugin-instance'
 import {
-  DEFAULT_SETTINGS,
   createSearchOptionsFromSettings,
+  DEFAULT_SETTINGS,
 } from '@/settings'
 
 describe('search panel canvas replacement controls', () => {
@@ -81,7 +81,8 @@ describe('search panel canvas replacement controls', () => {
       replaceable: false,
       rootId: 'canvas:/data/a.canvas',
       sourceKind: 'canvas',
-      start: 0, occ: 0,
+      start: 0,
+      occ: 0,
     }]
 
     openPanel(true, true)
@@ -100,7 +101,7 @@ describe('search panel canvas replacement controls', () => {
 
   function findActionButton(label: string) {
     return Array.from(host?.querySelectorAll<HTMLButtonElement>('.sfsr-action') ?? [])
-      .find(button => button.title === label || button.getAttribute('aria-label') === label || button.textContent?.trim() === label)
+      .find((button) => button.title === label || button.getAttribute('aria-label') === label || button.textContent?.trim() === label)
   }
 
   function resetState() {

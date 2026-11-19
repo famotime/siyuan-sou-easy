@@ -23,8 +23,8 @@ import {
   unbindPlugin,
 } from '@/features/search-replace/store'
 import {
-  DEFAULT_SETTINGS,
   createSearchOptionsFromSettings,
+  DEFAULT_SETTINGS,
 } from '@/settings'
 
 describe('selection mode from panel interaction', () => {
@@ -193,7 +193,7 @@ describe('selection mode from panel interaction', () => {
 
     expect(searchReplaceState.error).toBe('')
     expect(searchReplaceState.matches).toHaveLength(2)
-    expect(searchReplaceState.matches.map(match => match.blockId)).toEqual(['block-1', 'block-2'])
+    expect(searchReplaceState.matches.map((match) => match.blockId)).toEqual(['block-1', 'block-2'])
   })
 
   it('reopens selection-only search for selected list item containers after native selection has been cleared', async () => {
@@ -288,7 +288,7 @@ describe('selection mode from panel interaction', () => {
     const paragraph = document.querySelector<HTMLElement>(`[data-node-id="${paragraphId}"]`)
     const textNode = paragraph?.querySelector('[contenteditable="true"]')?.firstChild as Text
     const listItem = paragraph?.closest<HTMLElement>('[data-type="NodeListItem"]')
-    document.querySelectorAll('.protyle-wysiwyg--select').forEach(element => element.classList.remove('protyle-wysiwyg--select'))
+    document.querySelectorAll('.protyle-wysiwyg--select').forEach((element) => element.classList.remove('protyle-wysiwyg--select'))
     listItem?.classList.add('protyle-wysiwyg--select')
 
     const range = document.createRange()
@@ -326,7 +326,7 @@ describe('selection mode from panel interaction', () => {
 
     document.dispatchEvent(new Event('selectionchange'))
 
-    expect(treeWalkerSpy.mock.calls.filter(call => call[1] === NodeFilter.SHOW_TEXT)).toHaveLength(0)
+    expect(treeWalkerSpy.mock.calls.filter((call) => call[1] === NodeFilter.SHOW_TEXT)).toHaveLength(0)
     expect(createRangeSpy).not.toHaveBeenCalled()
   })
 

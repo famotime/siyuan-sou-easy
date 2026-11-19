@@ -21,8 +21,8 @@ import {
   searchReplaceState,
 } from '@/features/search-replace/store'
 import {
-  DEFAULT_SETTINGS,
   createSearchOptionsFromSettings,
+  DEFAULT_SETTINGS,
 } from '@/settings'
 
 describe('search panel replace toggle', () => {
@@ -145,7 +145,7 @@ describe('search panel replace toggle', () => {
 
     const wholeWordButton = host?.querySelector<HTMLButtonElement>('button[title="全词匹配"]')
     const wholeWordIcon = wholeWordButton?.querySelector<SVGElement>('.sfsr-toolbar-icon--whole-word')
-    const plainTextNodes = Array.from(wholeWordButton?.childNodes ?? []).filter(node => (
+    const plainTextNodes = Array.from(wholeWordButton?.childNodes ?? []).filter((node) => (
       node.nodeType === Node.TEXT_NODE && node.textContent?.trim()
     ))
 
@@ -198,7 +198,8 @@ describe('search panel replace toggle', () => {
       replaceable: false,
       rootId: 'root-1',
       sourceKind: 'attribute-view',
-      start: 0, occ: 0,
+      start: 0,
+      occ: 0,
     }] as any
     openPanel(true, true)
     await nextTick()
@@ -226,7 +227,8 @@ describe('search panel replace toggle', () => {
       previewText: '[foo] bar',
       replaceable: true,
       rootId: 'root-1',
-      start: 0, occ: 0,
+      start: 0,
+      occ: 0,
     }] as any
     openPanel(true, true)
     await nextTick()
@@ -286,7 +288,8 @@ describe('search panel replace toggle', () => {
       previewText: '前文 [foo] 后文',
       replaceable: true,
       rootId: 'root-1',
-      start: 0, occ: 0,
+      start: 0,
+      occ: 0,
     }] as any
     searchReplaceState.navigationHint = '正在定位命中内容，等待编辑器继续加载...'
     openPanel(true)
@@ -441,7 +444,10 @@ describe('search panel replace toggle', () => {
   it('resets the stored panel position on double click from non-interactive content', async () => {
     mountPanel()
     applyPluginSettings({ ...DEFAULT_SETTINGS })
-    searchReplaceState.panelPosition = { left: 150, top: 50 }
+    searchReplaceState.panelPosition = {
+      left: 150,
+      top: 50,
+    }
     openPanel(true)
     await nextTick()
 
@@ -457,7 +463,10 @@ describe('search panel replace toggle', () => {
   it('clamps panel width and position after the viewport shrinks', async () => {
     mountPanel()
     applyPluginSettings({ ...DEFAULT_SETTINGS })
-    searchReplaceState.panelPosition = { left: 320, top: 20 }
+    searchReplaceState.panelPosition = {
+      left: 320,
+      top: 20,
+    }
     openPanel(true)
     await nextTick()
 

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { it } from 'vitest'
-import { isRangeReplaceable } from '../src/features/search-replace/editor/replacement'
 import { locateRangeInSingleTextNode } from '../src/features/search-replace/editor/ranges'
+import { isRangeReplaceable } from '../src/features/search-replace/editor/replacement'
 
 it('debugs table replaceable 2', () => {
   document.body.innerHTML = `
@@ -24,10 +24,10 @@ it('debugs table replaceable 2', () => {
       </div>
   `
   const tableBlock = document.querySelector('[data-node-id="block-table"]') as HTMLElement
-  
+
   const location = locateRangeInSingleTextNode(tableBlock, 'Alpha', 0)
   console.log('location 2:', location)
-  
+
   const result = isRangeReplaceable(tableBlock, 'Alpha', 0)
   console.log('isRangeReplaceable result 2:', result)
 })

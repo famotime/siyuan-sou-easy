@@ -1,5 +1,20 @@
-import { showMessage, type Plugin } from 'siyuan'
+import type { Plugin } from 'siyuan'
+import type { PanelPosition } from './store/state'
+import type { TerminalSearchSurface } from './terminal/registry'
+import type {
+  EditorContext,
+  SearchOptions,
+} from './types'
+import type { PluginSettings } from '@/settings'
+import {
+
+  showMessage,
+} from 'siyuan'
 import { t } from '@/i18n/runtime'
+import {
+  debugLog,
+  setDebugLoggingEnabled,
+} from './debug'
 import {
   applyReplacementsToClone,
   createBlockElementFromDom,
@@ -13,21 +28,18 @@ import {
   querySql,
   updateDomBlock,
 } from './kernel'
-import type {
-  EditorContext,
-  SearchOptions,
-} from './types'
-import { debugLog, setDebugLoggingEnabled } from './debug'
-import type { PluginSettings } from '@/settings'
 import {
-  clearSelectionScope,
   clearCachedEditorState,
+  clearSelectionScope,
   rememberEditorContext,
   rememberHintedEditorContext,
   rememberSelectionScope,
 } from './store/context-cache'
 import { invalidateDocumentSnapshot } from './store/document-snapshot'
-import { replaceAllMatches, replaceCurrentMatch } from './store/replacement'
+import {
+  replaceAllMatches,
+  replaceCurrentMatch,
+} from './store/replacement'
 import { createSearchController } from './store/search-controller'
 import {
   applyClosePanelState,
@@ -35,7 +47,7 @@ import {
   resolveNextPanelVisibility,
 } from './store/search-session-state'
 import {
-  type PanelPosition,
+
   searchReplaceState,
 } from './store/state'
 import {
@@ -48,9 +60,12 @@ import {
   unbindUiStatePlugin,
 } from './store/ui-state'
 import { mapTerminalSearchResult } from './terminal/adapter'
-import type { TerminalSearchSurface } from './terminal/registry'
 
-export { createInitialSearchReplaceState, resetSearchReplaceState, searchReplaceState } from './store/state'
+export {
+  createInitialSearchReplaceState,
+  resetSearchReplaceState,
+  searchReplaceState,
+} from './store/state'
 const searchController = createSearchController({
   getCurrentMatch: () => getCurrentMatch(),
   state: searchReplaceState,
@@ -485,8 +500,8 @@ export async function extractAll() {
     return
   }
 
-  const uniqueBlockIds = Array.from(new Set(searchReplaceState.matches.map(m => m.blockId)))
-  
+  const uniqueBlockIds = Array.from(new Set(searchReplaceState.matches.map((m) => m.blockId)))
+
   const limit = 1000
   const isLimited = uniqueBlockIds.length > limit
   const targetIds = uniqueBlockIds.slice(0, limit)
@@ -494,7 +509,7 @@ export async function extractAll() {
 
   if (searchReplaceState.settings.extractAsBlockRef) {
     const textLimit = 30
-    const matchByBlockId = new Map(searchReplaceState.matches.map(m => [m.blockId, m]))
+    const matchByBlockId = new Map(searchReplaceState.matches.map((m) => [m.blockId, m]))
     resultText = targetIds.map((id) => {
       const match = matchByBlockId.get(id)
       let anchorText = match?.previewText?.trim() || ''
@@ -502,7 +517,7 @@ export async function extractAll() {
         anchorText = anchorText.replace(`[${match.matchedText}]`, match.matchedText)
       }
       if (anchorText.length > textLimit) {
-        anchorText = anchorText.substring(0, textLimit) + '...'
+        anchorText = `${anchorText.substring(0, textLimit)}...`
       }
       anchorText = anchorText.replace(/"/g, "'").replace(/[\r\n]+/g, ' ') // Prevent breaking syntax
       return `* ((${id} "${anchorText}"))`
@@ -510,7 +525,7 @@ export async function extractAll() {
   } else {
     try {
       // Build a SQL query to get markdown for all targeted blocks
-      const idListStr = targetIds.map(id => `'${id}'`).join(',')
+      const idListStr = targetIds.map((id) => `'${id}'`).join(',')
       const results = await querySql(`SELECT id, markdown FROM blocks WHERE id IN (${idListStr})`)
       const markdownMap = new Map<string, string>()
       for (const row of results) {
@@ -519,7 +534,7 @@ export async function extractAll() {
         }
       }
       resultText = targetIds
-        .map(id => markdownMap.get(id))
+        .map((id) => markdownMap.get(id))
         .filter((md): md is string => typeof md === 'string')
         .join('\n\n')
     } catch (e) {

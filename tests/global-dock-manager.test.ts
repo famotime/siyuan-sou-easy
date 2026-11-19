@@ -1,14 +1,23 @@
 // @vitest-environment jsdom
 
-import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
+import type { MockInstance } from 'vitest'
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
 
-import { setPluginInstance } from '@/plugin-instance'
+  vi,
+} from 'vitest'
+
 import {
   destroyGlobalSearchDock,
   initGlobalSearchDock,
   isGlobalSearchDockVisible,
   toggleGlobalSearchDock,
 } from '@/features/search-replace/global/dock-manager'
+import { setPluginInstance } from '@/plugin-instance'
 
 describe('dock manager visibility states', () => {
   let dockElement: HTMLElement

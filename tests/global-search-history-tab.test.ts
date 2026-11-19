@@ -1,16 +1,21 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it, vi } from 'vitest'
+import type { ReplaceTransaction } from '@/features/search-replace/global/transaction-history'
+import {
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import { createApp } from 'vue'
-import ReplaceHistoryTabView from '@/features/search-replace/global/ui/ReplaceHistoryTabView.vue'
 import {
   destroyReplaceHistoryTab,
   initReplaceHistoryTab,
 } from '@/features/search-replace/global/history-tab-manager'
 import * as txHistory from '@/features/search-replace/global/transaction-history'
-import type { ReplaceTransaction } from '@/features/search-replace/global/transaction-history'
+import ReplaceHistoryTabView from '@/features/search-replace/global/ui/ReplaceHistoryTabView.vue'
 
-describe('ReplaceHistoryTabView (分屏页签打开批量替换历史测试)', () => {
+describe('replaceHistoryTabView (分屏页签打开批量替换历史测试)', () => {
   const dummyTransactions: ReplaceTransaction[] = [
     {
       id: 'tx-tab-1',
@@ -90,7 +95,7 @@ describe('ReplaceHistoryTabView (分屏页签打开批量替换历史测试)', (
     // 点击卡片头部展开
     const cardHeader = container.querySelector<HTMLElement>('.sfsr-history-card-header')
     cardHeader?.click()
-    await new Promise(r => setTimeout(r, 10))
+    await new Promise((r) => setTimeout(r, 10))
 
     const cardBody = container.querySelector('.sfsr-history-card-body')
     expect(cardBody).not.toBeNull()

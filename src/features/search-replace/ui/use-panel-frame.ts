@@ -1,11 +1,12 @@
+import type { Ref } from 'vue'
+import type { PanelPosition } from '../store/state'
 import {
   computed,
   onBeforeUnmount,
   ref,
+
   watch,
-  type Ref,
 } from 'vue'
-import type { PanelPosition } from '../store/state'
 
 const PANEL_MARGIN = 8
 const DEFAULT_PANEL_WIDTH = 480

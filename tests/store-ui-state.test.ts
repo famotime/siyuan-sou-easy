@@ -1,4 +1,4 @@
-﻿// @vitest-environment jsdom
+// @vitest-environment jsdom
 
 import {
   afterEach,
@@ -8,6 +8,19 @@ import {
   it,
   vi,
 } from 'vitest'
+
+import {
+  applyPluginSettings,
+  bindPlugin,
+  createInitialSearchReplaceState,
+  initializeUiState,
+  openPanel,
+  resetSearchReplaceState,
+  searchReplaceState,
+  setPanelPosition,
+  setPanelWidth,
+  unbindPlugin,
+} from '@/features/search-replace/store'
 
 import { DEFAULT_SETTINGS } from '@/settings'
 
@@ -42,7 +55,10 @@ const editorMocks = vi.hoisted(() => {
     getActiveEditorContext: vi.fn(() => state.context),
     getBlockElement: vi.fn(),
     getCurrentSelectionScope: vi.fn(() => new Map([
-      ['block-1', [{ end: 3, start: 0 }]],
+      ['block-1', [{
+        end: 3,
+        start: 0,
+      }]],
     ])),
     getCurrentSelectionText: vi.fn(() => ''),
     isMatchVisible: vi.fn(() => true),
@@ -75,19 +91,6 @@ const kernelMocks = vi.hoisted(() => ({
 vi.mock('@/features/search-replace/editor', () => editorMocks)
 vi.mock('@/features/search-replace/search-engine', () => searchEngineMocks)
 vi.mock('@/features/search-replace/kernel', () => kernelMocks)
-
-import {
-  applyPluginSettings,
-  bindPlugin,
-  createInitialSearchReplaceState,
-  initializeUiState,
-  resetSearchReplaceState,
-  openPanel,
-  searchReplaceState,
-  setPanelPosition,
-  setPanelWidth,
-  unbindPlugin,
-} from '@/features/search-replace/store'
 
 describe('search store ui state', () => {
   const plugin = {
@@ -312,12 +315,18 @@ describe('search store ui state', () => {
       rememberPanelPosition: true,
     })
 
-    setPanelPosition({ left: 88, top: 42 })
+    setPanelPosition({
+      left: 88,
+      top: 42,
+    })
     // 180ms 防抖窗口内卸载：挂起变更立即刷写，最后一次拖动不丢失
     unbindPlugin()
 
     expect(plugin.saveData).toHaveBeenCalledWith('ui-state.json', {
-      panelPosition: { left: 88, top: 42 },
+      panelPosition: {
+        left: 88,
+        top: 42,
+      },
     })
   })
 })

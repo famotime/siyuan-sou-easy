@@ -189,8 +189,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
 import type { SearchOptions } from '../types'
+import {
+  ref,
+  watch,
+} from 'vue'
 import { t } from '@/i18n/runtime'
 
 const props = defineProps<{
@@ -242,8 +245,8 @@ function onIndexInput(event: Event) {
 }
 
 function onIndexEnter() {
-  const val = parseInt(displayIndex.value, 10)
-  if (!isNaN(val) && val >= 1 && val <= props.totalMatches) {
+  const val = Number.parseInt(displayIndex.value, 10)
+  if (!Number.isNaN(val) && val >= 1 && val <= props.totalMatches) {
     props.onJumpToIndex?.(val)
   } else {
     displayIndex.value = String(props.currentIndex)

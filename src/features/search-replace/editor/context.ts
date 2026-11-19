@@ -1,11 +1,15 @@
-import { getAllEditor, type IProtyle } from 'siyuan'
+import type { IProtyle } from 'siyuan'
+import type { EditorContext } from '../types'
+import { getAllEditor } from 'siyuan'
 import { t } from '@/i18n/runtime'
 import {
   findCanvasSearchContextByRootId,
   getActiveCanvasSearchContext,
 } from '../canvas/context'
-import { debugElement, debugLogLazy } from '../debug'
-import type { EditorContext } from '../types'
+import {
+  debugElement,
+  debugLogLazy,
+} from '../debug'
 
 export function getActiveEditorContext(): EditorContext | null {
   const canvasContext = getActiveCanvasSearchContext()
@@ -29,7 +33,7 @@ export function getActiveEditorContext(): EditorContext | null {
 
   if (preferredDirectCandidates.length > 0) {
     if (titleMatchedContext) {
-      const directTitleMatch = preferredDirectCandidates.find(candidate => candidate.rootId === titleMatchedContext.rootId)
+      const directTitleMatch = preferredDirectCandidates.find((candidate) => candidate.rootId === titleMatchedContext.rootId)
       if (directTitleMatch) {
         return directTitleMatch
       }
@@ -97,7 +101,7 @@ export function createEditorContextFromElement(
  * 命令入口可能只携带部分 Protyle 信息（element 与 block.rootID）。
  * protyleRef 的完整能力由运行时按需探测（getInstance?.()/scroll?/disabled）。
  */
-export type EditorProtyleLike = {
+export interface EditorProtyleLike {
   block?: {
     rootID?: string
   }
@@ -120,13 +124,13 @@ export function findEditorContextByRootId(rootId: string, titleHint = '') {
   }
 
   const visibleContexts = collectVisibleEditorContexts()
-  const exactMatch = visibleContexts.find(context => context.rootId === normalizedRootId)
+  const exactMatch = visibleContexts.find((context) => context.rootId === normalizedRootId)
   if (exactMatch) {
     return exactMatch
   }
 
   if (titleHint.trim()) {
-    return visibleContexts.find(context => context.title === titleHint.trim()) ?? null
+    return visibleContexts.find((context) => context.title === titleHint.trim()) ?? null
   }
 
   return null
@@ -153,11 +157,11 @@ function getEditorTitle(protyle: HTMLElement) {
 
 function collectVisibleEditorContexts() {
   const elements = Array.from(document.querySelectorAll<HTMLElement>('.protyle'))
-    .filter(element => !element.classList.contains('fn__none'))
+    .filter((element) => !element.classList.contains('fn__none'))
 
   return dedupeAndPreferVisibleContexts(
     elements
-      .map(element => createEditorContextFromElement(element))
+      .map((element) => createEditorContextFromElement(element))
       .filter((context): context is EditorContext => Boolean(context)),
   )
 }
@@ -168,7 +172,7 @@ function findContextByCurrentPageTitle(contexts: EditorContext[]) {
     return null
   }
 
-  return contexts.find(context => context.title === currentPageTitle) ?? null
+  return contexts.find((context) => context.title === currentPageTitle) ?? null
 }
 
 function dedupeAndPreferVisibleContexts(contexts: EditorContext[]) {
@@ -186,13 +190,13 @@ function dedupeAndPreferVisibleContexts(contexts: EditorContext[]) {
 
   if (contexts.length > resolvedContexts.length) {
     debugLogLazy('editor-context:deduped', () => ({
-      candidates: contexts.map(context => ({
+      candidates: contexts.map((context) => ({
         protyle: debugElement(context.protyle),
         rect: debugRectSummary(context.protyle),
         rootId: context.rootId,
         title: context.title,
       })),
-      chosen: resolvedContexts.map(context => ({
+      chosen: resolvedContexts.map((context) => ({
         protyle: debugElement(context.protyle),
         rect: debugRectSummary(context.protyle),
         rootId: context.rootId,

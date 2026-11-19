@@ -1,14 +1,16 @@
 import type { IProtyle } from 'siyuan'
-import PluginInfoString from '@/../plugin.json'
 import type { HotkeySettingKey } from './settings-panel'
+import type { HotkeySource } from '@/hotkeys'
+import type { PluginSettings } from '@/settings'
+import PluginInfoString from '@/../plugin.json'
+import {
+
+  normalizeHotkey,
+} from '@/hotkeys'
 import {
   DEFAULT_SETTINGS,
-  type PluginSettings,
+
 } from '@/settings'
-import {
-  normalizeHotkey,
-  type HotkeySource,
-} from '@/hotkeys'
 
 type CommandCallback = () => void
 type EditorCommandCallback = (protyle: IProtyle) => void
@@ -92,7 +94,7 @@ export function syncPanelCommandHotkeys({
   toRegisteredHotkey: (hotkey: string) => string
 }) {
   PANEL_COMMAND_DEFINITIONS.forEach((definition) => {
-    const command = commands.find(candidate => candidate.langKey === definition.langKey)
+    const command = commands.find((candidate) => candidate.langKey === definition.langKey)
     if (!command) {
       return
     }
@@ -104,7 +106,7 @@ export function syncPanelCommandHotkeys({
   // openGlobalSearch 命令不属于面板命令定义，但设置中修改 globalSearchHotkey
   // 时必须同步其注册热键，否则旧热键仍可通过思源命令系统触发（幽灵热键）。
   // Dock config.hotkey 无法在运行期更新，需重载插件后生效。
-  const globalSearchCommand = commands.find(candidate => candidate.langKey === 'openGlobalSearch')
+  const globalSearchCommand = commands.find((candidate) => candidate.langKey === 'openGlobalSearch')
   if (globalSearchCommand) {
     globalSearchCommand.hotkey = toRegisteredHotkey(DEFAULT_SETTINGS.globalSearchHotkey || 'Ctrl+Shift+F')
     globalSearchCommand.customHotkey = toRegisteredHotkey(settings.globalSearchHotkey || 'Ctrl+Shift+F')
@@ -186,13 +188,13 @@ function resolvePanelCommandHotkey({
   settingKey: HotkeySettingKey
   settings: PluginSettings
 }) {
-  const command = commands.find(candidate => candidate.langKey === getPanelCommandLangKey(settingKey))
+  const command = commands.find((candidate) => candidate.langKey === getPanelCommandLangKey(settingKey))
   const normalizedCommandHotkey = normalizeHotkey(command?.customHotkey)
   if (normalizedCommandHotkey) {
     return normalizedCommandHotkey
   }
 
-  const keymapHotkey = keymapSources.find(source => isPanelCommandKeymapSource(source, settingKey))?.hotkey
+  const keymapHotkey = keymapSources.find((source) => isPanelCommandKeymapSource(source, settingKey))?.hotkey
   const normalizedKeymapHotkey = normalizeHotkey(keymapHotkey)
   if (normalizedKeymapHotkey) {
     return normalizedKeymapHotkey
@@ -202,7 +204,7 @@ function resolvePanelCommandHotkey({
 }
 
 function getPanelCommandDefinition(settingKey: HotkeySettingKey) {
-  return PANEL_COMMAND_DEFINITIONS.find(definition => definition.settingKey === settingKey)!
+  return PANEL_COMMAND_DEFINITIONS.find((definition) => definition.settingKey === settingKey)!
 }
 
 function cloneKeymap(keymap: Record<string, unknown>) {

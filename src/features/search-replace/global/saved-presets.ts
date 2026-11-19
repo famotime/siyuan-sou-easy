@@ -1,5 +1,8 @@
+import type {
+  GlobalSearchFilters,
+  GlobalSearchStateModel,
+} from './types'
 import { getPluginInstance } from '@/plugin-instance'
-import type { GlobalSearchFilters, GlobalSearchStateModel } from './types'
 
 export interface SavedSearchPreset {
   id: string
@@ -74,7 +77,7 @@ export async function savePreset(
 }
 
 export async function deletePreset(id: string): Promise<boolean> {
-  const idx = presetsCache.findIndex(p => p.id === id)
+  const idx = presetsCache.findIndex((p) => p.id === id)
   if (idx >= 0) {
     presetsCache.splice(idx, 1)
     presetsDirty = true

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import type { App } from 'siyuan'
 import {
   beforeEach,
   describe,
@@ -7,7 +8,6 @@ import {
   it,
   vi,
 } from 'vitest'
-import type { App } from 'siyuan'
 
 const loadSettings = vi.fn().mockResolvedValue({
   debugLog: false,
@@ -44,7 +44,7 @@ vi.mock('@/settings', () => ({
   },
   SETTINGS_STORAGE: 'settings.json',
   loadSettings,
-  normalizeSettings: vi.fn(value => value),
+  normalizeSettings: vi.fn((value) => value),
   saveSettings: vi.fn(),
 }))
 
@@ -58,7 +58,11 @@ describe('plugin top bar icon', () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
 
     // siyuan 类型声明的 Plugin 构造需要 { app, name, i18n }；运行时 mock 无参构造会忽略该参数
-    const plugin = new FriendlySearchReplacePlugin({ app: {} as App, name: 'siyuan-sou-easy', i18n: {} })
+    const plugin = new FriendlySearchReplacePlugin({
+      app: {} as App,
+      name: 'siyuan-sou-easy',
+      i18n: {},
+    })
     plugin.i18n = {
       addTopBarIcon: 'Friendly Search Replace',
     }

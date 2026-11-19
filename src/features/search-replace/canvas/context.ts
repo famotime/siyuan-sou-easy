@@ -37,7 +37,7 @@ export function findCanvasSearchContextByRootId(rootId: string) {
   }
 
   const host = Array.from(getCanvasSearchRegistry())
-    .find(candidate => candidate.getContext().id === normalizedRootId)
+    .find((candidate) => candidate.getContext().id === normalizedRootId)
   if (!host) {
     return null
   }
@@ -96,9 +96,9 @@ function isElementLike(value: unknown): value is HTMLElement {
   const candidate = value as Partial<HTMLElement> | null | undefined
   return Boolean(
     candidate
-      && typeof candidate.closest === 'function'
-      && typeof candidate.getBoundingClientRect === 'function'
-      && candidate.classList
-      && typeof candidate.classList.contains === 'function',
+    && typeof candidate.closest === 'function'
+    && typeof candidate.getBoundingClientRect === 'function'
+    && candidate.classList
+    && typeof candidate.classList.contains === 'function',
   )
 }

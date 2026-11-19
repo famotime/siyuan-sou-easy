@@ -3,7 +3,7 @@ import type {
 } from './search-types'
 
 export function shouldReturnDomCandidatesOnly(domCandidates: AttributeViewCellCandidate[]) {
-  return domCandidates.some(candidate => candidate.targetKind === 'cell')
+  return domCandidates.some((candidate) => candidate.targetKind === 'cell')
 }
 
 export function shouldUseRenderedAttributeViewCandidates({

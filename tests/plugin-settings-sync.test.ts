@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import type { App } from 'siyuan'
+import { adaptHotkey } from 'siyuan'
 import {
   beforeEach,
   describe,
@@ -7,11 +9,13 @@ import {
   it,
   vi,
 } from 'vitest'
-import { adaptHotkey } from 'siyuan'
-import type { App } from 'siyuan'
 
 // siyuan 类型声明的 Plugin 构造需要 { app, name, i18n }；运行时 mock 无参构造会忽略该参数
-const pluginOptions = { app: {} as App, name: 'siyuan-sou-easy', i18n: {} }
+const pluginOptions = {
+  app: {} as App,
+  name: 'siyuan-sou-easy',
+  i18n: {},
+}
 
 const applyPluginSettings = vi.fn()
 const loadSettings = vi.fn().mockResolvedValue({
@@ -24,7 +28,7 @@ const loadSettings = vi.fn().mockResolvedValue({
   rememberPanelPosition: true,
   replacePanelHotkey: 'Ctrl+Shift+H',
 })
-const normalizeSettings = vi.fn(value => ({
+const normalizeSettings = vi.fn((value) => ({
   ...value,
   normalized: true,
 }))

@@ -1,18 +1,21 @@
+import type {
+  AttributeViewBlockSummary,
+  AttributeViewCellCandidate,
+} from './search-types'
 import {
   getAttributeViewKeysByAvID,
   renderAttributeView,
 } from '../kernel'
-import { extractSearchableText, resolveKeyName } from './search-values'
 import {
   mergeAttributeViewSearchCandidates,
   shouldReturnDomCandidatesOnly,
   shouldUseRenderedAttributeViewCandidates,
 } from './search-candidate-policy'
 import { extractDomAttributeViewSearchCandidates } from './search-dom-candidates'
-import type {
-  AttributeViewBlockSummary,
-  AttributeViewCellCandidate,
-} from './search-types'
+import {
+  extractSearchableText,
+  resolveKeyName,
+} from './search-values'
 
 interface ResolveAttributeViewSearchCandidatesOptions {
   attributeViewBlock: AttributeViewBlockSummary
@@ -43,7 +46,7 @@ export async function resolveAttributeViewSearchCandidates({
       .filter(([id]) => Boolean(id)),
   )
   const keyNameById = new Map(
-    attributeViewKeys.map(key => [String(key.id ?? key.keyID ?? ''), resolveKeyName(key)] as const),
+    attributeViewKeys.map((key) => [String(key.id ?? key.keyID ?? ''), resolveKeyName(key)] as const),
   )
 
   if (!shouldUseRenderedAttributeViewCandidates({

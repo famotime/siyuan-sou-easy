@@ -1,4 +1,18 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { GlobalSearchFilters } from '@/features/search-replace/global/types'
+
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
+import {
+  clearGlobalSearchResults,
+  executeGlobalSearch,
+  globalSearchState,
+  setGlobalQuery,
+} from '@/features/search-replace/global/store'
 
 const { executeGlobalBlockQuery } = vi.hoisted(() => ({
   executeGlobalBlockQuery: vi.fn(),
@@ -7,14 +21,6 @@ const { executeGlobalBlockQuery } = vi.hoisted(() => ({
 vi.mock('@/features/search-replace/global/kernel-query', () => ({
   executeGlobalBlockQuery,
 }))
-
-import {
-  clearGlobalSearchResults,
-  executeGlobalSearch,
-  globalSearchState,
-  setGlobalQuery,
-} from '@/features/search-replace/global/store'
-import type { GlobalSearchFilters } from '@/features/search-replace/global/types'
 
 describe('global search docOnly/type-filter interplay and date filter mapping', () => {
   beforeEach(() => {

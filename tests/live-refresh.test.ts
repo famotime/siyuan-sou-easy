@@ -1,5 +1,12 @@
 // @vitest-environment jsdom
 
+import type {
+  SearchableBlock,
+  SearchMatch,
+  SearchOptions,
+  SelectionScope,
+} from '@/features/search-replace/types'
+
 import {
   afterEach,
   beforeEach,
@@ -8,14 +15,17 @@ import {
   it,
   vi,
 } from 'vitest'
+import {
+  applyPluginSettings,
+  closePanel,
+  openPanel,
+  searchReplaceState,
+} from '@/features/search-replace/store'
 
-import { DEFAULT_SETTINGS, createSearchOptionsFromSettings } from '@/settings'
-import type {
-  SearchMatch,
-  SearchOptions,
-  SearchableBlock,
-  SelectionScope,
-} from '@/features/search-replace/types'
+import {
+  createSearchOptionsFromSettings,
+  DEFAULT_SETTINGS,
+} from '@/settings'
 
 const editorMocks = vi.hoisted(() => {
   const state = {
@@ -64,13 +74,6 @@ const searchEngineMocks = vi.hoisted(() => ({
 
 vi.mock('@/features/search-replace/editor', () => editorMocks)
 vi.mock('@/features/search-replace/search-engine', () => searchEngineMocks)
-
-import {
-  applyPluginSettings,
-  closePanel,
-  openPanel,
-  searchReplaceState,
-} from '@/features/search-replace/store'
 
 describe('search store live refresh', () => {
   beforeEach(() => {
@@ -130,7 +133,8 @@ describe('search store live refresh', () => {
         previewText: '[foo] bar',
         replaceable: true,
         rootId: 'root-1',
-        start: 0, occ: 0,
+        start: 0,
+        occ: 0,
       }],
     }))
 
@@ -175,7 +179,8 @@ describe('search store live refresh', () => {
           previewText: '[foo] bar',
           replaceable: true,
           rootId: 'root-1',
-          start: 0, occ: 0,
+          start: 0,
+          occ: 0,
         }],
       }))
 
@@ -225,7 +230,8 @@ describe('search store live refresh', () => {
           previewText: '三、全书白[文]四十七万余字',
           replaceable: true,
           rootId: 'root-1',
-          start: 2, occ: 0,
+          start: 2,
+          occ: 0,
         },
         {
           blockId: 'block-1',
@@ -237,7 +243,8 @@ describe('search store live refresh', () => {
           previewText: '合计白[文]连注译约为',
           replaceable: true,
           rootId: 'root-1',
-          start: 10, occ: 0,
+          start: 10,
+          occ: 0,
         },
       ],
     }))
@@ -245,7 +252,7 @@ describe('search store live refresh', () => {
     openPanel(true)
     await flushRefresh()
 
-    expect(searchReplaceState.matches.map(match => match.start)).toEqual([2, 10])
+    expect(searchReplaceState.matches.map((match) => match.start)).toEqual([2, 10])
   })
 
   it('invalidates the cached selection scope when the document changes without an active selection', async () => {
@@ -257,7 +264,11 @@ describe('search store live refresh', () => {
     searchReplaceState.options.selectionOnly = true
 
     const selectionScope = new Map([
-      ['block-1', [{ start: 0, end: 3, occ: 0 }]],
+      ['block-1', [{
+        start: 0,
+        end: 3,
+        occ: 0,
+      }]],
     ])
 
     editorMocks.getCurrentSelectionScope
@@ -275,17 +286,18 @@ describe('search store live refresh', () => {
         error: '',
         matches: scope?.size
           ? [{
-            blockId: 'block-1',
-            blockIndex: 0,
-            blockType: 'NodeParagraph',
-            end: 3,
-            id: 'block-1:0:3',
-            matchedText: 'foo',
-            previewText: '[foo] bar',
-            replaceable: true,
-            rootId: 'root-1',
-            start: 0, occ: 0,
-          }]
+              blockId: 'block-1',
+              blockIndex: 0,
+              blockType: 'NodeParagraph',
+              end: 3,
+              id: 'block-1:0:3',
+              matchedText: 'foo',
+              previewText: '[foo] bar',
+              replaceable: true,
+              rootId: 'root-1',
+              start: 0,
+              occ: 0,
+            }]
           : [],
       }
     })

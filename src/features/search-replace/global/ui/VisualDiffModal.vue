@@ -1,13 +1,28 @@
 <template>
-  <div v-if="visible" class="sfsr-diff-backdrop" @click.self="onCancel">
+  <div
+    v-if="visible"
+    class="sfsr-diff-backdrop"
+    @click.self="onCancel"
+  >
     <div class="sfsr-diff-modal">
       <div class="sfsr-diff-header">
         <div class="sfsr-diff-title">
-          <WireframeIcon name="diff" :size="15" />
+          <WireframeIcon
+            name="diff"
+            :size="15"
+          />
           <span>批量替换变更对比 (Visual Diff)</span>
         </div>
-        <button class="sfsr-diff-close" type="button" aria-label="关闭对比视窗" @click="onCancel">
-          <WireframeIcon name="close" :size="13" />
+        <button
+          class="sfsr-diff-close"
+          type="button"
+          aria-label="关闭对比视窗"
+          @click="onCancel"
+        >
+          <WireframeIcon
+            name="close"
+            :size="13"
+          />
         </button>
       </div>
 
@@ -20,11 +35,35 @@
           <span>受影响文档: <strong>{{ diffSummary.affectedDocCount }}</strong> 篇</span>
         </div>
         <div class="sfsr-diff-quick-actions">
-          <button class="sfsr-diff-text-btn" type="button" @click="toggleIncludeAll(true)">全部包含</button>
-          <button class="sfsr-diff-text-btn" type="button" @click="toggleIncludeAll(false)">全部排除</button>
+          <button
+            class="sfsr-diff-text-btn"
+            type="button"
+            @click="toggleIncludeAll(true)"
+          >
+            全部包含
+          </button>
+          <button
+            class="sfsr-diff-text-btn"
+            type="button"
+            @click="toggleIncludeAll(false)"
+          >
+            全部排除
+          </button>
           <span class="sfsr-divider">|</span>
-          <button class="sfsr-diff-text-btn" type="button" @click="toggleCollapseAll(true)">全部折叠</button>
-          <button class="sfsr-diff-text-btn" type="button" @click="toggleCollapseAll(false)">全部展开</button>
+          <button
+            class="sfsr-diff-text-btn"
+            type="button"
+            @click="toggleCollapseAll(true)"
+          >
+            全部折叠
+          </button>
+          <button
+            class="sfsr-diff-text-btn"
+            type="button"
+            @click="toggleCollapseAll(false)"
+          >
+            全部展开
+          </button>
         </div>
       </div>
 
@@ -45,10 +84,16 @@
                 :class="{ 'sfsr-diff-group-arrow--expanded': !isGroupCollapsed(group.rootId) }"
                 aria-label="折叠或展开文档"
               >
-                <WireframeIcon name="chevron" :size="11" />
+                <WireframeIcon
+                  name="chevron"
+                  :size="11"
+                />
               </span>
 
-              <label class="sfsr-group-checkbox-label" @click.stop>
+              <label
+                class="sfsr-group-checkbox-label"
+                @click.stop
+              >
                 <input
                   type="checkbox"
                   :checked="!group.allExcluded"
@@ -56,14 +101,24 @@
                 >
               </label>
 
-              <WireframeIcon name="document" :size="13" class="sfsr-group-icon" />
+              <WireframeIcon
+                name="document"
+                :size="13"
+                class="sfsr-group-icon"
+              />
               <span class="sfsr-group-title">{{ group.docTitle }}</span>
-              <span v-if="group.hpath" class="sfsr-group-path">({{ group.hpath }})</span>
+              <span
+                v-if="group.hpath"
+                class="sfsr-group-path"
+              >({{ group.hpath }})</span>
             </div>
             <span class="sfsr-group-count">{{ group.items.length }} 处</span>
           </div>
 
-          <div v-show="!isGroupCollapsed(group.rootId)" class="sfsr-diff-items-list">
+          <div
+            v-show="!isGroupCollapsed(group.rootId)"
+            class="sfsr-diff-items-list"
+          >
             <div
               v-for="item in group.items"
               :key="item.matchId"
@@ -97,13 +152,24 @@
       </div>
 
       <!-- 进度条 -->
-      <div v-if="executing" class="sfsr-diff-progress">
-        <div class="sfsr-progress-bar" :style="{ width: `${progressPercent}%` }" />
+      <div
+        v-if="executing"
+        class="sfsr-diff-progress"
+      >
+        <div
+          class="sfsr-progress-bar"
+          :style="{ width: `${progressPercent}%` }"
+        />
         <span class="sfsr-progress-text">正在安全执行替换... ({{ processedBlocks }} / {{ totalBlocks }})</span>
       </div>
 
       <div class="sfsr-diff-footer">
-        <button class="sfsr-btn sfsr-btn--secondary" type="button" :disabled="executing" @click="onCancel">
+        <button
+          class="sfsr-btn sfsr-btn--secondary"
+          type="button"
+          :disabled="executing"
+          @click="onCancel"
+        >
           取消
         </button>
         <button
@@ -120,8 +186,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import type { DiffDocumentGroup, DiffItem, DiffSummary } from '../diff-builder'
+import type {
+  DiffDocumentGroup,
+  DiffItem,
+  DiffSummary,
+} from '../diff-builder'
+import {
+  computed,
+  ref,
+  watch,
+} from 'vue'
 import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
 
 const props = defineProps<{
@@ -167,7 +241,7 @@ function toggleGroupCollapse(rootId: string) {
 
 function toggleCollapseAll(collapse: boolean) {
   if (collapse) {
-    collapsedDocIds.value = new Set(props.diffSummary.groups.map(g => g.rootId))
+    collapsedDocIds.value = new Set(props.diffSummary.groups.map((g) => g.rootId))
   } else {
     collapsedDocIds.value = new Set()
   }

@@ -3,7 +3,7 @@ const TABLE_CELL_SELECTOR = '[data-type="NodeTableCell"], .table__cell, td, th'
 export function getTableRowCells(row: HTMLElement) {
   return Array.from(row.children)
     .filter((child): child is HTMLElement => child instanceof HTMLElement)
-    .filter(child => child.matches(TABLE_CELL_SELECTOR))
+    .filter((child) => child.matches(TABLE_CELL_SELECTOR))
 }
 
 export function getTableRowElements(tableBlock: HTMLElement) {

@@ -4,7 +4,10 @@
     <div class="sfsr-dock-header">
       <div class="sfsr-dock-header-left">
         <span class="sfsr-dock-title-icon">
-          <WireframeIcon name="search" :size="14" />
+          <WireframeIcon
+            name="search"
+            :size="14"
+          />
         </span>
         <span class="sfsr-dock-title">全库搜索与替换</span>
       </div>
@@ -16,7 +19,10 @@
           aria-label="常用搜索预设"
           @click="togglePresetsMenu"
         >
-          <WireframeIcon name="star" :size="13" />
+          <WireframeIcon
+            name="star"
+            :size="13"
+          />
         </button>
         <button
           class="sfsr-dock-action-btn b3-tooltips b3-tooltips__sw"
@@ -25,7 +31,10 @@
           aria-label="批量导出结果"
           @click="toggleExportMenu"
         >
-          <WireframeIcon name="export" :size="13" />
+          <WireframeIcon
+            name="export"
+            :size="13"
+          />
         </button>
         <button
           class="sfsr-dock-action-btn b3-tooltips b3-tooltips__sw"
@@ -33,7 +42,10 @@
           aria-label="替换事务历史与回退（分屏页签打开）"
           @click="openHistoryTab"
         >
-          <WireframeIcon name="history" :size="13" />
+          <WireframeIcon
+            name="history"
+            :size="13"
+          />
         </button>
         <button
           class="sfsr-dock-action-btn b3-tooltips b3-tooltips__sw"
@@ -45,7 +57,10 @@
           :aria-label="showAdvancedDrawer ? '收起高级筛选' : '高级筛选与排序'"
           @click="showAdvancedDrawer = !showAdvancedDrawer"
         >
-          <WireframeIcon name="filter" :size="13" />
+          <WireframeIcon
+            name="filter"
+            :size="13"
+          />
         </button>
       </div>
     </div>
@@ -61,7 +76,10 @@
           :aria-label="state.replaceVisible ? '收起替换栏' : '展开替换栏'"
           @click="toggleGlobalReplace"
         >
-          <WireframeIcon :name="state.replaceVisible ? 'chevron-down' : 'chevron-right'" :size="12" />
+          <WireframeIcon
+            :name="state.replaceVisible ? 'chevron-down' : 'chevron-right'"
+            :size="12"
+          />
         </button>
 
         <div class="sfsr-dock-input-wrapper">
@@ -82,7 +100,10 @@
               aria-label="清空搜索词"
               @click="clearQuery"
             >
-              <WireframeIcon name="clear" :size="12" />
+              <WireframeIcon
+                name="clear"
+                :size="12"
+              />
             </button>
             <div
               class="sfsr-dock-help-wrap"
@@ -95,7 +116,10 @@
                 aria-label="搜索语法与样例"
                 @click.stop="toggleHelpPopover"
               >
-                <WireframeIcon name="help" :size="12" />
+                <WireframeIcon
+                  name="help"
+                  :size="12"
+                />
               </button>
             </div>
           </div>
@@ -108,7 +132,10 @@
           aria-label="执行搜索 (Enter)"
           @click="onEnterSearch"
         >
-          <WireframeIcon :name="state.searching ? 'history' : 'enter'" :size="13" />
+          <WireframeIcon
+            :name="state.searching ? 'history' : 'enter'"
+            :size="13"
+          />
         </button>
       </div>
 
@@ -122,7 +149,10 @@
       />
 
       <!-- 替换输入行 (折叠展开) -->
-      <div v-if="state.replaceVisible" class="sfsr-dock-replace-row">
+      <div
+        v-if="state.replaceVisible"
+        class="sfsr-dock-replace-row"
+      >
         <div class="sfsr-dock-replace-spacer" />
         <div class="sfsr-dock-input-wrapper">
           <input
@@ -140,7 +170,10 @@
             aria-label="清空替换词"
             @click="state.replacement = ''"
           >
-            <WireframeIcon name="clear" :size="12" />
+            <WireframeIcon
+              name="clear"
+              :size="12"
+            />
           </button>
         </div>
 
@@ -151,7 +184,10 @@
           :aria-label="replaceBtnTooltip"
           @click="openBatchReplaceDiff"
         >
-          <WireframeIcon name="diff" :size="13" />
+          <WireframeIcon
+            name="diff"
+            :size="13"
+          />
         </button>
       </div>
 
@@ -213,7 +249,10 @@
             style="display: none;"
             @change="toggleGlobalOption('docOnly')"
           >
-          <WireframeIcon name="document" :size="11" />
+          <WireframeIcon
+            name="document"
+            :size="11"
+          />
           <span class="sfsr-dock-chip-text">仅文档</span>
         </label>
 
@@ -224,7 +263,10 @@
           :disabled="state.results.length === 0"
           @click="onToggleCollapseAll"
         >
-          <WireframeIcon :name="isAllCollapsed ? 'expand-all' : 'collapse-all'" :size="12" />
+          <WireframeIcon
+            :name="isAllCollapsed ? 'expand-all' : 'collapse-all'"
+            :size="12"
+          />
         </button>
       </div>
 
@@ -239,7 +281,10 @@
     </div>
 
     <!-- 高级筛选与排序抽屉 (折叠展示) -->
-    <div v-if="showAdvancedDrawer" class="sfsr-dock-advanced-drawer">
+    <div
+      v-if="showAdvancedDrawer"
+      class="sfsr-dock-advanced-drawer"
+    >
       <FilterPillsBar
         :filters="state.filters"
         :notebooks="notebooks"
@@ -263,28 +308,49 @@
     </div>
 
     <!-- 结果统计提示 -->
-    <div v-if="state.statusMessage && !isDraftQuery" class="sfsr-dock-status">
+    <div
+      v-if="state.statusMessage && !isDraftQuery"
+      class="sfsr-dock-status"
+    >
       {{ state.statusMessage }}
     </div>
 
     <!-- 结果列表 -->
     <div class="sfsr-dock-body">
-      <div v-if="state.searching" class="sfsr-dock-empty">
+      <div
+        v-if="state.searching"
+        class="sfsr-dock-empty"
+      >
         正在高速检索全库数据...
       </div>
-      <div v-else-if="state.error" class="sfsr-dock-empty sfsr-dock-empty--error">
+      <div
+        v-else-if="state.error"
+        class="sfsr-dock-empty sfsr-dock-empty--error"
+      >
         {{ state.error }}
       </div>
-      <div v-else-if="!state.query.trim()" class="sfsr-dock-empty sfsr-dock-empty--hint">
+      <div
+        v-else-if="!state.query.trim()"
+        class="sfsr-dock-empty sfsr-dock-empty--hint"
+      >
         输入关键词并按 Enter 全库检索
       </div>
-      <div v-else-if="isDraftQuery" class="sfsr-dock-empty sfsr-dock-empty--draft">
+      <div
+        v-else-if="isDraftQuery"
+        class="sfsr-dock-empty sfsr-dock-empty--draft"
+      >
         按 Enter 检索: {{ displayDraftKeyword }}
       </div>
-      <div v-else-if="state.results.length === 0" class="sfsr-dock-empty">
+      <div
+        v-else-if="state.results.length === 0"
+        class="sfsr-dock-empty"
+      >
         未找到匹配文档内容
       </div>
-      <div v-else class="sfsr-dock-results">
+      <div
+        v-else
+        class="sfsr-dock-results"
+      >
         <DocAggregateItem
           v-for="doc in state.results"
           :key="doc.rootId"
@@ -310,28 +376,64 @@
 
     <!-- 批量导出弹窗 -->
     <Teleport to="body">
-      <div v-if="showExportModal" class="sfsr-popup-backdrop" @click.self="showExportModal = false">
+      <div
+        v-if="showExportModal"
+        class="sfsr-popup-backdrop"
+        @click.self="showExportModal = false"
+      >
         <div class="sfsr-popup-modal">
           <div class="sfsr-popup-header">
             <span class="sfsr-popup-title-wrap">
-              <WireframeIcon name="export" :size="14" />
+              <WireframeIcon
+                name="export"
+                :size="14"
+              />
               <span>批量导出搜索结果</span>
             </span>
-            <button class="sfsr-popup-close" type="button" aria-label="关闭弹窗" @click="showExportModal = false">
-              <WireframeIcon name="close" :size="13" />
+            <button
+              class="sfsr-popup-close"
+              type="button"
+              aria-label="关闭弹窗"
+              @click="showExportModal = false"
+            >
+              <WireframeIcon
+                name="close"
+                :size="13"
+              />
             </button>
           </div>
           <div class="sfsr-popup-body">
-            <button class="sfsr-popup-btn" type="button" @click="onExportMarkdown">
-              <WireframeIcon name="document" :size="13" />
+            <button
+              class="sfsr-popup-btn"
+              type="button"
+              @click="onExportMarkdown"
+            >
+              <WireframeIcon
+                name="document"
+                :size="13"
+              />
               <span>复制为 Markdown 链接列表</span>
             </button>
-            <button class="sfsr-popup-btn" type="button" @click="onExportBlockRefs">
-              <WireframeIcon name="link" :size="13" />
+            <button
+              class="sfsr-popup-btn"
+              type="button"
+              @click="onExportBlockRefs"
+            >
+              <WireframeIcon
+                name="link"
+                :size="13"
+              />
               <span>复制为思源块引用列表 ((id '锚文本'))</span>
             </button>
-            <button class="sfsr-popup-btn" type="button" @click="onExportEmbedSql">
-              <WireframeIcon name="code" :size="13" />
+            <button
+              class="sfsr-popup-btn"
+              type="button"
+              @click="onExportEmbedSql"
+            >
+              <WireframeIcon
+                name="code"
+                :size="13"
+              />
               <span>复制为思源 SQL 嵌入块</span>
             </button>
           </div>
@@ -341,15 +443,30 @@
 
     <!-- 常用预设管理弹窗 -->
     <Teleport to="body">
-      <div v-if="showPresetsModal" class="sfsr-popup-backdrop" @click.self="showPresetsModal = false">
+      <div
+        v-if="showPresetsModal"
+        class="sfsr-popup-backdrop"
+        @click.self="showPresetsModal = false"
+      >
         <div class="sfsr-popup-modal sfsr-popup-modal--presets">
           <div class="sfsr-popup-header">
             <span class="sfsr-popup-title-wrap">
-              <WireframeIcon name="star" :size="14" />
+              <WireframeIcon
+                name="star"
+                :size="14"
+              />
               <span>常用搜索预设</span>
             </span>
-            <button class="sfsr-popup-close" type="button" aria-label="关闭弹窗" @click="showPresetsModal = false">
-              <WireframeIcon name="close" :size="13" />
+            <button
+              class="sfsr-popup-close"
+              type="button"
+              aria-label="关闭弹窗"
+              @click="showPresetsModal = false"
+            >
+              <WireframeIcon
+                name="close"
+                :size="13"
+              />
             </button>
           </div>
           <div class="sfsr-popup-body">
@@ -361,12 +478,19 @@
                 placeholder="输入新预设名称..."
                 @keydown.enter="onSaveCurrentAsPreset"
               >
-              <button class="sfsr-btn sfsr-btn--primary" type="button" @click="onSaveCurrentAsPreset">
+              <button
+                class="sfsr-btn sfsr-btn--primary"
+                type="button"
+                @click="onSaveCurrentAsPreset"
+              >
                 保存当前条件
               </button>
             </div>
             <div class="sfsr-preset-list">
-              <div v-if="presetList.length === 0" class="sfsr-empty-tip">
+              <div
+                v-if="presetList.length === 0"
+                class="sfsr-empty-tip"
+              >
                 暂无保存的预设
               </div>
               <div
@@ -374,11 +498,22 @@
                 :key="p.id"
                 class="sfsr-preset-item"
               >
-                <span class="sfsr-preset-name" @click="onApplyPreset(p)">
+                <span
+                  class="sfsr-preset-name"
+                  @click="onApplyPreset(p)"
+                >
                   <strong>{{ p.name }}</strong> ({{ p.query }})
                 </span>
-                <button class="sfsr-preset-del" type="button" aria-label="删除预设" @click="onDeletePreset(p.id)">
-                  <WireframeIcon name="close" :size="12" />
+                <button
+                  class="sfsr-preset-del"
+                  type="button"
+                  aria-label="删除预设"
+                  @click="onDeletePreset(p.id)"
+                >
+                  <WireframeIcon
+                    name="close"
+                    :size="12"
+                  />
                 </button>
               </div>
             </div>
@@ -390,55 +525,65 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import type {
+  DiffDocumentGroup,
+  DiffItem,
+  DiffSummary,
+} from '../diff-builder'
+import type { NotebookInfo } from '../kernel-query'
+import type { SavedSearchPreset } from '../saved-presets'
+import type {
+  GlobalSearchFilters,
+  GlobalSearchSortMode,
+} from '../types'
 import {
-  clearGlobalSearchResults,
-  collapseAllDocs,
-  executeGlobalSearch,
-  expandAllDocs,
-  globalSearchState as state,
-  setGlobalSortMode,
-  toggleAllDocsCollapse,
-  toggleDocSelection,
-  toggleGlobalOption,
-  toggleGlobalReplace,
-  toggleMatchSelection,
-} from '../store'
-import type { GlobalSearchFilters, GlobalSearchSortMode } from '../types'
-import { fetchNotebooks, type NotebookInfo } from '../kernel-query'
-import { buildVisualDiff, type DiffDocumentGroup, type DiffItem, type DiffSummary } from '../diff-builder'
-import { executeBatchReplace } from '../replace-engine'
+  computed,
+  nextTick,
+  onMounted,
+  onUnmounted,
+  ref,
+  watch,
+} from 'vue'
+import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
+import { t } from '@/i18n/runtime'
+import { buildVisualDiff } from '../diff-builder'
 import {
-  getTransactions,
-  loadTransactions,
-  type ReplaceTransaction,
-} from '../transaction-history'
+  closeGlobalSearchDockAndReturnFocus,
+  registerGlobalSearchInput,
+} from '../dock-manager'
 import {
   copyToClipboard,
   exportAsBlockRefs,
   exportAsEmbedQuery,
   exportAsMarkdownLinks,
 } from '../export-utils'
+import { openReplaceHistoryTab } from '../history-tab-manager'
+import { fetchNotebooks } from '../kernel-query'
+import { parseGlobalQuery } from '../query-parser'
+import { executeBatchReplace } from '../replace-engine'
 import {
   deletePreset,
   getSavedPresets,
   loadSavedPresets,
+
   savePreset,
-  type SavedSearchPreset,
 } from '../saved-presets'
 import {
-  closeGlobalSearchDockAndReturnFocus,
-  registerGlobalSearchInput,
-} from '../dock-manager'
+  clearGlobalSearchResults,
+  executeGlobalSearch,
+  setGlobalSortMode,
+  globalSearchState as state,
+  toggleAllDocsCollapse,
+  toggleGlobalOption,
+  toggleGlobalReplace,
+} from '../store'
+
+
 import DocAggregateItem from './DocAggregateItem.vue'
 import FilterPillsBar from './FilterPillsBar.vue'
-import VisualDiffModal from './VisualDiffModal.vue'
-import SearchHelpPopover from './SearchHelpPopover.vue'
 import RegexHelpPopover from './RegexHelpPopover.vue'
-import { openReplaceHistoryTab } from '../history-tab-manager'
-import { parseGlobalQuery } from '../query-parser'
-import { t } from '@/i18n/runtime'
-import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
+import SearchHelpPopover from './SearchHelpPopover.vue'
+import VisualDiffModal from './VisualDiffModal.vue'
 
 const inputRef = ref<HTMLInputElement>()
 const diffModalRef = ref<InstanceType<typeof VisualDiffModal>>()
@@ -463,7 +608,7 @@ const isDraftQuery = computed(() => {
 const displayDraftKeyword = computed(() => {
   const trimmed = state.query.trim()
   if (trimmed.length > 25) {
-    return trimmed.slice(0, 25) + '...'
+    return `${trimmed.slice(0, 25)}...`
   }
   return trimmed
 })
@@ -478,7 +623,7 @@ watch(
 )
 
 const isAllCollapsed = computed(() => {
-  return state.results.length > 0 && state.results.every(d => d.collapsed)
+  return state.results.length > 0 && state.results.every((d) => d.collapsed)
 })
 
 const hasActiveFilters = computed(() => {

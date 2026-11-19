@@ -27,7 +27,11 @@ function parseArgs() {
     targetTag = process.env.GITHUB_REF_NAME
   }
 
-  return { targetTag, outFile, changelogPath }
+  return {
+    targetTag,
+    outFile,
+    changelogPath,
+  }
 }
 
 export function getLatestChangelogVersion(content) {
@@ -40,7 +44,7 @@ export function getLatestChangelogVersion(content) {
       if (match) {
         const rawVersion = (match[1] || match[2]).trim()
         const cleanVersion = rawVersion.replace(/^v/, '')
-        if (/^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?$/.test(cleanVersion)) {
+        if (/^\d+\.\d+\.\d+(?:-[a-z0-9.-]+)?$/i.test(cleanVersion)) {
           return {
             raw: rawVersion,
             version: cleanVersion,
@@ -81,10 +85,10 @@ export function extractReleaseNotes(content, targetVersion) {
       }
 
       if (
-        currentVersion === cleanVersion ||
-        versionText === normalizedInput ||
-        versionText.startsWith(`v${cleanVersion}`) ||
-        versionText.startsWith(cleanVersion)
+        currentVersion === cleanVersion
+        || versionText === normalizedInput
+        || versionText.startsWith(`v${cleanVersion}`)
+        || versionText.startsWith(cleanVersion)
       ) {
         isCapturing = true
         continue
@@ -104,7 +108,11 @@ export function extractReleaseNotes(content, targetVersion) {
 }
 
 function main() {
-  const { targetTag, outFile, changelogPath } = parseArgs()
+  const {
+    targetTag,
+    outFile,
+    changelogPath,
+  } = parseArgs()
 
   if (!targetTag) {
     console.error('❌ 错误: 未指定目标版本 Tag！')
@@ -119,7 +127,11 @@ function main() {
   }
 
   const changelogContent = fs.readFileSync(changelogPath, 'utf8')
-  const { notes, found, availableVersions } = extractReleaseNotes(changelogContent, targetTag)
+  const {
+    notes,
+    found,
+    availableVersions,
+  } = extractReleaseNotes(changelogContent, targetTag)
 
   if (!found) {
     console.error(`❌ 错误: 在 CHANGELOG.md 中未找到版本 [${targetTag}] 的更新日志或内容为空！`)

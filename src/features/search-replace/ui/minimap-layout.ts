@@ -1,6 +1,6 @@
 import type {
-  SearchMatch,
   SearchableBlockSummary,
+  SearchMatch,
 } from '../types'
 
 export const PANEL_MARGIN = 8

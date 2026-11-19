@@ -1,13 +1,13 @@
+import type {
+  ReplacementOutcome,
+  SearchMatch,
+} from '../types'
+import { preserveReplacementCase } from '../preserve-case'
 import {
   CURRENT_MATCH_CLASS,
   MATCH_CLASS,
 } from './constants'
 import { locateRangeInSingleTextNode } from './ranges'
-import { preserveReplacementCase } from '../preserve-case'
-import type {
-  ReplacementOutcome,
-  SearchMatch,
-} from '../types'
 
 export function applyReplacementsToClone(
   blockElement: HTMLElement,

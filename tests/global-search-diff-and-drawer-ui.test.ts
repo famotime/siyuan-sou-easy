@@ -1,19 +1,26 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it } from 'vitest'
-import { createApp } from 'vue'
-import FilterPillsBar from '@/features/search-replace/global/ui/FilterPillsBar.vue'
-import VisualDiffModal from '@/features/search-replace/global/ui/VisualDiffModal.vue'
-import ReplaceHistoryTabView from '@/features/search-replace/global/ui/ReplaceHistoryTabView.vue'
 import type { DiffSummary } from '@/features/search-replace/global/diff-builder'
 import type { ReplaceTransaction } from '@/features/search-replace/global/transaction-history'
+import {
+  describe,
+  expect,
+  it,
+} from 'vitest'
+import { createApp } from 'vue'
+import FilterPillsBar from '@/features/search-replace/global/ui/FilterPillsBar.vue'
+import ReplaceHistoryTabView from '@/features/search-replace/global/ui/ReplaceHistoryTabView.vue'
+import VisualDiffModal from '@/features/search-replace/global/ui/VisualDiffModal.vue'
 
-describe('Diff Modal, History Drawer & Filter Pills UI Redesign (阶段三测试)', () => {
-  it('FilterPillsBar eliminates native title and renders chips without hardcoded colors', () => {
+describe('diff Modal, History Drawer & Filter Pills UI Redesign (阶段三测试)', () => {
+  it('filterPillsBar eliminates native title and renders chips without hardcoded colors', () => {
     const container = document.createElement('div')
     const app = createApp(FilterPillsBar, {
       filters: { types: ['p'] },
-      notebooks: [{ id: 'nb-1', name: 'Notebook 1' }],
+      notebooks: [{
+        id: 'nb-1',
+        name: 'Notebook 1',
+      }],
     })
     app.mount(container)
 
@@ -28,7 +35,7 @@ describe('Diff Modal, History Drawer & Filter Pills UI Redesign (阶段三测试
     app.unmount()
   })
 
-  it('VisualDiffModal uses WireframeIcon and eliminates emojis and native title', () => {
+  it('visualDiffModal uses WireframeIcon and eliminates emojis and native title', () => {
     const dummySummary: DiffSummary = {
       totalCount: 1,
       includedCount: 1,
@@ -98,7 +105,7 @@ describe('Diff Modal, History Drawer & Filter Pills UI Redesign (阶段三测试
     app.unmount()
   })
 
-  it('VisualDiffModal supports collapsing documents individually and in batch', async () => {
+  it('visualDiffModal supports collapsing documents individually and in batch', async () => {
     const multiDocSummary: DiffSummary = {
       totalCount: 2,
       includedCount: 2,
@@ -178,37 +185,37 @@ describe('Diff Modal, History Drawer & Filter Pills UI Redesign (阶段三测试
 
     // 1. 点击第一个文档头部：折叠该文档
     groupHeaders[0].click()
-    await new Promise(r => setTimeout(r, 10))
+    await new Promise((r) => setTimeout(r, 10))
     expect(itemsLists[0].style.display).toBe('none')
     expect(itemsLists[1].style.display).not.toBe('none')
 
     // 再次点击：展开
     groupHeaders[0].click()
-    await new Promise(r => setTimeout(r, 10))
+    await new Promise((r) => setTimeout(r, 10))
     expect(itemsLists[0].style.display).not.toBe('none')
 
     // 2. 全部折叠
     const quickBtns = Array.from(container.querySelectorAll<HTMLButtonElement>('.sfsr-diff-text-btn'))
-    const collapseAllBtn = quickBtns.find(b => b.textContent?.trim() === '全部折叠')
-    const expandAllBtn = quickBtns.find(b => b.textContent?.trim() === '全部展开')
+    const collapseAllBtn = quickBtns.find((b) => b.textContent?.trim() === '全部折叠')
+    const expandAllBtn = quickBtns.find((b) => b.textContent?.trim() === '全部展开')
     expect(collapseAllBtn).toBeDefined()
     expect(expandAllBtn).toBeDefined()
 
     collapseAllBtn?.click()
-    await new Promise(r => setTimeout(r, 10))
+    await new Promise((r) => setTimeout(r, 10))
     expect(itemsLists[0].style.display).toBe('none')
     expect(itemsLists[1].style.display).toBe('none')
 
     // 3. 全部展开
     expandAllBtn?.click()
-    await new Promise(r => setTimeout(r, 10))
+    await new Promise((r) => setTimeout(r, 10))
     expect(itemsLists[0].style.display).not.toBe('none')
     expect(itemsLists[1].style.display).not.toBe('none')
 
     app.unmount()
   })
 
-  it('ReplaceHistoryTabView eliminates emojis and native title (migrated from drawer)', () => {
+  it('replaceHistoryTabView eliminates emojis and native title (migrated from drawer)', () => {
     const dummyTransactions: ReplaceTransaction[] = [
       {
         id: 'tx-1',
@@ -246,7 +253,7 @@ describe('Diff Modal, History Drawer & Filter Pills UI Redesign (阶段三测试
     app.unmount()
   })
 
-  it('ReplaceHistoryTabView expands card and displays documents and paragraph Visual Diff details (migrated from drawer)', async () => {
+  it('replaceHistoryTabView expands card and displays documents and paragraph Visual Diff details (migrated from drawer)', async () => {
     const detailedTx: ReplaceTransaction[] = [
       {
         id: 'tx-detail-1',
@@ -298,7 +305,7 @@ describe('Diff Modal, History Drawer & Filter Pills UI Redesign (阶段三测试
     const cardHeader = container.querySelector<HTMLElement>('.sfsr-history-card-header')
     expect(cardHeader).not.toBeNull()
     cardHeader?.click()
-    await new Promise(r => setTimeout(r, 10))
+    await new Promise((r) => setTimeout(r, 10))
 
     const cardBody = container.querySelector('.sfsr-history-card-body')
     expect(cardBody).not.toBeNull()
@@ -321,7 +328,7 @@ describe('Diff Modal, History Drawer & Filter Pills UI Redesign (阶段三测试
 
     const docHeaderEl = container.querySelector<HTMLElement>('.sfsr-history-doc-header')
     docHeaderEl?.click()
-    await new Promise(r => setTimeout(r, 10))
+    await new Promise((r) => setTimeout(r, 10))
     expect(docItemsContainer?.style.display).toBe('none')
 
     app.unmount()

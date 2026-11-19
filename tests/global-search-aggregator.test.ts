@@ -1,4 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import type { RawBlockRecord } from '@/features/search-replace/global/types'
+import {
+  describe,
+  expect,
+  it,
+} from 'vitest'
 import {
   aggregateBlocksToDocs,
   extractContextSnippet,
@@ -6,7 +11,6 @@ import {
   findMatchesInBlock,
   sortDocAggregateNodes,
 } from '@/features/search-replace/global/doc-aggregator'
-import type { RawBlockRecord } from '@/features/search-replace/global/types'
 
 describe('doc-aggregator', () => {
   describe('extractDocTitleFromHpath', () => {
@@ -65,7 +69,7 @@ describe('doc-aggregator', () => {
       expect(matches[0].occurrences![0].text).toBe('思源')
       expect(matches[0].occurrences![1].text).toBe('思源')
       // 同时在该条目内高亮所有命中关键词
-      const matchedSegments = matches[0].segments.filter(s => s.isMatch)
+      const matchedSegments = matches[0].segments.filter((s) => s.isMatch)
       expect(matchedSegments).toHaveLength(2)
     })
 
@@ -107,9 +111,9 @@ describe('doc-aggregator', () => {
       const matches = findMatchesInBlock(docBlock, '手机')
       expect(matches).toHaveLength(1)
       expect(matches[0].occurrences).toHaveLength(2)
-      const highlights = matches[0].segments.filter(s => s.isMatch)
+      const highlights = matches[0].segments.filter((s) => s.isMatch)
       expect(highlights).toHaveLength(2)
-      expect(highlights.every(h => h.text === '手机')).toBe(true)
+      expect(highlights.every((h) => h.text === '手机')).toBe(true)
     })
   })
 
@@ -168,12 +172,12 @@ describe('doc-aggregator', () => {
       const docs = aggregateBlocksToDocs(blocks, '全库')
       expect(docs).toHaveLength(2)
 
-      const doc1 = docs.find(d => d.rootId === 'doc-1')!
+      const doc1 = docs.find((d) => d.rootId === 'doc-1')!
       expect(doc1.docTitle).toBe('项目规划')
       expect(doc1.matches).toHaveLength(2)
       expect(doc1.totalCount).toBe(2)
 
-      const doc2 = docs.find(d => d.rootId === 'doc-2')!
+      const doc2 = docs.find((d) => d.rootId === 'doc-2')!
       expect(doc2.docTitle).toBe('未命名随笔')
       expect(doc2.matches).toHaveLength(1)
     })
@@ -399,16 +403,16 @@ describe('doc-aggregator', () => {
       const docs = aggregateBlocksToDocs(blocks, '思源 插件', { parsedQuery })
       expect(docs).toHaveLength(2)
 
-      const doc1 = docs.find(d => d.rootId === 'doc-1')
-      const doc2 = docs.find(d => d.rootId === 'doc-2')
+      const doc1 = docs.find((d) => d.rootId === 'doc-1')
+      const doc2 = docs.find((d) => d.rootId === 'doc-2')
       expect(doc1).toBeDefined()
       expect(doc2).toBeDefined()
       expect(doc1?.matchType).toBe('exact-block')
       expect(doc2?.matchType).toBe('cross-block')
 
       // 文档 3 (缺词) 与 文档 4 (含排除词) 均被过滤
-      expect(docs.find(d => d.rootId === 'doc-3')).toBeUndefined()
-      expect(docs.find(d => d.rootId === 'doc-4')).toBeUndefined()
+      expect(docs.find((d) => d.rootId === 'doc-3')).toBeUndefined()
+      expect(docs.find((d) => d.rootId === 'doc-4')).toBeUndefined()
 
       // 相关度排序时，exact-block 必定排在 cross-block 前面
       const sorted = sortDocAggregateNodes(docs, 'relevance', '思源 插件')

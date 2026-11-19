@@ -1,4 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import {
+  describe,
+  expect,
+  it,
+} from 'vitest'
 
 import {
   mapCanvasTargetsToSearchableBlocks,
@@ -20,20 +24,48 @@ describe('canvas search block mapping', () => {
         },
       } as any,
       targets: [
-        { id: 'node:t1:text', nodeId: 't1', type: 'node', field: 'text', text: 'Alpha', title: 'Alpha', replaceable: true },
-        { id: 'node:f1:note', nodeId: 'f1', type: 'node', field: 'note', text: 'Alpha doc', title: 'Doc', replaceable: false },
+        {
+          id: 'node:t1:text',
+          nodeId: 't1',
+          type: 'node',
+          field: 'text',
+          text: 'Alpha',
+          title: 'Alpha',
+          replaceable: true,
+        },
+        {
+          id: 'node:f1:note',
+          nodeId: 'f1',
+          type: 'node',
+          field: 'note',
+          text: 'Alpha doc',
+          title: 'Doc',
+          replaceable: false,
+        },
       ],
     })
 
-    expect(blocks.map(block => ({
+    expect(blocks.map((block) => ({
       blockId: block.blockId,
       blockType: block.blockType,
       replaceable: block.replaceable,
       text: block.text,
       targetId: block.canvas?.targetId,
     }))).toEqual([
-      { blockId: 'canvas:node:t1:text', blockType: 'CanvasTextNode', replaceable: true, text: 'Alpha', targetId: 'node:t1:text' },
-      { blockId: 'canvas:node:f1:note', blockType: 'CanvasNoteNode', replaceable: false, text: 'Alpha doc', targetId: 'node:f1:note' },
+      {
+        blockId: 'canvas:node:t1:text',
+        blockType: 'CanvasTextNode',
+        replaceable: true,
+        text: 'Alpha',
+        targetId: 'node:t1:text',
+      },
+      {
+        blockId: 'canvas:node:f1:note',
+        blockType: 'CanvasNoteNode',
+        replaceable: false,
+        text: 'Alpha doc',
+        targetId: 'node:f1:note',
+      },
     ])
   })
 
@@ -42,7 +74,15 @@ describe('canvas search block mapping', () => {
       getSnapshot: async () => ({
         revision: 'r1',
         targets: [
-          { id: 'node:t1:text', nodeId: 't1', type: 'node', field: 'text', text: 'Alpha', title: 'Alpha', replaceable: true },
+          {
+            id: 'node:t1:text',
+            nodeId: 't1',
+            type: 'node',
+            field: 'text',
+            text: 'Alpha',
+            title: 'Alpha',
+            replaceable: true,
+          },
         ],
       }),
     }
@@ -51,7 +91,10 @@ describe('canvas search block mapping', () => {
       title: 'a.canvas',
       protyle: {} as HTMLElement,
       sourceKind: 'canvas',
-      canvas: { filePath: '/data/a.canvas', host },
+      canvas: {
+        filePath: '/data/a.canvas',
+        host,
+      },
     } as any)
 
     expect(result.documentContent).toBe('')

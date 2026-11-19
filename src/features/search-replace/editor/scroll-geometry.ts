@@ -61,4 +61,7 @@ export function clampScrollOffset(
   return Math.max(0, Math.min(maxScrollOffset, offset))
 }
 
-export type { ScrollAxis, ScrollOffsetContainer }
+export type {
+  ScrollAxis,
+  ScrollOffsetContainer,
+}

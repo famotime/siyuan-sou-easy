@@ -5,8 +5,8 @@ import {
   vi,
 } from 'vitest'
 import {
-  DEFAULT_SETTINGS,
   createSearchOptionsFromSettings,
+  DEFAULT_SETTINGS,
   loadSettings,
   normalizeSettings,
 } from '@/settings'

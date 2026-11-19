@@ -15,7 +15,10 @@ import {
 
 import App from '@/App.vue'
 import { searchReplaceState } from '@/features/search-replace/store'
-import { DEFAULT_SETTINGS, createSearchOptionsFromSettings } from '@/settings'
+import {
+  createSearchOptionsFromSettings,
+  DEFAULT_SETTINGS,
+} from '@/settings'
 
 describe('search panel minimap', () => {
   let host: HTMLDivElement | null = null
@@ -128,7 +131,8 @@ describe('search panel minimap', () => {
         previewText: '[First] block',
         replaceable: true,
         rootId: 'root-1',
-        start: 0, occ: 0,
+        start: 0,
+        occ: 0,
       },
       {
         blockId: 'block-2',
@@ -140,7 +144,8 @@ describe('search panel minimap', () => {
         previewText: '[Second] block',
         replaceable: true,
         rootId: 'root-1',
-        start: 0, occ: 0,
+        start: 0,
+        occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 1
@@ -183,7 +188,8 @@ describe('search panel minimap', () => {
         previewText: '[First] block',
         replaceable: true,
         rootId: 'root-1',
-        start: 0, occ: 0,
+        start: 0,
+        occ: 0,
       },
       {
         blockId: 'block-9',
@@ -195,7 +201,8 @@ describe('search panel minimap', () => {
         previewText: '[Ninth] block',
         replaceable: true,
         rootId: 'root-1',
-        start: 0, occ: 0,
+        start: 0,
+        occ: 0,
       },
     ]
     searchReplaceState.currentIndex = 1
@@ -205,7 +212,7 @@ describe('search panel minimap', () => {
 
     const markers = host?.querySelectorAll<HTMLElement>('.sfsr-minimap__marker')
     const currentMarker = host?.querySelector<HTMLElement>('.sfsr-minimap__marker--current')
-    const markerTops = Array.from(markers ?? []).map(marker => Number.parseFloat(marker.style.top))
+    const markerTops = Array.from(markers ?? []).map((marker) => Number.parseFloat(marker.style.top))
 
     expect(markers).toHaveLength(2)
     expect(currentMarker).not.toBeNull()
@@ -220,12 +227,36 @@ describe('search panel minimap', () => {
     searchReplaceState.currentTitle = 'Doc 1'
     searchReplaceState.searchableBlockCount = 6
     searchReplaceState.minimapBlocks = [
-      { blockId: 'block-1', blockIndex: 0, blockType: 'NodeHeading' },
-      { blockId: 'block-2', blockIndex: 1, blockType: 'NodeParagraph' },
-      { blockId: 'block-3', blockIndex: 2, blockType: 'NodeParagraph' },
-      { blockId: 'block-4', blockIndex: 3, blockType: 'NodeParagraph' },
-      { blockId: 'block-5', blockIndex: 4, blockType: 'NodeParagraph' },
-      { blockId: 'block-6', blockIndex: 5, blockType: 'NodeParagraph' },
+      {
+        blockId: 'block-1',
+        blockIndex: 0,
+        blockType: 'NodeHeading',
+      },
+      {
+        blockId: 'block-2',
+        blockIndex: 1,
+        blockType: 'NodeParagraph',
+      },
+      {
+        blockId: 'block-3',
+        blockIndex: 2,
+        blockType: 'NodeParagraph',
+      },
+      {
+        blockId: 'block-4',
+        blockIndex: 3,
+        blockType: 'NodeParagraph',
+      },
+      {
+        blockId: 'block-5',
+        blockIndex: 4,
+        blockType: 'NodeParagraph',
+      },
+      {
+        blockId: 'block-6',
+        blockIndex: 5,
+        blockType: 'NodeParagraph',
+      },
     ]
 
     await nextTick()
@@ -286,7 +317,7 @@ describe('search panel minimap', () => {
     scrollHeight = 2400
     scrollContainer?.dispatchEvent(new Event('scroll'))
     // 滚动触发的 minimap 刷新经 rAF 合并，需等一帧后再断言
-    await new Promise(resolve => requestAnimationFrame(resolve))
+    await new Promise((resolve) => requestAnimationFrame(resolve))
     await nextTick()
 
     const loadedTop = Number.parseFloat(viewport()?.style.top ?? '0')

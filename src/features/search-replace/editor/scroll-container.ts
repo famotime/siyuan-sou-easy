@@ -1,5 +1,8 @@
-import { debugElement, debugLogLazy } from '../debug'
 import type { EditorContext } from '../types'
+import {
+  debugElement,
+  debugLogLazy,
+} from '../debug'
 
 export function resolveEditorScrollContainer(context: EditorContext) {
   const protyleContentCandidates = Array.from(
@@ -9,7 +12,7 @@ export function resolveEditorScrollContainer(context: EditorContext) {
   if (chosenProtyleContent) {
     if (protyleContentCandidates.length > 1) {
       debugLogLazy('scroll-container:resolved', () => ({
-        candidates: protyleContentCandidates.map(candidate => debugElement(candidate)),
+        candidates: protyleContentCandidates.map((candidate) => debugElement(candidate)),
         chosen: debugElement(chosenProtyleContent),
         rootId: context.rootId,
         selector: '.protyle-content',
@@ -25,7 +28,7 @@ export function resolveEditorScrollContainer(context: EditorContext) {
   if (chosenWysiwyg) {
     if (wysiwygCandidates.length > 1) {
       debugLogLazy('scroll-container:resolved', () => ({
-        candidates: wysiwygCandidates.map(candidate => debugElement(candidate)),
+        candidates: wysiwygCandidates.map((candidate) => debugElement(candidate)),
         chosen: debugElement(chosenWysiwyg),
         rootId: context.rootId,
         selector: '.protyle-wysiwyg',
@@ -81,7 +84,7 @@ function isScrollableContainer(element: HTMLElement) {
 }
 
 function pickPreferredScrollContainer(candidates: HTMLElement[]) {
-  const usableCandidates = candidates.filter(candidate => (
+  const usableCandidates = candidates.filter((candidate) => (
     candidate.isConnected
     && !candidate.closest('.fn__none, .protyle-attr')
   ))
@@ -130,7 +133,8 @@ function pickPreferredScrollContainer(candidates: HTMLElement[]) {
       }
 
       return 0
-    })[0]?.element ?? null
+    })[0]
+    ?.element ?? null
 }
 
 function resolveRectCenterDistance(

@@ -1,9 +1,10 @@
-import type { HotkeySource } from '@/hotkeys'
+import type { CommandHotkeyShape } from './plugin-command-config'
 import type { HotkeySettingKey } from './settings-panel'
+import type { HotkeySource } from '@/hotkeys'
 import {
+
   getPanelCommandLangKey,
   isPanelCommandKeymapSource,
-  type CommandHotkeyShape,
 } from './plugin-command-config'
 
 interface SettingsHotkeyShape {
@@ -28,8 +29,8 @@ export function buildIgnoredHotkeys({
   return [
     settingsData[settingKey],
     ...commands
-      .filter(cmd => ignoredLangKeys.includes(cmd.langKey || ''))
-      .map(cmd => cmd.customHotkey || cmd.hotkey)
+      .filter((cmd) => ignoredLangKeys.includes(cmd.langKey || ''))
+      .map((cmd) => cmd.customHotkey || cmd.hotkey)
       .filter(Boolean) as string[],
   ]
 }
@@ -45,15 +46,15 @@ export function buildKnownHotkeySources({
 }) {
   const ignoredLangKey = getPanelCommandLangKey(settingKey)
   const commandSources = commands
-    .filter(command => command.langKey !== ignoredLangKey)
-    .map(command => ({
+    .filter((command) => command.langKey !== ignoredLangKey)
+    .map((command) => ({
       hotkey: command.customHotkey || command.hotkey,
       label: command.langKey || 'plugin.command',
     }))
-    .filter(command => Boolean(command.hotkey)) as HotkeySource[]
+    .filter((command) => Boolean(command.hotkey)) as HotkeySource[]
 
   return [
     ...commandSources,
-    ...keymapSources.filter(source => !isPanelCommandKeymapSource(source, settingKey)),
+    ...keymapSources.filter((source) => !isPanelCommandKeymapSource(source, settingKey)),
   ]
 }

@@ -1,17 +1,21 @@
-import { buildPreview } from '../editor'
-import { debugLog } from '../debug'
-import { findMatches } from '../search-engine'
 import type {
   EditorContext,
+  SearchableBlockSummary,
   SearchMatch,
   SearchOptions,
-  SearchableBlockSummary,
 } from '../types'
-import { collectAttributeViewBlocks, resolveAttributeViewInfo } from './search-blocks'
+import type { AttributeViewCellCandidate } from './search-types'
+import { debugLog } from '../debug'
+import { buildPreview } from '../editor'
+import { findMatches } from '../search-engine'
+import {
+  collectAttributeViewBlocks,
+  resolveAttributeViewInfo,
+} from './search-blocks'
 import { resolveAttributeViewSearchCandidates } from './search-candidates'
 import {
   ATTRIBUTE_VIEW_NODE_TYPE,
-  type AttributeViewCellCandidate,
+
 } from './search-types'
 
 export interface SearchAttributeViewMatchesOptions {
@@ -67,7 +71,10 @@ export async function searchAttributeViewMatches({
     }
 
     try {
-      const { avID, viewID } = await resolveAttributeViewInfo(attributeViewBlock)
+      const {
+        avID,
+        viewID,
+      } = await resolveAttributeViewInfo(attributeViewBlock)
       if (!avID) {
         continue
       }
@@ -164,7 +171,10 @@ function buildAttributeViewMatches({
       return []
     }
 
-    const { candidate, visualIndex } = resolvedCandidate
+    const {
+      candidate,
+      visualIndex,
+    } = resolvedCandidate
     const preview = buildPreview(candidate.text, match.start, match.end)
     return [{
       ...match,

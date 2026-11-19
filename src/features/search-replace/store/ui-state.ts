@@ -20,7 +20,10 @@ export function unbindUiStatePlugin() {
   // 卸载前立即发起挂起变更的写入：saveData 是内核级请求，
   // 发起后即使实例引用随后置空，写入仍会完成，最后一次拖动不会丢失
   if (pendingUiState && pluginInstance) {
-    const { position, width } = pendingUiState
+    const {
+      position,
+      width,
+    } = pendingUiState
     pendingUiState = null
     void persistUiState(position, width)
   }
@@ -56,7 +59,10 @@ export function schedulePersistUiState(
     return
   }
 
-  pendingUiState = { position, width }
+  pendingUiState = {
+    position,
+    width,
+  }
   window.clearTimeout(persistTimer)
   persistTimer = window.setTimeout(() => {
     pendingUiState = null

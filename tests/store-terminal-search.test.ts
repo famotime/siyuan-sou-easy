@@ -8,6 +8,17 @@ import {
   vi,
 } from 'vitest'
 
+import {
+  closePanel,
+  goNext,
+  goPrev,
+  openTerminalPanel,
+  replaceAll,
+  replaceCurrent,
+  searchReplaceState,
+  setQuery,
+} from '@/features/search-replace/store'
+
 const surface = {
   clear: vi.fn(),
   focus: vi.fn(),
@@ -53,17 +64,6 @@ vi.mock('@/features/search-replace/kernel', () => ({
   getBlockDoms: vi.fn(),
   updateDomBlock: vi.fn(),
 }))
-
-import {
-  closePanel,
-  goNext,
-  goPrev,
-  openTerminalPanel,
-  replaceAll,
-  replaceCurrent,
-  searchReplaceState,
-  setQuery,
-} from '@/features/search-replace/store'
 
 describe('terminal search store mode', () => {
   beforeEach(() => {

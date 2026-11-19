@@ -1,15 +1,22 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it } from 'vitest'
-import { createApp, nextTick } from 'vue'
-import DocAggregateItem from '@/features/search-replace/global/ui/DocAggregateItem.vue'
-import GlobalSearchDockView from '@/features/search-replace/global/ui/GlobalSearchDockView.vue'
+import type { DocAggregateNode } from '@/features/search-replace/global/types'
+import {
+  describe,
+  expect,
+  it,
+} from 'vitest'
+import {
+  createApp,
+  nextTick,
+} from 'vue'
 import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
 import { globalSearchState } from '@/features/search-replace/global/store'
-import type { DocAggregateNode } from '@/features/search-replace/global/types'
+import DocAggregateItem from '@/features/search-replace/global/ui/DocAggregateItem.vue'
+import GlobalSearchDockView from '@/features/search-replace/global/ui/GlobalSearchDockView.vue'
 
-describe('Global Search Dock & Doc Item UI Redesign (阶段二测试)', () => {
-  it('DocAggregateItem uses WireframeIcon and eliminates native title and emojis', () => {
+describe('global Search Dock & Doc Item UI Redesign (阶段二测试)', () => {
+  it('docAggregateItem uses WireframeIcon and eliminates native title and emojis', () => {
     const dummyDoc: DocAggregateNode = {
       rootId: 'doc-1',
       boxId: 'box-1',
@@ -33,9 +40,18 @@ describe('Global Search Dock & Doc Item UI Redesign (阶段二测试)', () => {
           suffixText: ' world',
           previewText: 'hello keyword world',
           segments: [
-            { text: 'hello ', isMatch: false },
-            { text: 'keyword', isMatch: true },
-            { text: ' world', isMatch: false },
+            {
+              text: 'hello ',
+              isMatch: false,
+            },
+            {
+              text: 'keyword',
+              isMatch: true,
+            },
+            {
+              text: ' world',
+              isMatch: false,
+            },
           ],
           fullContent: 'hello keyword world',
           sort: 0,
@@ -82,7 +98,7 @@ describe('Global Search Dock & Doc Item UI Redesign (阶段二测试)', () => {
     app.unmount()
   })
 
-  it('GlobalSearchDockView has zero native title attributes and uses b3-tooltips with WireframeIcon', async () => {
+  it('globalSearchDockView has zero native title attributes and uses b3-tooltips with WireframeIcon', async () => {
     const container = document.createElement('div')
     const app = createApp(GlobalSearchDockView)
     app.mount(container)
@@ -167,7 +183,7 @@ describe('Global Search Dock & Doc Item UI Redesign (阶段二测试)', () => {
     app.unmount()
   })
 
-  it('WireframeIcon collapse-all and expand-all use parallel chevrons without overlapping intersection', () => {
+  it('wireframeIcon collapse-all and expand-all use parallel chevrons without overlapping intersection', () => {
     const container = document.createElement('div')
     const app = createApp({
       components: { WireframeIcon },

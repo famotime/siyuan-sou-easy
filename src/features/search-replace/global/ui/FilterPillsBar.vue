@@ -31,14 +31,19 @@
     </div>
 
     <!-- 笔记本胶囊 -->
-    <div v-if="notebooks.length > 0" class="sfsr-pill-group">
+    <div
+      v-if="notebooks.length > 0"
+      class="sfsr-pill-group"
+    >
       <span class="sfsr-pill-label">笔记本:</span>
       <select
         :value="filters.notebookId || ''"
         class="sfsr-pill-select"
         @change="onNotebookChange"
       >
-        <option value="">全部笔记本</option>
+        <option value="">
+          全部笔记本
+        </option>
         <option
           v-for="nb in notebooks"
           :key="nb.id"
@@ -62,9 +67,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { GlobalSearchFilters } from '../types'
 import type { NotebookInfo } from '../kernel-query'
+import type { GlobalSearchFilters } from '../types'
+import { computed } from 'vue'
 
 const props = defineProps<{
   filters: GlobalSearchFilters
@@ -78,17 +83,41 @@ const emit = defineEmits<{
 const notebooks = computed(() => props.notebooks || [])
 
 const typeOptions = [
-  { key: 'p', label: '正文' },
-  { key: 'h', label: '标题' },
-  { key: 'c', label: '代码' },
-  { key: 't', label: '表格' },
+  {
+    key: 'p',
+    label: '正文',
+  },
+  {
+    key: 'h',
+    label: '标题',
+  },
+  {
+    key: 'c',
+    label: '代码',
+  },
+  {
+    key: 't',
+    label: '表格',
+  },
 ]
 
 const timeOptions = [
-  { key: 'today', label: '今天' },
-  { key: '3d', label: '近3天' },
-  { key: '7d', label: '近7天' },
-  { key: '30d', label: '近30天' },
+  {
+    key: 'today',
+    label: '今天',
+  },
+  {
+    key: '3d',
+    label: '近3天',
+  },
+  {
+    key: '7d',
+    label: '近7天',
+  },
+  {
+    key: '30d',
+    label: '近30天',
+  },
 ]
 
 function isTypeSelected(key: string) {
@@ -103,7 +132,10 @@ function toggleType(key: string) {
   } else {
     current.push(key)
   }
-  emit('change', { ...props.filters, types: current })
+  emit('change', {
+    ...props.filters,
+    types: current,
+  })
 }
 
 function calculateStartDate(key: string): string {
@@ -132,7 +164,10 @@ function selectTimeRange(key: string) {
   const currentStart = props.filters.dateRange?.start
   const target = calculateStartDate(key)
   if (currentStart === target) {
-    emit('change', { ...props.filters, dateRange: undefined })
+    emit('change', {
+      ...props.filters,
+      dateRange: undefined,
+    })
   } else {
     emit('change', {
       ...props.filters,

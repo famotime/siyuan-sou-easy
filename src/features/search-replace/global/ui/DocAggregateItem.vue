@@ -1,5 +1,8 @@
 <template>
-  <div class="sfsr-doc-item" :class="{ 'sfsr-doc-item--collapsed': doc.collapsed }">
+  <div
+    class="sfsr-doc-item"
+    :class="{ 'sfsr-doc-item--collapsed': doc.collapsed }"
+  >
     <div
       class="sfsr-doc-item__header"
       @click="onToggleCollapse"
@@ -8,11 +11,17 @@
         class="sfsr-doc-item__arrow"
         :class="{ 'sfsr-doc-item__arrow--expanded': !doc.collapsed }"
       >
-        <WireframeIcon name="chevron" :size="11" />
+        <WireframeIcon
+          name="chevron"
+          :size="11"
+        />
       </span>
 
       <span class="sfsr-doc-item__icon">
-        <WireframeIcon name="document" :size="13" />
+        <WireframeIcon
+          name="document"
+          :size="13"
+        />
       </span>
 
       <span
@@ -37,7 +46,10 @@
       </span>
     </div>
 
-    <div v-if="!doc.collapsed" class="sfsr-doc-item__matches">
+    <div
+      v-if="!doc.collapsed"
+      class="sfsr-doc-item__matches"
+    >
       <div
         v-for="match in doc.matches"
         :key="match.matchId"
@@ -53,8 +65,14 @@
         </span>
 
         <span class="sfsr-match-item__snippet">
-          <template v-for="(seg, idx) in match.segments" :key="idx">
-            <mark v-if="seg.isMatch" class="sfsr-match-item__highlight">{{ seg.text }}</mark>
+          <template
+            v-for="(seg, idx) in match.segments"
+            :key="idx"
+          >
+            <mark
+              v-if="seg.isMatch"
+              class="sfsr-match-item__highlight"
+            >{{ seg.text }}</mark>
             <span v-else>{{ seg.text }}</span>
           </template>
         </span>
@@ -64,14 +82,18 @@
 </template>
 
 <script setup lang="ts">
+import type {
+  DocAggregateNode,
+  GlobalBlockType,
+  GlobalMatchSnippet,
+} from '../types'
 import { computed } from 'vue'
-import type { DocAggregateNode, GlobalBlockType, GlobalMatchSnippet } from '../types'
+import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
 import {
   globalSearchState,
   navigateToGlobalMatch,
   toggleDocCollapse,
 } from '../store'
-import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
 
 const props = defineProps<{
   doc: DocAggregateNode

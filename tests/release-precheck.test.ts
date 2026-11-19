@@ -1,4 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import {
+  describe,
+  expect,
+  it,
+} from 'vitest'
 import {
   collectPrecheckIssues,
   getReleaseStaticCopyTargets,
@@ -49,8 +53,8 @@ describe('collectPrecheckIssues', () => {
       },
     })
 
-    expect(issues.map(issue => issue.code)).toContain('version_mismatch')
-    expect(issues.map(issue => issue.code)).toContain('missing_min_app_version')
+    expect(issues.map((issue) => issue.code)).toContain('version_mismatch')
+    expect(issues.map((issue) => issue.code)).toContain('missing_min_app_version')
   })
 
   it('reports i18n key mismatch and missing readme files', () => {
@@ -77,8 +81,8 @@ describe('collectPrecheckIssues', () => {
       },
     })
 
-    expect(issues.map(issue => issue.code)).toContain('i18n_key_mismatch')
-    expect(issues.map(issue => issue.code)).toContain('missing_readme_file')
+    expect(issues.map((issue) => issue.code)).toContain('i18n_key_mismatch')
+    expect(issues.map((issue) => issue.code)).toContain('missing_readme_file')
   })
 
   it('reports plugin metadata when the default locale does not use the English-facing values', () => {
@@ -111,7 +115,7 @@ describe('collectPrecheckIssues', () => {
       },
     })
 
-    expect(issues.map(issue => issue.code)).toContain('display_name_default_mismatch')
+    expect(issues.map((issue) => issue.code)).toContain('display_name_default_mismatch')
   })
 
   it('reports redundant en_US plugin metadata fields', () => {
@@ -147,14 +151,14 @@ describe('collectPrecheckIssues', () => {
       },
     })
 
-    expect(issues.map(issue => issue.code)).toContain('redundant_en_us_metadata')
+    expect(issues.map((issue) => issue.code)).toContain('redundant_en_us_metadata')
   })
 })
 
 describe('getReleaseStaticCopyTargets', () => {
   it('copies only locale json files into the packaged i18n directory', () => {
     const i18nTarget = getReleaseStaticCopyTargets()
-      .find(target => target.dest === './i18n/')
+      .find((target) => target.dest === './i18n/')
 
     expect(i18nTarget).toEqual({
       dest: './i18n/',

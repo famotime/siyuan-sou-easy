@@ -1,5 +1,12 @@
-import { readdirSync, readFileSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import {
+  readdirSync,
+  readFileSync,
+} from 'node:fs'
+import {
+  dirname,
+  resolve,
+} from 'node:path'
+import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
 /**
@@ -63,8 +70,8 @@ export function collectPrecheckIssues(payload) {
 
   const zhKeys = new Set(Object.keys(payload.i18nZh))
   const enKeys = new Set(Object.keys(payload.i18nEn))
-  const zhOnlyKeys = [...zhKeys].filter(key => !enKeys.has(key))
-  const enOnlyKeys = [...enKeys].filter(key => !zhKeys.has(key))
+  const zhOnlyKeys = [...zhKeys].filter((key) => !enKeys.has(key))
+  const enOnlyKeys = [...enKeys].filter((key) => !zhKeys.has(key))
   if (zhOnlyKeys.length || enOnlyKeys.length) {
     const segments = []
     if (zhOnlyKeys.length) {
@@ -192,8 +199,8 @@ export function runPrecheckFromWorkspace(workspaceRoot) {
 function collectTopLevelFiles(workspaceRoot) {
   const entries = readdirSync(workspaceRoot, { withFileTypes: true })
   const files = entries
-    .filter(entry => entry.isFile())
-    .map(entry => entry.name)
+    .filter((entry) => entry.isFile())
+    .map((entry) => entry.name)
   return new Set(files)
 }
 
@@ -222,8 +229,8 @@ function readJson(filePath) {
 
 function collectRedundantEnUsMetadataFields(pluginJson) {
   return ['displayName', 'description', 'readme']
-    .filter(field => Object.hasOwn(toObject(pluginJson[field]), 'en_US'))
-    .map(field => `${field}.en_US`)
+    .filter((field) => Object.hasOwn(toObject(pluginJson[field]), 'en_US'))
+    .map((field) => `${field}.en_US`)
 }
 
 function printIssues(issues) {
@@ -246,7 +253,7 @@ if (isExecutedDirectly()) {
     printIssues(issues)
   }
 
-  if (issues.some(issue => issue.level === 'error')) {
+  if (issues.some((issue) => issue.level === 'error')) {
     process.exitCode = 1
   }
 }

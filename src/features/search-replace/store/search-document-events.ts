@@ -1,10 +1,14 @@
-import { createEditorContextFromElement, getActiveEditorContext, getCurrentSelectionScope } from '../editor'
-import { debugLog } from '../debug'
 import type {
   EditorContext,
   SelectionScope,
 } from '../types'
 import type { SearchReplaceState } from './state'
+import { debugLog } from '../debug'
+import {
+  createEditorContextFromElement,
+  getActiveEditorContext,
+  getCurrentSelectionScope,
+} from '../editor'
 
 interface SearchDocumentEventControllerOptions {
   clearSelectionScope: (rootId?: string) => void
@@ -86,7 +90,7 @@ export function createSearchDocumentEventController({
         return
       }
 
-      const hasContentChange = mutations.some(mutation => mutation.type === 'childList' || mutation.type === 'characterData')
+      const hasContentChange = mutations.some((mutation) => mutation.type === 'childList' || mutation.type === 'characterData')
       if (!hasContentChange) {
         return
       }

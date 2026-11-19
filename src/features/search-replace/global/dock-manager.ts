@@ -1,11 +1,11 @@
 import type { App as VueApp } from 'vue'
 import { createApp } from 'vue'
-import GlobalSearchDockView from './ui/GlobalSearchDockView.vue'
+import { cancelActiveBatchReplace } from './replace-engine'
 import {
   cancelGlobalHighlightTimers,
   globalSearchState,
 } from './store'
-import { cancelActiveBatchReplace } from './replace-engine'
+import GlobalSearchDockView from './ui/GlobalSearchDockView.vue'
 
 let dockApp: VueApp<Element> | null = null
 let currentDockContainer: HTMLElement | null = null

@@ -101,7 +101,7 @@ export function normalizeHotkey(hotkey: string | null | undefined) {
 
   const rawTokens = normalizedInput
     .split('+')
-    .map(token => token.trim())
+    .map((token) => token.trim())
     .filter(Boolean)
 
   const modifiers = new Set<typeof DISPLAY_MODIFIER_ORDER[number]>()
@@ -117,7 +117,7 @@ export function normalizeHotkey(hotkey: string | null | undefined) {
     key = normalizeHotkeyKey(token)
   })
 
-  const orderedModifiers = DISPLAY_MODIFIER_ORDER.filter(modifier => modifiers.has(modifier))
+  const orderedModifiers = DISPLAY_MODIFIER_ORDER.filter((modifier) => modifiers.has(modifier))
   return [...orderedModifiers, key].filter(Boolean).join('+')
 }
 

@@ -1,10 +1,15 @@
-import { describe, expect, it, vi } from 'vitest'
+import type { DiffSummary } from '@/features/search-replace/global/diff-builder'
+import {
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import {
   cancelActiveBatchReplace,
   executeBatchReplace,
   replaceTextInDom,
 } from '@/features/search-replace/global/replace-engine'
-import type { DiffSummary } from '@/features/search-replace/global/diff-builder'
 import * as kernel from '@/features/search-replace/kernel'
 
 describe('replace-engine', () => {
@@ -117,7 +122,7 @@ describe('replace-engine', () => {
           docTitle: 'Doc 1',
           hpath: '/d1',
           allExcluded: false,
-          items: ['b1', 'b2', 'b3'].map(blockId => buildSingleItemSummary(blockId, 'alpha', 'beta').groups[0]!.items[0]!),
+          items: ['b1', 'b2', 'b3'].map((blockId) => buildSingleItemSummary(blockId, 'alpha', 'beta').groups[0]!.items[0]!),
         },
       ],
     }

@@ -8,7 +8,10 @@ import {
   it,
   vi,
 } from 'vitest'
-import { createApp, nextTick } from 'vue'
+import {
+  createApp,
+  nextTick,
+} from 'vue'
 import App from '@/App.vue'
 import * as environmentModule from '@/features/search-replace/plugin-environment'
 import {

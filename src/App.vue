@@ -201,38 +201,35 @@
 import {
   computed,
   nextTick,
-  onUnmounted,
   ref,
   watch,
 } from 'vue'
-import { detectPluginEnvironment } from '@/features/search-replace/plugin-environment'
-import { t } from '@/i18n/runtime'
 import {
   hasAttributeViewMatches,
   hasUnsupportedCanvasReplacementMatches,
   isAttributeViewMatch,
   parsePreviewSegments,
 } from '@/features/search-replace/match-utils'
+import { detectPluginEnvironment } from '@/features/search-replace/plugin-environment'
 import {
   captureCurrentSelectionScope,
   closePanel,
   commitQueryAndSearch,
+  extractAll,
   getCurrentMatch,
   goNext,
   goPrev,
   jumpToMatchIndex,
-  onEditorContextChanged,
   persistPanelPosition,
-  extractAll,
   replaceAll,
   replaceCurrent,
   resetStoredPanelPosition,
-  searchReplaceState as state,
   setPanelPosition,
   setPanelWidth,
   setQuery,
   setReplacement,
   skipCurrent,
+  searchReplaceState as state,
   toggleOption,
   togglePreserveCase,
   toggleReplaceVisible,
@@ -243,6 +240,7 @@ import SearchToolbarRow from '@/features/search-replace/ui/SearchToolbarRow.vue'
 import { useComposedInput } from '@/features/search-replace/ui/use-composed-input'
 import { usePanelFrame } from '@/features/search-replace/ui/use-panel-frame'
 import { usePanelMinimap } from '@/features/search-replace/ui/use-panel-minimap'
+import { t } from '@/i18n/runtime'
 
 const { isMobile } = detectPluginEnvironment()
 

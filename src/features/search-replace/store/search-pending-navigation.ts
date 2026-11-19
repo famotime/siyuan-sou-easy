@@ -3,27 +3,35 @@ import type {
   ScrollMatchResult,
   SearchMatch,
 } from '../types'
+import type {
+  ApproximateNavigationProgress,
+  DirectNavigationProgress,
+} from './search-pending-navigation-state'
+import type { SearchReplaceState } from './state'
+import { t } from '@/i18n/runtime'
+import {
+  debugElement,
+  debugLog,
+  debugLogLazy,
+} from '../debug'
 import { resolveEditorSearchRoot } from '../editor/blocks'
 import { resolveEditorScrollContainer } from '../editor/scroll-container'
-import { debugElement, debugLog, debugLogLazy } from '../debug'
 import { unfoldBlock } from '../kernel'
 import {
   canTriggerNativeMatchNavigation,
   triggerNativeMatchNavigation,
 } from '../native-navigation'
-import { t } from '@/i18n/runtime'
 import {
   advanceApproximateNavigationProgress,
+
   createApproximateNavigationProgress,
   createDirectNavigationProgress,
+
   resetApproximateNavigationProgress,
   resetDirectNavigationProgress,
   resolveApproximateNavigationTimeoutReason,
   resolveDirectNavigationAction,
-  type ApproximateNavigationProgress,
-  type DirectNavigationProgress,
 } from './search-pending-navigation-state'
-import type { SearchReplaceState } from './state'
 
 interface LoadedBlockRange {
   loadedIndexes: number[]
@@ -415,7 +423,7 @@ export function createPendingNavigationController({
       return false
     }
 
-    collapsedAncestorIds.forEach(ancestorId => attemptedCollapsedAncestorIds.add(ancestorId))
+    collapsedAncestorIds.forEach((ancestorId) => attemptedCollapsedAncestorIds.add(ancestorId))
     debugLog('pending-navigation:unfold-collapsed-ancestors', {
       ancestorIds: collapsedAncestorIds,
       matchId: match.id,
@@ -436,7 +444,7 @@ export function createPendingNavigationController({
     // unfold 请求可能永不返回（内核无响应）：以超时兜底继续重试，避免导航提示卡死
     void Promise.race([
       unfoldPromise,
-      new Promise<void>(resolve => window.setTimeout(resolve, UNFOLD_SETTLE_TIMEOUT_MS)),
+      new Promise<void>((resolve) => window.setTimeout(resolve, UNFOLD_SETTLE_TIMEOUT_MS)),
     ]).finally(() => {
       if (pendingNavigationMatchId !== match.id) {
         return
@@ -513,7 +521,7 @@ export function createPendingNavigationController({
         activeState.loadedBlockRange
         && match.blockIndex > activeState.loadedBlockRange.max
         && activeState.nextScrollTop >= (activeState.maxScrollTop - 1)
-        && (match.blockIndex - activeState.loadedBlockRange.max) >= 20
+        && (match.blockIndex - activeState.loadedBlockRange.max) >= 20,
       ),
       waitingAtUpperBoundary: Boolean(
         activeState.loadedBlockRange
@@ -674,7 +682,7 @@ export function createPendingNavigationController({
   }
 
   function resolveLoadedBlockRange(context: EditorContext, scrollContainer?: HTMLElement | null): LoadedBlockRange | null {
-    const blockIndexById = new Map(state.minimapBlocks.map(block => [block.blockId, block.blockIndex]))
+    const blockIndexById = new Map(state.minimapBlocks.map((block) => [block.blockId, block.blockIndex]))
     if (!blockIndexById.size) {
       return null
     }

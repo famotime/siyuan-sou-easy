@@ -1,5 +1,10 @@
 // @vitest-environment jsdom
 
+import type {
+  EditorContext,
+  SearchOptions,
+} from '@/features/search-replace/types'
+
 import {
   beforeEach,
   describe,
@@ -8,10 +13,7 @@ import {
   vi,
 } from 'vitest'
 
-import type {
-  EditorContext,
-  SearchOptions,
-} from '@/features/search-replace/types'
+import { searchAttributeViewMatches } from '@/features/search-replace/attribute-view'
 
 const kernelMocks = vi.hoisted(() => ({
   getAttributeViewKeysByAvID: vi.fn(async () => []),
@@ -28,8 +30,6 @@ const kernelMocks = vi.hoisted(() => ({
 }))
 
 vi.mock('@/features/search-replace/kernel', () => kernelMocks)
-
-import { searchAttributeViewMatches } from '@/features/search-replace/attribute-view'
 
 const DEFAULT_OPTIONS: SearchOptions = {
   includeCodeBlock: false,
@@ -74,8 +74,8 @@ describe('attribute view search', () => {
     })
 
     expect(result.matches).toHaveLength(3)
-    expect(result.matches.map(match => match.attributeView?.columnIndex)).toEqual([0, 1, 2])
-    expect(result.matches.map(match => match.previewText)).toEqual([
+    expect(result.matches.map((match) => match.attributeView?.columnIndex)).toEqual([0, 1, 2])
+    expect(result.matches.map((match) => match.previewText)).toEqual([
       '文本: [传感器]',
       '链接: [传感器]',
       '电话: [传感器]',
@@ -103,11 +103,11 @@ describe('attribute view search', () => {
     })
 
     expect(result.matches).toHaveLength(2)
-    expect(result.matches.map(match => match.attributeView?.targetKind)).toEqual([
+    expect(result.matches.map((match) => match.attributeView?.targetKind)).toEqual([
       'view-name',
       'column-header',
     ])
-    expect(result.matches.map(match => match.previewText)).toEqual([
+    expect(result.matches.map((match) => match.previewText)).toEqual([
       '[传感器]表格',
       '[传感器]列',
     ])
@@ -134,7 +134,7 @@ describe('attribute view search', () => {
       startingBlockIndex: 0,
     })
 
-    const rowMatch = result.matches.find(match => match.attributeView?.targetKind === 'cell')
+    const rowMatch = result.matches.find((match) => match.attributeView?.targetKind === 'cell')
     expect(rowMatch).toBeDefined()
     expect(rowMatch?.attributeView).toMatchObject({
       avBlockId: 'av-block-3',
@@ -227,7 +227,7 @@ describe('attribute view search', () => {
       startingBlockIndex: 0,
     })
 
-    expect(result.matches.map(match => match.previewText)).toEqual([
+    expect(result.matches.map((match) => match.previewText)).toEqual([
       '[传感器]',
       '[传感器]',
       '[传感器]',
@@ -286,19 +286,43 @@ describe('attribute view search', () => {
     })
 
     expect(result.matches).toHaveLength(6)
-    expect(result.matches.map(match => ({
+    expect(result.matches.map((match) => ({
       columnIndex: match.attributeView?.columnIndex,
       keyID: match.attributeView?.keyID,
       rowID: match.attributeView?.rowID,
     }))).toEqual([
-      { columnIndex: 0, keyID: 'col-fixed', rowID: 'item-1' },
-      { columnIndex: 1, keyID: 'col-main', rowID: 'item-1' },
-      { columnIndex: 2, keyID: 'col-tail', rowID: 'item-1' },
-      { columnIndex: 0, keyID: 'col-fixed', rowID: 'item-2' },
-      { columnIndex: 1, keyID: 'col-main', rowID: 'item-2' },
-      { columnIndex: 2, keyID: 'col-tail', rowID: 'item-2' },
+      {
+        columnIndex: 0,
+        keyID: 'col-fixed',
+        rowID: 'item-1',
+      },
+      {
+        columnIndex: 1,
+        keyID: 'col-main',
+        rowID: 'item-1',
+      },
+      {
+        columnIndex: 2,
+        keyID: 'col-tail',
+        rowID: 'item-1',
+      },
+      {
+        columnIndex: 0,
+        keyID: 'col-fixed',
+        rowID: 'item-2',
+      },
+      {
+        columnIndex: 1,
+        keyID: 'col-main',
+        rowID: 'item-2',
+      },
+      {
+        columnIndex: 2,
+        keyID: 'col-tail',
+        rowID: 'item-2',
+      },
     ])
-    expect(result.matches.map(match => match.previewText)).toEqual([
+    expect(result.matches.map((match) => match.previewText)).toEqual([
       '固定列: [传感器]-fixed',
       '主列: [传感器]-main',
       '尾列: [传感器]-tail',
@@ -344,14 +368,26 @@ describe('attribute view search', () => {
     })
 
     expect(result.matches).toHaveLength(3)
-    expect(result.matches.map(match => ({
+    expect(result.matches.map((match) => ({
       columnIndex: match.attributeView?.columnIndex,
       keyID: match.attributeView?.keyID,
       previewText: match.previewText,
     }))).toEqual([
-      { columnIndex: 0, keyID: 'col-fixed', previewText: '固定列: [传感器]-fixed' },
-      { columnIndex: 1, keyID: 'col-blank', previewText: '[传感器]-blank' },
-      { columnIndex: 2, keyID: 'col-tail', previewText: '尾列: [传感器]-tail' },
+      {
+        columnIndex: 0,
+        keyID: 'col-fixed',
+        previewText: '固定列: [传感器]-fixed',
+      },
+      {
+        columnIndex: 1,
+        keyID: 'col-blank',
+        previewText: '[传感器]-blank',
+      },
+      {
+        columnIndex: 2,
+        keyID: 'col-tail',
+        previewText: '尾列: [传感器]-tail',
+      },
     ])
   })
 
@@ -382,15 +418,30 @@ describe('attribute view search', () => {
     })
 
     expect(result.matches).toHaveLength(3)
-    expect(result.matches.map(match => ({
+    expect(result.matches.map((match) => ({
       columnIndex: match.attributeView?.columnIndex,
       columnName: match.attributeView?.columnName,
       keyID: match.attributeView?.keyID,
       previewText: match.previewText,
     }))).toEqual([
-      { columnIndex: 0, columnName: '固定列', keyID: 'col-fixed', previewText: '固定列: [传感器]-fixed' },
-      { columnIndex: 1, columnName: '主列', keyID: 'col-main', previewText: '主列: [传感器]-main' },
-      { columnIndex: 2, columnName: '', keyID: 'col-extra', previewText: '[传感器]-extra' },
+      {
+        columnIndex: 0,
+        columnName: '固定列',
+        keyID: 'col-fixed',
+        previewText: '固定列: [传感器]-fixed',
+      },
+      {
+        columnIndex: 1,
+        columnName: '主列',
+        keyID: 'col-main',
+        previewText: '主列: [传感器]-main',
+      },
+      {
+        columnIndex: 2,
+        columnName: '',
+        keyID: 'col-extra',
+        previewText: '[传感器]-extra',
+      },
     ])
   })
 
@@ -422,15 +473,30 @@ describe('attribute view search', () => {
     })
 
     expect(result.matches).toHaveLength(3)
-    expect(result.matches.map(match => ({
+    expect(result.matches.map((match) => ({
       columnIndex: match.attributeView?.columnIndex,
       columnName: match.attributeView?.columnName,
       keyID: match.attributeView?.keyID,
       previewText: match.previewText,
     }))).toEqual([
-      { columnIndex: 1, columnName: '固定列', keyID: 'col-fixed', previewText: '固定列: [传感器]-fixed' },
-      { columnIndex: 2, columnName: '主列', keyID: 'col-main', previewText: '主列: [传感器]-main' },
-      { columnIndex: 3, columnName: '', keyID: 'col-extra', previewText: '[传感器]-extra' },
+      {
+        columnIndex: 1,
+        columnName: '固定列',
+        keyID: 'col-fixed',
+        previewText: '固定列: [传感器]-fixed',
+      },
+      {
+        columnIndex: 2,
+        columnName: '主列',
+        keyID: 'col-main',
+        previewText: '主列: [传感器]-main',
+      },
+      {
+        columnIndex: 3,
+        columnName: '',
+        keyID: 'col-extra',
+        previewText: '[传感器]-extra',
+      },
     ])
   })
 
@@ -621,7 +687,7 @@ describe('attribute view search', () => {
     })
 
     expect(result.matches).toHaveLength(2)
-    expect(result.matches.map(match => ({
+    expect(result.matches.map((match) => ({
       columnIndex: match.attributeView?.columnIndex,
       keyID: match.attributeView?.keyID,
       previewText: match.previewText,
@@ -644,12 +710,19 @@ describe('attribute view search', () => {
 
   it('searches rendered number field content when DOM candidates are unavailable', async () => {
     kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
-      { id: 'col-score', name: '评分' },
+      {
+        id: 'col-score',
+        name: '评分',
+      },
     ])
     kernelMocks.renderAttributeView.mockResolvedValue({
       view: {
         columns: [
-          { id: 'col-score', name: '评分', type: 'number' },
+          {
+            id: 'col-score',
+            name: '评分',
+            type: 'number',
+          },
         ],
         rows: [{
           cells: [{
@@ -691,12 +764,19 @@ describe('attribute view search', () => {
 
   it('searches rendered rollup field content when DOM candidates are unavailable', async () => {
     kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
-      { id: 'col-rollup', name: '成员' },
+      {
+        id: 'col-rollup',
+        name: '成员',
+      },
     ])
     kernelMocks.renderAttributeView.mockResolvedValue({
       view: {
         columns: [
-          { id: 'col-rollup', name: '成员', type: 'rollup' },
+          {
+            id: 'col-rollup',
+            name: '成员',
+            type: 'rollup',
+          },
         ],
         rows: [{
           cells: [{
@@ -735,12 +815,19 @@ describe('attribute view search', () => {
       'custom-sy-av-view': 'view-6',
     })
     kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
-      { id: 'col-title', name: '标题' },
+      {
+        id: 'col-title',
+        name: '标题',
+      },
     ])
     kernelMocks.renderAttributeView.mockResolvedValue({
       view: {
         columns: [
-          { id: 'col-title', name: '标题', type: 'text' },
+          {
+            id: 'col-title',
+            name: '标题',
+            type: 'text',
+          },
         ],
         rows: [{
           cells: [{
@@ -780,12 +867,19 @@ describe('attribute view search', () => {
       'sy-av-view': 'view-6b',
     })
     kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
-      { id: 'col-title', name: '标题' },
+      {
+        id: 'col-title',
+        name: '标题',
+      },
     ])
     kernelMocks.renderAttributeView.mockResolvedValue({
       view: {
         columns: [
-          { id: 'col-title', name: '标题', type: 'text' },
+          {
+            id: 'col-title',
+            name: '标题',
+            type: 'text',
+          },
         ],
         rows: [{
           cells: [{
@@ -822,12 +916,19 @@ describe('attribute view search', () => {
 
   it('merges rendered kanban card content when DOM only exposes titles and headers', async () => {
     kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
-      { id: 'col-title', name: '标题' },
+      {
+        id: 'col-title',
+        name: '标题',
+      },
     ])
     kernelMocks.renderAttributeView.mockResolvedValue({
       view: {
         columns: [
-          { id: 'col-title', name: '标题', type: 'text' },
+          {
+            id: 'col-title',
+            name: '标题',
+            type: 'text',
+          },
         ],
         groups: [{
           id: 'group-1',
@@ -888,12 +989,19 @@ describe('attribute view search', () => {
 
   it('ignores rendered fallback rows when the API returns a different view than the active kanban view', async () => {
     kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
-      { id: 'col-title', name: '标题' },
+      {
+        id: 'col-title',
+        name: '标题',
+      },
     ])
     kernelMocks.renderAttributeView.mockResolvedValue({
       view: {
         columns: [
-          { id: 'col-title', name: '标题', type: 'text' },
+          {
+            id: 'col-title',
+            name: '标题',
+            type: 'text',
+          },
         ],
         rows: [{
           id: 'row-table-1',
@@ -1014,8 +1122,8 @@ describe('attribute view search', () => {
     })
 
     // 失败块不再计入已搜索块摘要（此前会在 try 之前被提前 push 导致计数虚高）
-    expect(result.blocks.map(block => block.blockId)).toEqual(['av-block-ok'])
-    expect(result.matches.every(match => match.attributeView?.avBlockId === 'av-block-ok')).toBe(true)
+    expect(result.blocks.map((block) => block.blockId)).toEqual(['av-block-ok'])
+    expect(result.matches.every((match) => match.attributeView?.avBlockId === 'av-block-ok')).toBe(true)
   })
 })
 

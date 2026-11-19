@@ -1,12 +1,12 @@
-import { collectSearchableBlocks } from '../editor'
-import { resolveCanvasBlocksForSearch } from '../canvas/search-blocks'
-import { debugLog } from '../debug'
-import { getDocumentContent } from '../kernel'
 import type {
   EditorContext,
-  SearchOptions,
   SearchableBlock,
+  SearchOptions,
 } from '../types'
+import { resolveCanvasBlocksForSearch } from '../canvas/search-blocks'
+import { debugLog } from '../debug'
+import { collectSearchableBlocks } from '../editor'
+import { getDocumentContent } from '../kernel'
 import { resolveDocumentSnapshot } from './document-snapshot'
 
 export async function resolveBlocksForSearch(context: EditorContext, options: SearchOptions) {
@@ -53,7 +53,7 @@ function mergeLiveBlocksIntoSnapshot(snapshotBlocks: SearchableBlock[], liveBloc
     return snapshotBlocks
   }
 
-  const liveBlockById = new Map(liveBlocks.map(block => [block.blockId, block]))
+  const liveBlockById = new Map(liveBlocks.map((block) => [block.blockId, block]))
   const mergedBlocks = snapshotBlocks.map((snapshotBlock) => {
     const liveBlock = liveBlockById.get(snapshotBlock.blockId)
     if (!liveBlock) {

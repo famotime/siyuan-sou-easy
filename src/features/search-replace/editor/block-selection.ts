@@ -4,7 +4,7 @@ export function pickPreferredBlockElement(
   candidates: HTMLElement[],
   scrollContainer: HTMLElement | null,
 ) {
-  const usableCandidates = candidates.filter(candidate => !candidate.closest('.fn__none, .protyle-attr'))
+  const usableCandidates = candidates.filter((candidate) => !candidate.closest('.fn__none, .protyle-attr'))
   if (!usableCandidates.length) {
     return null
   }
@@ -16,7 +16,10 @@ export function pickPreferredBlockElement(
         return null
       }
 
-      return { element, rect }
+      return {
+        element,
+        rect,
+      }
     })
     .filter((entry): entry is { element: HTMLElement, rect: UsableRect } => Boolean(entry))
 
@@ -45,7 +48,7 @@ export function pickPreferredSearchRoot(
   scrollContainer: HTMLElement | null,
   viewportRect: DOMRectReadOnly = createViewportRect(),
 ) {
-  const usableCandidates = candidates.filter(candidate => (
+  const usableCandidates = candidates.filter((candidate) => (
     candidate.isConnected
     && !candidate.closest('.fn__none, .protyle-attr')
   ))
@@ -96,7 +99,8 @@ export function pickPreferredSearchRoot(
       }
 
       return 0
-    })[0]?.element ?? null
+    })[0]
+    ?.element ?? null
 }
 
 export function hasUsableRect(rect: DOMRect | DOMRectReadOnly | null | undefined): rect is UsableRect {
@@ -153,5 +157,6 @@ function pickClosestBlockElement(
       const leftCenter = (left.rect.top + left.rect.bottom) / 2
       const rightCenter = (right.rect.top + right.rect.bottom) / 2
       return Math.abs(leftCenter - containerCenter) - Math.abs(rightCenter - containerCenter)
-    })[0]?.element ?? null
+    })[0]
+    ?.element ?? null
 }

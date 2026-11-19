@@ -1,9 +1,13 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it } from 'vitest'
-import { createApp } from 'vue'
 import fs from 'node:fs'
 import path from 'node:path'
+import {
+  describe,
+  expect,
+  it,
+} from 'vitest'
+import { createApp } from 'vue'
 import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
 
 function renderIcon(props: Record<string, any>) {
@@ -17,9 +21,12 @@ function renderIcon(props: Record<string, any>) {
   }
 }
 
-describe('UI Design Tokens & Wireframe Icons (阶段一测试)', () => {
-  it('WireframeIcon renders SVG with explicit fill: none !important and stroke styling', () => {
-    const { svg, unmount } = renderIcon({
+describe('uI Design Tokens & Wireframe Icons (阶段一测试)', () => {
+  it('wireframeIcon renders SVG with explicit fill: none !important and stroke styling', () => {
+    const {
+      svg,
+      unmount,
+    } = renderIcon({
       name: 'search',
       size: 16,
       strokeWidth: 1.8,
@@ -41,7 +48,7 @@ describe('UI Design Tokens & Wireframe Icons (阶段一测试)', () => {
     unmount()
   })
 
-  it('WireframeIcon renders correct child elements for different icon names', () => {
+  it('wireframeIcon renders correct child elements for different icon names', () => {
     const iconNames = [
       'search',
       'star',
@@ -65,7 +72,10 @@ describe('UI Design Tokens & Wireframe Icons (阶段一测试)', () => {
     ]
 
     for (const name of iconNames) {
-      const { svg, unmount } = renderIcon({ name })
+      const {
+        svg,
+        unmount,
+      } = renderIcon({ name })
       expect(svg).not.toBeNull()
       // 保证每个图标都渲染了具体图形（不是空 svg）
       expect(svg!.children.length).toBeGreaterThan(0)

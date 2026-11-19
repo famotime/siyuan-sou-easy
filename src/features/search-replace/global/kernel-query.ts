@@ -1,5 +1,12 @@
-import { listNotebooks, querySql } from '../kernel'
-import type { GlobalSearchFilters, ParsedGlobalQuery, RawBlockRecord } from './types'
+import type {
+  GlobalSearchFilters,
+  ParsedGlobalQuery,
+  RawBlockRecord,
+} from './types'
+import {
+  listNotebooks,
+  querySql,
+} from '../kernel'
 
 export interface NotebookInfo {
   id: string
@@ -36,7 +43,11 @@ export function buildGlobalSearchSql(
   // 关键词过滤（当非正则时在 SQL 中使用 LIKE 初筛提升性能）
   if (!options.useRegex) {
     if (options.parsedQuery) {
-      const { mustInclude = [], orGroups = [], exclude = [] } = options.parsedQuery
+      const {
+        mustInclude = [],
+        orGroups = [],
+        exclude = [],
+      } = options.parsedQuery
 
       // 1. 包含项初筛 (mustInclude 和 orGroups 中的任意候选词进行初筛拉取)
       const positiveTerms: string[] = [
@@ -45,7 +56,7 @@ export function buildGlobalSearchSql(
       ].filter(Boolean)
 
       if (positiveTerms.length > 0) {
-        const orClauses = positiveTerms.map(term => {
+        const orClauses = positiveTerms.map((term) => {
           const escaped = escapeSqlString(term)
           return `(content LIKE '%${escaped}%' OR fcontent LIKE '%${escaped}%')`
         })
@@ -78,7 +89,7 @@ export function buildGlobalSearchSql(
 
   // 标签过滤
   if (filters.tags && filters.tags.length > 0) {
-    const tagConditions = filters.tags.map(t => `tag LIKE '%${escapeSqlString(t)}%'`)
+    const tagConditions = filters.tags.map((t) => `tag LIKE '%${escapeSqlString(t)}%'`)
     whereClauses.push(`(${tagConditions.join(' OR ')})`)
   }
 
@@ -86,7 +97,7 @@ export function buildGlobalSearchSql(
   if (options.docOnly) {
     whereClauses.push(`type = 'd'`)
   } else if (filters.types && filters.types.length > 0) {
-    const typesStr = filters.types.map(t => `'${escapeSqlString(t)}'`).join(',')
+    const typesStr = filters.types.map((t) => `'${escapeSqlString(t)}'`).join(',')
     whereClauses.push(`type IN (${typesStr})`)
   }
 
@@ -134,8 +145,8 @@ export async function fetchNotebooks(): Promise<NotebookInfo[]> {
     // 旧的 SQL DISTINCT box 采样方案受 LIMIT 截断且只能显示 box id
     const response = await listNotebooks()
     return (response.notebooks || [])
-      .filter(notebook => !notebook.closed)
-      .map(notebook => ({
+      .filter((notebook) => !notebook.closed)
+      .map((notebook) => ({
         id: notebook.id,
         name: notebook.name,
         icon: notebook.icon,

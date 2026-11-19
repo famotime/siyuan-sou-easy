@@ -1,9 +1,9 @@
 import type { App as VueApp } from 'vue'
-import { createApp } from 'vue'
 import { openTab } from 'siyuan'
+import { createApp } from 'vue'
+import { SEARCH_REPLACE_TOP_BAR_ICON_ID } from '@/icons'
 import { getPluginInstance } from '@/plugin-instance'
 import ReplaceHistoryTabView from './ui/ReplaceHistoryTabView.vue'
-import { SEARCH_REPLACE_TOP_BAR_ICON_ID } from '@/icons'
 
 export const REPLACE_HISTORY_TAB_TYPE = 'siyuan-sou-easy-replace-history-tab'
 

@@ -1,9 +1,13 @@
-import { getBlockElement, getOwnedTextNodes, getSearchTextNodes } from './blocks'
-import { findAttributeViewCellElements } from './attribute-view'
 import type {
   EditorContext,
   SearchMatch,
 } from '../types'
+import { findAttributeViewCellElements } from './attribute-view'
+import {
+  getBlockElement,
+  getOwnedTextNodes,
+  getSearchTextNodes,
+} from './blocks'
 
 interface TextRangeLocation {
   node: Text
@@ -95,7 +99,7 @@ function locateTableTextRange(context: EditorContext, match: SearchMatch) {
     return null
   }
 
-  const combinedCellText = cellTextNodes.map(node => node.nodeValue ?? '').join('')
+  const combinedCellText = cellTextNodes.map((node) => node.nodeValue ?? '').join('')
   const cellOcc = resolveCellOcc(match, combinedCellText)
   const cellRange = locateTextRangeInTextNodes(cellTextNodes, match.matchedText, cellOcc)
   if (cellRange) {
@@ -130,7 +134,7 @@ function locateFallbackTextRange(textNodes: Text[], match: SearchMatch) {
     return null
   }
 
-  const combinedText = textNodes.map(node => node.nodeValue ?? '').join('')
+  const combinedText = textNodes.map((node) => node.nodeValue ?? '').join('')
   const start = resolveMatchStart(combinedText, needle, match.occ)
   if (start < 0) {
     return null
@@ -178,7 +182,7 @@ function locateTextRangeInTextNodes(textNodes: Text[], matchedText: string, occ:
   }
 
   const combinedText = textNodes
-    .map(node => node.nodeValue ?? '')
+    .map((node) => node.nodeValue ?? '')
     .join('')
   const start = resolveMatchStart(combinedText, matchedText, occ)
   if (start < 0) {
@@ -294,7 +298,7 @@ function findTableCellElement(context: EditorContext, match: SearchMatch) {
     if (targetRow) {
       const rowCells = Array.from(targetRow.children)
         .filter((child): child is HTMLElement => child instanceof HTMLElement)
-        .filter(child => child.matches('[data-type="NodeTableCell"], .table__cell, td, th'))
+        .filter((child) => child.matches('[data-type="NodeTableCell"], .table__cell, td, th'))
 
       if (rowCells[columnIndex]) {
         return rowCells[columnIndex]
@@ -308,7 +312,7 @@ function findTableCellElement(context: EditorContext, match: SearchMatch) {
       tableBlock.querySelectorAll<HTMLElement>('[data-type="NodeTableCell"], .table__cell, td, th'),
     )
     const needle = match.matchedText.toLowerCase()
-    const matchingCell = allCells.find(cell => cell.textContent?.toLowerCase().includes(needle))
+    const matchingCell = allCells.find((cell) => cell.textContent?.toLowerCase().includes(needle))
     if (matchingCell) {
       return matchingCell
     }

@@ -16,7 +16,7 @@ export function mapCanvasTargetsToSearchableBlocks({
 }): SearchableBlock[] {
   const host = context.canvas?.host
   return targets
-    .filter(target => target.text.length > 0)
+    .filter((target) => target.text.length > 0)
     .map((target, blockIndex) => ({
       blockId: `canvas:${target.id}`,
       blockIndex,

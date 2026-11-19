@@ -1,5 +1,10 @@
 // @vitest-environment jsdom
 
+import type {
+  EditorContext,
+  SearchMatch,
+} from '@/features/search-replace/types'
+
 import {
   afterEach,
   beforeEach,
@@ -8,16 +13,14 @@ import {
   it,
   vi,
 } from 'vitest'
+import { createPendingNavigationController } from '@/features/search-replace/store/search-pending-navigation'
+import { createInitialSearchReplaceState } from '@/features/search-replace/store/state'
 
 const kernelMocks = vi.hoisted(() => ({
   unfoldBlock: vi.fn(),
 }))
 
 vi.mock('@/features/search-replace/kernel', () => kernelMocks)
-
-import { createPendingNavigationController } from '@/features/search-replace/store/search-pending-navigation'
-import { createInitialSearchReplaceState } from '@/features/search-replace/store/state'
-import type { EditorContext, SearchMatch } from '@/features/search-replace/types'
 
 function createMatch(overrides: Partial<SearchMatch>): SearchMatch {
   return {
@@ -30,7 +33,8 @@ function createMatch(overrides: Partial<SearchMatch>): SearchMatch {
     previewText: '[foo]',
     replaceable: true,
     rootId: 'root-1',
-    start: 0, occ: 0,
+    start: 0,
+    occ: 0,
     ...overrides,
   }
 }
@@ -79,9 +83,20 @@ describe('pending navigation controller lifecycle', () => {
   }
 
   it('cancels the in-flight retry chain when a new navigation begins', async () => {
-    const { controller, scrollMatchIntoView, state } = createController({})
-    const match1 = createMatch({ id: 'm1', blockId: 'b1' })
-    const match2 = createMatch({ id: 'm2', blockId: 'b2', blockIndex: 1 })
+    const {
+      controller,
+      scrollMatchIntoView,
+      state,
+    } = createController({})
+    const match1 = createMatch({
+      id: 'm1',
+      blockId: 'b1',
+    })
+    const match2 = createMatch({
+      id: 'm2',
+      blockId: 'b2',
+      blockIndex: 1,
+    })
 
     state.matches = [match1, match2]
 
@@ -104,7 +119,11 @@ describe('pending navigation controller lifecycle', () => {
     // unfold 请求永不返回（内核无响应）
     kernelMocks.unfoldBlock.mockImplementation(() => new Promise(() => {}))
 
-    const { controller, scrollMatchIntoView, state } = createController({})
+    const {
+      controller,
+      scrollMatchIntoView,
+      state,
+    } = createController({})
     const match1 = createMatch({
       collapsedAncestorIds: ['folded-parent-1'],
       id: 'm1',

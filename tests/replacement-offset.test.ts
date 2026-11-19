@@ -1,13 +1,20 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it } from 'vitest'
+import type {
+  EditorContext,
+  SearchMatch,
+} from '@/features/search-replace/types'
+import {
+  describe,
+  expect,
+  it,
+} from 'vitest'
 import {
   applyReplacementsToClone,
   getBlockElement,
   getBlockPlainText,
   isRangeReplaceable,
 } from '@/features/search-replace/editor'
-import type { EditorContext, SearchMatch } from '@/features/search-replace/types'
 
 // applyReplacementsToClone 的签名只消费 start/occ/matchedText；fixture 中的 end 仅描述完整匹配区间，运行时不读取
 type ReplacementFixture = Pick<SearchMatch, 'start' | 'occ' | 'matchedText'> & { end: number }
@@ -26,9 +33,24 @@ describe('applyReplacementsToClone', () => {
     const outcome = applyReplacementsToClone(
       block,
       [
-        { end: 3, matchedText: 'foo', start: 0, occ: 0 },
-        { end: 7, matchedText: 'foo', start: 4, occ: 1 },
-        { end: 11, matchedText: 'foo', start: 8, occ: 2 },
+        {
+          end: 3,
+          matchedText: 'foo',
+          start: 0,
+          occ: 0,
+        },
+        {
+          end: 7,
+          matchedText: 'foo',
+          start: 4,
+          occ: 1,
+        },
+        {
+          end: 11,
+          matchedText: 'foo',
+          start: 8,
+          occ: 2,
+        },
       ] as ReplacementFixture[],
       'bar',
     )
@@ -43,9 +65,24 @@ describe('applyReplacementsToClone', () => {
     const outcome = applyReplacementsToClone(
       block,
       [
-        { end: 3, matchedText: 'FOO', start: 0, occ: 0 },
-        { end: 7, matchedText: 'Foo', start: 4, occ: 0 },
-        { end: 11, matchedText: 'foo', start: 8, occ: 0 },
+        {
+          end: 3,
+          matchedText: 'FOO',
+          start: 0,
+          occ: 0,
+        },
+        {
+          end: 7,
+          matchedText: 'Foo',
+          start: 4,
+          occ: 0,
+        },
+        {
+          end: 11,
+          matchedText: 'foo',
+          start: 8,
+          occ: 0,
+        },
       ] as ReplacementFixture[],
       'bar',
       { preserveCase: true },
@@ -60,7 +97,12 @@ describe('applyReplacementsToClone', () => {
     const block = createBlockFromHtml('<div contenteditable="true">fo<strong>o</strong></div>')
     const outcome = applyReplacementsToClone(
       block,
-      [{ end: 3, matchedText: 'foo', start: 0, occ: 0 }] as ReplacementFixture[],
+      [{
+        end: 3,
+        matchedText: 'foo',
+        start: 0,
+        occ: 0,
+      }] as ReplacementFixture[],
       'bar',
     )
 
@@ -88,7 +130,12 @@ describe('applyReplacementsToClone', () => {
     const block = getBlockElement(context, 'heading-1')
     const outcome = applyReplacementsToClone(
       block as HTMLElement,
-      [{ end: 4, matchedText: '安装', start: 2, occ: 0 }] as ReplacementFixture[],
+      [{
+        end: 4,
+        matchedText: '安装',
+        start: 2,
+        occ: 0,
+      }] as ReplacementFixture[],
       '部署',
     )
 

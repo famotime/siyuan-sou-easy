@@ -135,7 +135,11 @@ export function buildVisualDiff(
     for (const match of doc.matches) {
       const occurrences = match.occurrences && match.occurrences.length > 0
         ? match.occurrences
-        : [{ start: match.startOffset, end: match.endOffset, text: match.matchedText }]
+        : [{
+            start: match.startOffset,
+            end: match.endOffset,
+            text: match.matchedText,
+          }]
 
       for (let occIdx = 0; occIdx < occurrences.length; occIdx++) {
         const occ = occurrences[occIdx]
@@ -180,7 +184,7 @@ export function buildVisualDiff(
         docTitle: doc.docTitle,
         hpath: doc.hpath,
         items,
-        allExcluded: items.every(i => i.excluded),
+        allExcluded: items.every((i) => i.excluded),
         collapsed: false,
       })
     }
@@ -190,7 +194,7 @@ export function buildVisualDiff(
     totalCount,
     includedCount,
     excludedCount,
-    affectedDocCount: groups.filter(g => g.items.some(i => !i.excluded)).length,
+    affectedDocCount: groups.filter((g) => g.items.some((i) => !i.excluded)).length,
     groups,
   }
 }

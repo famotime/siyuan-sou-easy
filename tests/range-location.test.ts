@@ -1,17 +1,17 @@
 // @vitest-environment jsdom
 
+import type {
+  EditorContext,
+  SearchMatch,
+} from '@/features/search-replace/types'
+
 import {
   afterEach,
   describe,
   expect,
   it,
 } from 'vitest'
-
 import { locateTextRange } from '@/features/search-replace/editor/ranges'
-import type {
-  EditorContext,
-  SearchMatch,
-} from '@/features/search-replace/types'
 
 describe('range location', () => {
   afterEach(() => {

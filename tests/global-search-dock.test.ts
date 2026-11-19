@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it } from 'vitest'
+import {
+  describe,
+  expect,
+  it,
+} from 'vitest'
 import {
   destroyGlobalSearchDock,
   initGlobalSearchDock,
@@ -67,15 +71,15 @@ describe('dock-manager', () => {
     ]
 
     // 初始全部展开
-    expect(globalSearchState.results.every(d => !d.collapsed)).toBe(true)
+    expect(globalSearchState.results.every((d) => !d.collapsed)).toBe(true)
 
     // 第一次切换：全部折叠
     toggleAllDocsCollapse()
-    expect(globalSearchState.results.every(d => d.collapsed)).toBe(true)
+    expect(globalSearchState.results.every((d) => d.collapsed)).toBe(true)
 
     // 第二次切换：全部展开
     toggleAllDocsCollapse()
-    expect(globalSearchState.results.every(d => !d.collapsed)).toBe(true)
+    expect(globalSearchState.results.every((d) => !d.collapsed)).toBe(true)
 
     // 清理
     globalSearchState.results = []

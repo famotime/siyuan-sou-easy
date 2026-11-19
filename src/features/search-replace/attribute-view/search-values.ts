@@ -10,7 +10,7 @@ export function extractSearchableText(value: any): string {
   }
   if (Array.isArray(value)) {
     return value
-      .map(item => extractSearchableText(item))
+      .map((item) => extractSearchableText(item))
       .filter(Boolean)
       .join(' ')
       .trim()

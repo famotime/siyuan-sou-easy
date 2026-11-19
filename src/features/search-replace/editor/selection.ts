@@ -1,13 +1,13 @@
-import {
-  getBlockTextLength,
-  getSearchTextNodes,
-} from './blocks'
-import { TABLE_NODE_TYPE } from './constants'
 import type {
   EditorContext,
   SelectionScope,
   TextOffsetRange,
 } from '../types'
+import {
+  getBlockTextLength,
+  getSearchTextNodes,
+} from './blocks'
+import { TABLE_NODE_TYPE } from './constants'
 
 const BLOCK_SELECTOR = '[data-node-id][data-type]'
 
@@ -186,14 +186,14 @@ function resolveSelectedBlockElements(selectedElement: HTMLElement) {
     }
 
     const descendantBlocks = getDescendantBlockElements(primaryBlock)
-      .filter(blockElement => getBlockTextLength(blockElement) > 0)
+      .filter((blockElement) => getBlockTextLength(blockElement) > 0)
     if (descendantBlocks.length > 0) {
       return descendantBlocks
     }
   }
 
   return getDescendantBlockElements(selectedElement)
-    .filter(blockElement => getBlockTextLength(blockElement) > 0)
+    .filter((blockElement) => getBlockTextLength(blockElement) > 0)
 }
 
 function getDescendantBlockElements(rootElement: HTMLElement) {

@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import type { EditorContext } from '@/features/search-replace/types'
+
 import {
   afterEach,
   describe,
@@ -7,14 +9,12 @@ import {
   it,
   vi,
 } from 'vitest'
-
 import {
   clearCachedEditorState,
   rememberEditorContext,
   rememberHintedEditorContext,
   resolveEditorContext,
 } from '@/features/search-replace/store/context-cache'
-import type { EditorContext } from '@/features/search-replace/types'
 
 describe('editor context cache', () => {
   afterEach(() => {

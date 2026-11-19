@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  afterEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import { createCheckboxElement } from '@/features/search-replace/plugin-setting-elements'
 
 describe('settings checkbox failure feedback', () => {

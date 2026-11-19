@@ -1,11 +1,12 @@
+import type { TProtyleAction } from 'siyuan'
+import type { SearchMatch } from './types'
 import {
   getFrontend,
   openMobileFileById,
   openTab,
-  type TProtyleAction,
+
 } from 'siyuan'
 import { getPluginInstance } from '@/plugin-instance'
-import type { SearchMatch } from './types'
 
 const NATIVE_NAVIGATION_ACTIONS: TProtyleAction[] = [
   'cb-get-html',

@@ -6,7 +6,10 @@ import {
 import { createRequire } from 'node:module'
 import process from 'node:process'
 import readline from 'node:readline'
-import { extractReleaseNotes, getLatestChangelogVersion } from './scripts/extract-changelog.mjs'
+import {
+  extractReleaseNotes,
+  getLatestChangelogVersion,
+} from './scripts/extract-changelog.mjs'
 
 const require = createRequire(import.meta.url)
 const PluginInfo = require('./plugin.json')
@@ -178,7 +181,10 @@ const main = async () => {
     // 检查 CHANGELOG.md 是否已有当前版本的记录
     try {
       const changelogCheckContent = readFileSync('./CHANGELOG.md', 'utf8')
-      const { found, availableVersions } = extractReleaseNotes(changelogCheckContent, `v${newVersion}`)
+      const {
+        found,
+        availableVersions,
+      } = extractReleaseNotes(changelogCheckContent, `v${newVersion}`)
       if (!found) {
         console.warn(`\n\x1B[33m⚠️  警告: CHANGELOG.md 中未找到 [v${newVersion}] 的更新日志！\x1B[0m`)
         console.warn(`\x1B[90m当前已存在的版本: ${availableVersions.length > 0 ? availableVersions.join(', ') : '无'}\x1B[0m`)

@@ -1,14 +1,17 @@
 // @vitest-environment jsdom
 
+import type {
+  EditorContext,
+  SearchMatch,
+} from '@/features/search-replace/types'
+
 import {
   afterEach,
   describe,
   expect,
   it,
 } from 'vitest'
-
 import { syncSearchDecorations } from '@/features/search-replace/editor'
-import type { EditorContext, SearchMatch } from '@/features/search-replace/types'
 
 describe('current block highlight', () => {
   afterEach(() => {
@@ -44,7 +47,8 @@ describe('current block highlight', () => {
       previewText: '[飞书]配置飞书',
       replaceable: true,
       rootId: 'root-1',
-      start: 0, occ: 0,
+      start: 0,
+      occ: 0,
     }
 
     // lib.dom 已声明全局 Highlight/CSS，交叉断言会把属性类型并成 typeof Highlight & stub；经 unknown 双重断言用桩形状覆盖
@@ -89,7 +93,8 @@ describe('current block highlight', () => {
       previewText: '本馆创编[学生]国学丛书',
       replaceable: false,
       rootId: 'root-1',
-      start: 6, occ: 0,
+      start: 6,
+      occ: 0,
     }
 
     const highlights = new Map<string, { ranges: Range[] }>()
@@ -108,8 +113,8 @@ describe('current block highlight', () => {
     syncSearchDecorations(context, [match], match)
 
     expect(protyle.querySelector('[data-node-id="block-readonly"]')?.classList.contains('sfsr-block-current')).toBe(true)
-    expect(highlights.get('sfsr-match')?.ranges.map(range => range.toString())).toContain('学生')
-    expect(highlights.get('sfsr-current-match')?.ranges.map(range => range.toString())).toContain('学生')
+    expect(highlights.get('sfsr-match')?.ranges.map((range) => range.toString())).toContain('学生')
+    expect(highlights.get('sfsr-current-match')?.ranges.map((range) => range.toString())).toContain('学生')
   })
 
   it('applies highlight classes to the actual heading block when metadata with the same node id exists', () => {
@@ -141,7 +146,8 @@ describe('current block highlight', () => {
       previewText: '[问题]标题',
       replaceable: true,
       rootId: 'root-1',
-      start: 0, occ: 0,
+      start: 0,
+      occ: 0,
     }
 
     syncSearchDecorations(context, [match], match)
@@ -198,7 +204,8 @@ describe('current block highlight', () => {
       replaceable: false,
       rootId: 'root-1',
       sourceKind: 'attribute-view',
-      start: 0, occ: 0,
+      start: 0,
+      occ: 0,
     }
 
     const highlights = new Map<string, { ranges: Range[] }>()
@@ -220,8 +227,8 @@ describe('current block highlight', () => {
     expect(protyle.querySelector('[data-node-id="av-block-1"]')?.classList.contains('sfsr-block-current')).toBe(true)
     expect(protyle.querySelector('.av__row[data-id="item-1"] .av__body > .av__cell')?.classList.contains('sfsr-av-cell-match')).toBe(true)
     expect(protyle.querySelector('.av__row[data-id="item-1"] .av__body > .av__cell')?.classList.contains('sfsr-av-cell-current')).toBe(true)
-    expect(highlights.get('sfsr-match')?.ranges.map(range => range.toString())).toContain('热辣滚烫')
-    expect(highlights.get('sfsr-current-match')?.ranges.map(range => range.toString())).toContain('热辣滚烫')
+    expect(highlights.get('sfsr-match')?.ranges.map((range) => range.toString())).toContain('热辣滚烫')
+    expect(highlights.get('sfsr-current-match')?.ranges.map((range) => range.toString())).toContain('热辣滚烫')
   })
 
   it('highlights the matched attribute view header cell when the match comes from a column title', () => {
@@ -265,7 +272,8 @@ describe('current block highlight', () => {
       replaceable: false,
       rootId: 'root-1',
       sourceKind: 'attribute-view',
-      start: 0, occ: 0,
+      start: 0,
+      occ: 0,
     }
 
     syncSearchDecorations(context, [match], match)
@@ -319,7 +327,8 @@ describe('current block highlight', () => {
       replaceable: false,
       rootId: 'root-1',
       sourceKind: 'attribute-view',
-      start: 4, occ: 0,
+      start: 4,
+      occ: 0,
     }
 
     syncSearchDecorations(context, [match], match)
@@ -381,7 +390,8 @@ describe('current block highlight', () => {
       replaceable: false,
       rootId: 'root-1',
       sourceKind: 'attribute-view',
-      start: 0, occ: 0,
+      start: 0,
+      occ: 0,
     }
 
     syncSearchDecorations(context, [match], match)
@@ -451,7 +461,8 @@ describe('current block highlight', () => {
       replaceable: false,
       rootId: 'root-1',
       sourceKind: 'attribute-view',
-      start: 0, occ: 0,
+      start: 0,
+      occ: 0,
     }
 
     syncSearchDecorations(context, [match], match)
@@ -507,7 +518,8 @@ describe('current block highlight', () => {
       replaceable: false,
       rootId: 'root-1',
       sourceKind: 'attribute-view',
-      start: 0, occ: 0,
+      start: 0,
+      occ: 0,
     }
 
     syncSearchDecorations(context, [match], match)
@@ -553,7 +565,8 @@ describe('current block highlight', () => {
       previewText: 'Cell AlphaCell [Beta]',
       replaceable: true,
       rootId: 'root-1',
-      start: 15, occ: 0,
+      start: 15,
+      occ: 0,
     }
 
     syncSearchDecorations(context, [match], match)
@@ -607,7 +620,8 @@ describe('current block highlight', () => {
       previewText: '...ChatGPT2、[Codex]...',
       replaceable: true,
       rootId: 'root-1',
-      start: 18, occ: 0,
+      start: 18,
+      occ: 0,
       table: {
         cellEnd: 23,
         cellId: '',
@@ -637,7 +651,7 @@ describe('current block highlight', () => {
     expect(targetCell?.classList.contains('sfsr-av-cell-match')).toBe(false)
     expect(targetCell?.classList.contains('sfsr-av-cell-current')).toBe(false)
     expect(protyle.querySelector('[data-node-id="table-1"]')?.classList.contains('sfsr-block-current')).toBe(false)
-    expect(highlights.get('sfsr-match')?.ranges.map(range => range.toString())).toContain('Codex')
-    expect(highlights.get('sfsr-current-match')?.ranges.map(range => range.toString())).toContain('Codex')
+    expect(highlights.get('sfsr-match')?.ranges.map((range) => range.toString())).toContain('Codex')
+    expect(highlights.get('sfsr-current-match')?.ranges.map((range) => range.toString())).toContain('Codex')
   })
 })

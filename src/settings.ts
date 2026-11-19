@@ -1,6 +1,6 @@
 import type { Plugin } from 'siyuan'
-import { normalizeHotkey as normalizeCommandHotkey } from '@/hotkeys'
 import type { SearchOptions } from '@/features/search-replace/types'
+import { normalizeHotkey as normalizeCommandHotkey } from '@/hotkeys'
 
 export interface PluginSettings {
   panelHotkey: string
@@ -50,7 +50,7 @@ export function isSupportedSearchHighlightColor(value: string) {
     return false
   }
 
-  if (/^#(?:[\da-fA-F]{3}|[\da-fA-F]{6})$/.test(normalized)) {
+  if (/^#(?:[\da-f]{3}|[\da-f]{6})$/i.test(normalized)) {
     return true
   }
 
@@ -153,7 +153,7 @@ function normalizeSearchHighlightColor(value: string | undefined) {
     return DEFAULT_SETTINGS.searchHighlightColor
   }
 
-  if (/^#(?:[\da-fA-F]{3}|[\da-fA-F]{6})$/.test(normalized)) {
+  if (/^#(?:[\da-f]{3}|[\da-f]{6})$/i.test(normalized)) {
     return normalized.toLowerCase()
   }
 

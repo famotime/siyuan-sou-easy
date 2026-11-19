@@ -63,21 +63,21 @@ function collectDomAttributeViewTitleCandidates({
   ))
     .filter(isVisibleAttributeViewElement)
     .flatMap((element, index) => {
-    const text = getAttributeViewDomText(element)
-    if (!text || seen.has(text)) {
-      return []
-    }
+      const text = getAttributeViewDomText(element)
+      if (!text || seen.has(text)) {
+        return []
+      }
 
-    seen.add(text)
-    return [createOrderedCandidate(element, {
-      avBlockId: attributeViewBlock.avBlockId,
-      avID,
-      columnName: text,
-      keyID: `__dom-view-name-${index}__`,
-      text,
-      targetKind: 'view-name' as const,
-    })]
-  })
+      seen.add(text)
+      return [createOrderedCandidate(element, {
+        avBlockId: attributeViewBlock.avBlockId,
+        avID,
+        columnName: text,
+        keyID: `__dom-view-name-${index}__`,
+        text,
+        targetKind: 'view-name' as const,
+      })]
+    })
 }
 
 function collectDomAttributeViewHeaderCandidates({
@@ -91,7 +91,12 @@ function collectDomAttributeViewHeaderCandidates({
 }) {
   return headerInfo.headers
     .filter(({ emitCandidate }) => emitCandidate)
-    .map(({ cell, columnIndex, keyID, text }) => (
+    .map(({
+      cell,
+      columnIndex,
+      keyID,
+      text,
+    }) => (
       createOrderedCandidate(cell, {
         avBlockId: attributeViewBlock.avBlockId,
         avID,
@@ -119,21 +124,21 @@ function collectDomAttributeViewGroupTitleCandidates({
   ))
     .filter(isVisibleAttributeViewElement)
     .flatMap((element, index) => {
-    const text = getAttributeViewDomText(element)
-    if (!text || seen.has(text)) {
-      return []
-    }
+      const text = getAttributeViewDomText(element)
+      if (!text || seen.has(text)) {
+        return []
+      }
 
-    seen.add(text)
-    return [createOrderedCandidate(element, {
-      avBlockId: attributeViewBlock.avBlockId,
-      avID,
-      columnName: text,
-      keyID: `__dom-group-title-${index}__`,
-      text,
-      targetKind: 'group-title' as const,
-    })]
-  })
+      seen.add(text)
+      return [createOrderedCandidate(element, {
+        avBlockId: attributeViewBlock.avBlockId,
+        avID,
+        columnName: text,
+        keyID: `__dom-group-title-${index}__`,
+        text,
+        targetKind: 'group-title' as const,
+      })]
+    })
 }
 
 function collectDomAttributeViewRowCandidates({
@@ -152,8 +157,8 @@ function collectDomAttributeViewRowCandidates({
     headerInfo,
   })
 
-  return groups.flatMap(group => (
-    group.candidates.map(candidate => createOrderedCandidate(group.sourceElement, {
+  return groups.flatMap((group) => (
+    group.candidates.map((candidate) => createOrderedCandidate(group.sourceElement, {
       avBlockId: attributeViewBlock.avBlockId,
       avID,
       columnName: candidate.columnName,
@@ -168,7 +173,7 @@ function collectDomAttributeViewRowCandidates({
   ))
 }
 
-type DomAttributeViewHeader = {
+interface DomAttributeViewHeader {
   cell: HTMLElement
   columnIndex: number
   emitCandidate: boolean
@@ -176,21 +181,21 @@ type DomAttributeViewHeader = {
   text: string
 }
 
-type DomAttributeViewHeaderInfo = {
+interface DomAttributeViewHeaderInfo {
   headers: DomAttributeViewHeader[]
   keyedColumnIndexByKeyID: Map<string, number>
   headerNameByColumnIndex: Map<number, string>
   headerNameByKeyID: Map<string, string>
 }
 
-type DomAttributeViewNormalizedRowCandidate = {
+interface DomAttributeViewNormalizedRowCandidate {
   columnIndex: number
   columnName: string
   keyID: string
   text: string
 }
 
-type DomAttributeViewNormalizedRowGroup = {
+interface DomAttributeViewNormalizedRowGroup {
   candidates: DomAttributeViewNormalizedRowCandidate[]
   rowID?: string
   rowLabel?: string
@@ -262,11 +267,11 @@ function normalizeDomAttributeViewRowGroups({
   }>()
   const discoveredColumnIndexByKeyID = new Map<string, number>()
   const reservedHeaderColumnIndices = headerInfo.keyedColumnIndexByKeyID.size > 0
-    ? new Set(headerInfo.headers.map(header => header.columnIndex))
+    ? new Set(headerInfo.headers.map((header) => header.columnIndex))
     : new Set<number>()
   let nextDiscoveredColumnIndex = Math.max(
     0,
-    ...Array.from(reservedHeaderColumnIndices, columnIndex => columnIndex + 1),
+    ...Array.from(reservedHeaderColumnIndices, (columnIndex) => columnIndex + 1),
   )
 
   for (const [rowIndex, rowElement] of resolveDomAttributeViewRows(blockElement).entries()) {
@@ -323,7 +328,12 @@ function normalizeDomAttributeViewRowGroups({
     }
   }
 
-  return groups.map(({ candidates, dedupeKeys: _, order: __, ...group }) => ({
+  return groups.map(({
+    candidates,
+    dedupeKeys: _,
+    order: __,
+    ...group
+  }) => ({
     ...group,
     candidates: candidates
       .map((candidate, index) => ({
@@ -331,7 +341,10 @@ function normalizeDomAttributeViewRowGroups({
         order: index,
       }))
       .sort((left, right) => left.columnIndex - right.columnIndex || left.order - right.order)
-      .map(({ order, ...candidate }) => candidate),
+      .map(({
+        order,
+        ...candidate
+      }) => candidate),
   }))
 
   function getOrCreateDiscoveredColumnIndex(map: Map<string, number>, keyID: string, fallbackIndex: number) {
@@ -374,17 +387,17 @@ function resolveDomAttributeViewRows(blockElement: HTMLElement) {
     '[data-item-id]',
     '[data-row-id]',
   ].join(', ')))
-    .filter(rowElement => !rowElement.classList.contains('av__row--header'))
+    .filter((rowElement) => !rowElement.classList.contains('av__row--header'))
     .filter(isVisibleAttributeViewElement)
   if (explicitRows.length > 0) {
     return getTopLevelElements(explicitRows)
   }
 
   const fallbackRows = Array.from(blockElement.querySelectorAll<HTMLElement>('[data-id]'))
-    .filter(rowElement => rowElement !== blockElement)
-    .filter(rowElement => !rowElement.classList.contains('av__row--header'))
+    .filter((rowElement) => rowElement !== blockElement)
+    .filter((rowElement) => !rowElement.classList.contains('av__row--header'))
     .filter(isVisibleAttributeViewElement)
-    .filter(rowElement => rowElement.querySelector('.av__cell, [data-av-key-id], [data-key-id], .av__celltext'))
+    .filter((rowElement) => rowElement.querySelector('.av__cell, [data-av-key-id], [data-key-id], .av__celltext'))
 
   return getTopLevelElements(fallbackRows)
 }
@@ -407,22 +420,22 @@ function getDomAttributeViewRowCells(rowElement: HTMLElement) {
 
   const directCells = Array.from(body.children)
     .filter((child): child is HTMLElement => child instanceof HTMLElement)
-    .filter(child => child.classList.contains('av__cell'))
-    .filter(child => !child.classList.contains('av__cell--header'))
+    .filter((child) => child.classList.contains('av__cell'))
+    .filter((child) => !child.classList.contains('av__cell--header'))
     .filter(isVisibleAttributeViewElement)
   if (directCells.length > 0) {
     return directCells
   }
 
   const descendantCells = Array.from(body.querySelectorAll<HTMLElement>('.av__cell'))
-    .filter(child => !child.classList.contains('av__cell--header'))
+    .filter((child) => !child.classList.contains('av__cell--header'))
     .filter(isVisibleAttributeViewElement)
   if (descendantCells.length > 0) {
     return getTopLevelElements(descendantCells)
   }
 
   const keyedCells = Array.from(body.querySelectorAll<HTMLElement>('[data-av-key-id], [data-key-id]'))
-    .filter(child => !child.classList.contains('av__cell--header'))
+    .filter((child) => !child.classList.contains('av__cell--header'))
     .filter(isVisibleAttributeViewElement)
   if (keyedCells.length > 0) {
     return getTopLevelElements(keyedCells)
@@ -488,8 +501,8 @@ function resolveDomAttributeViewRowId(rowElement: HTMLElement) {
 
 function getTopLevelElements(elements: HTMLElement[]) {
   return elements.filter((element, index) => (
-    elements.findIndex(candidate => candidate === element) === index
-      && !elements.some(candidate => candidate !== element && candidate.contains(element))
+    elements.findIndex((candidate) => candidate === element) === index
+    && !elements.some((candidate) => candidate !== element && candidate.contains(element))
   ))
 }
 

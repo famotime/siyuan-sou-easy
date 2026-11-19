@@ -1,9 +1,13 @@
-import { describe, expect, it } from 'vitest'
+import type { DocAggregateNode } from '@/features/search-replace/global/types'
+import {
+  describe,
+  expect,
+  it,
+} from 'vitest'
 import {
   buildVisualDiff,
   computeReplacement,
 } from '@/features/search-replace/global/diff-builder'
-import type { DocAggregateNode } from '@/features/search-replace/global/types'
 
 describe('diff-builder', () => {
   describe('computeReplacement', () => {
@@ -121,8 +125,16 @@ describe('diff-builder', () => {
               startOffset: 4,
               endOffset: 20,
               occurrences: [
-                { start: 4, end: 6, text: '手机' },
-                { start: 18, end: 20, text: '手机' },
+                {
+                  start: 4,
+                  end: 6,
+                  text: '手机',
+                },
+                {
+                  start: 18,
+                  end: 20,
+                  text: '手机',
+                },
               ],
             },
           ],

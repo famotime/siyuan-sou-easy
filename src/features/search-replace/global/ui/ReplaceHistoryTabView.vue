@@ -3,7 +3,10 @@
     <!-- 页签顶部工具栏 -->
     <div class="sfsr-history-tab-header">
       <div class="sfsr-history-tab-title-wrap">
-        <WireframeIcon name="history" :size="16" />
+        <WireframeIcon
+          name="history"
+          :size="16"
+        />
         <span class="sfsr-history-tab-title">替换事务历史与回退管理</span>
         <span class="sfsr-history-tab-subtitle">（并排分屏显示，点击段落可在主编辑区直接定位）</span>
       </div>
@@ -24,7 +27,10 @@
           :disabled="loading"
           @click="refreshTransactions"
         >
-          <WireframeIcon name="history" :size="12" />
+          <WireframeIcon
+            name="history"
+            :size="12"
+          />
           <span>{{ loading ? '刷新中...' : '刷新记录' }}</span>
         </button>
       </div>
@@ -32,10 +38,16 @@
 
     <!-- 事务历史列表 -->
     <div class="sfsr-history-tab-body">
-      <div v-if="loading && transactions.length === 0" class="sfsr-history-tab-empty">
+      <div
+        v-if="loading && transactions.length === 0"
+        class="sfsr-history-tab-empty"
+      >
         正在读取替换历史...
       </div>
-      <div v-else-if="transactions.length === 0" class="sfsr-history-tab-empty">
+      <div
+        v-else-if="transactions.length === 0"
+        class="sfsr-history-tab-empty"
+      >
         暂无批量替换历史记录
       </div>
 
@@ -49,7 +61,10 @@
         }"
       >
         <!-- 卡片头部概览栏（点击展开/折叠明细） -->
-        <div class="sfsr-history-card-header" @click="toggleTxExpand(tx.id)">
+        <div
+          class="sfsr-history-card-header"
+          @click="toggleTxExpand(tx.id)"
+        >
           <div class="sfsr-tx-info">
             <div class="sfsr-tx-title">
               <span
@@ -57,11 +72,17 @@
                 :class="{ 'sfsr-tx-expand-arrow--expanded': isTxExpanded(tx.id) }"
                 aria-label="展开或收起明细"
               >
-                <WireframeIcon name="chevron" :size="11" />
+                <WireframeIcon
+                  name="chevron"
+                  :size="11"
+                />
               </span>
               <span class="sfsr-tx-query">“{{ tx.query }}”</span>
               <span class="sfsr-tx-arrow">
-                <WireframeIcon name="chevron-right" :size="11" />
+                <WireframeIcon
+                  name="chevron-right"
+                  :size="11"
+                />
               </span>
               <span class="sfsr-tx-repl">“{{ tx.replacement }}”</span>
             </div>
@@ -74,8 +95,14 @@
             </div>
           </div>
 
-          <div class="sfsr-tx-actions" @click.stop>
-            <span v-if="tx.reverted" class="sfsr-reverted-tag">已回滚</span>
+          <div
+            class="sfsr-tx-actions"
+            @click.stop
+          >
+            <span
+              v-if="tx.reverted"
+              class="sfsr-reverted-tag"
+            >已回滚</span>
             <button
               v-else
               class="sfsr-revert-btn"
@@ -89,8 +116,14 @@
         </div>
 
         <!-- 卡片展开的 Visual Diff 详细对比列表 -->
-        <div v-if="isTxExpanded(tx.id)" class="sfsr-history-card-body">
-          <div v-if="!tx.items || tx.items.length === 0" class="sfsr-history-no-details">
+        <div
+          v-if="isTxExpanded(tx.id)"
+          class="sfsr-history-card-body"
+        >
+          <div
+            v-if="!tx.items || tx.items.length === 0"
+            class="sfsr-history-no-details"
+          >
             无明细数据
           </div>
           <div
@@ -100,24 +133,40 @@
             :class="{ 'sfsr-history-doc-group--collapsed': isDocCollapsed(tx.id, group.rootId) }"
           >
             <!-- 文档分组标题栏（支持单独折叠/展开） -->
-            <div class="sfsr-history-doc-header" @click="toggleDocCollapse(tx.id, group.rootId)">
+            <div
+              class="sfsr-history-doc-header"
+              @click="toggleDocCollapse(tx.id, group.rootId)"
+            >
               <div class="sfsr-history-doc-header-left">
                 <span
                   class="sfsr-history-doc-arrow"
                   :class="{ 'sfsr-history-doc-arrow--expanded': !isDocCollapsed(tx.id, group.rootId) }"
                   aria-label="折叠或展开文档"
                 >
-                  <WireframeIcon name="chevron" :size="10" />
+                  <WireframeIcon
+                    name="chevron"
+                    :size="10"
+                  />
                 </span>
-                <WireframeIcon name="document" :size="12" class="sfsr-history-doc-icon" />
+                <WireframeIcon
+                  name="document"
+                  :size="12"
+                  class="sfsr-history-doc-icon"
+                />
                 <span class="sfsr-history-doc-title">{{ group.docTitle }}</span>
-                <span v-if="group.hpath" class="sfsr-history-doc-path">({{ group.hpath }})</span>
+                <span
+                  v-if="group.hpath"
+                  class="sfsr-history-doc-path"
+                >({{ group.hpath }})</span>
               </div>
               <span class="sfsr-history-doc-count">{{ group.items.length }} 处</span>
             </div>
 
             <!-- 文档下的段落对比项列表 -->
-            <div v-show="!isDocCollapsed(tx.id, group.rootId)" class="sfsr-history-doc-items">
+            <div
+              v-show="!isDocCollapsed(tx.id, group.rootId)"
+              class="sfsr-history-doc-items"
+            >
               <div
                 v-for="(item, idx) in group.items"
                 :key="`${item.blockId}_${idx}`"
@@ -149,16 +198,22 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import type { ReplaceTransaction, ReplaceTransactionItem } from '../transaction-history'
+import type {
+  ReplaceTransaction,
+  ReplaceTransactionItem,
+} from '../transaction-history'
 import {
-  getTransactions,
+  computed,
+  onMounted,
+  ref,
+} from 'vue'
+import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
+import { executeGlobalSearch } from '../store'
+import {
   loadTransactions,
   navigateToBlock,
   revertTransaction,
 } from '../transaction-history'
-import { executeGlobalSearch } from '../store'
-import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
 
 interface HistoryDocGroup {
   rootId: string
@@ -185,7 +240,7 @@ const collapsedDocKeys = ref<Set<string>>(new Set())
 const isAllExpanded = computed(() => {
   return (
     transactions.value.length > 0
-    && transactions.value.every(t => expandedTxIds.value.has(t.id))
+    && transactions.value.every((t) => expandedTxIds.value.has(t.id))
   )
 })
 
@@ -225,7 +280,7 @@ function toggleAllCards() {
   if (isAllExpanded.value) {
     expandedTxIds.value = new Set()
   } else {
-    expandedTxIds.value = new Set(transactions.value.map(t => t.id))
+    expandedTxIds.value = new Set(transactions.value.map((t) => t.id))
   }
 }
 

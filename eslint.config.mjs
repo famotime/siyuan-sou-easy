@@ -19,6 +19,15 @@ export default antfu(
     ],
   },
   {
+    // 中文文档正文使用全角空格排版，关闭 md 中的不规则空白检查
+    files: [
+      'docs/**/*.md',
+    ],
+    rules: {
+      'no-irregular-whitespace': 'off',
+    },
+  },
+  {
     files: [
       'src/**/*.vue',
     ],
@@ -41,6 +50,12 @@ export default antfu(
 
       'no-console': 'off',
       'no-empty': 'off',
+
+      // 插件 UI 沿用浏览器原生 alert/confirm 做不可逆操作的确认与错误提示（无自定义弹窗基建）
+      'no-alert': 'off',
+
+      // 项目 emit 事件名统一使用 kebab-case（模板监听 @select-example 等），与 Vue 官方风格指南一致
+      'vue/custom-event-name-casing': 'off',
 
       'object-curly-newline': ['error', {
         multiline: true,

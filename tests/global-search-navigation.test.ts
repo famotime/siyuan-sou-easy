@@ -1,16 +1,23 @@
 // @vitest-environment jsdom
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { GlobalMatchSnippet } from '@/features/search-replace/global/types'
+import { openTab } from 'siyuan'
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import {
   navigateToGlobalMatch,
   scrollAndHighlightBlock,
 } from '@/features/search-replace/global/store'
-import type { GlobalMatchSnippet } from '@/features/search-replace/global/types'
-import { setPluginInstance } from '@/plugin-instance'
-import { openTab } from 'siyuan'
 import * as kernel from '@/features/search-replace/kernel'
+import { setPluginInstance } from '@/plugin-instance'
 
-describe('Global search match navigation and full-document highlighting', () => {
+describe('global search match navigation and full-document highlighting', () => {
   let mockPlugin: any
 
   beforeEach(() => {
@@ -44,7 +51,10 @@ describe('Global search match navigation and full-document highlighting', () => 
 
       scrollAndHighlightBlock(blockEl, true)
 
-      expect(blockEl.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' })
+      expect(blockEl.scrollIntoView).toHaveBeenCalledWith({
+        behavior: 'smooth',
+        block: 'center',
+      })
       expect(editableEl.focus).toHaveBeenCalled()
       expect(blockEl.classList.contains('sfsr-block-target-highlight')).toBe(true)
 
@@ -169,7 +179,10 @@ describe('Global search match navigation and full-document highlighting', () => 
 
       // 目标块已在当前活动页面可见，绝对不调用 openTab 重新挂载
       expect(openTab).not.toHaveBeenCalled()
-      expect(targetBlock.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' })
+      expect(targetBlock.scrollIntoView).toHaveBeenCalledWith({
+        behavior: 'smooth',
+        block: 'center',
+      })
       expect(targetBlock.classList.contains('sfsr-block-target-highlight')).toBe(true)
     })
 

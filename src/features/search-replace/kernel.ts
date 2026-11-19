@@ -1,8 +1,8 @@
+import type { DocumentContentSnapshot } from './types'
 import {
   fetchSyncPost,
   showMessage,
 } from 'siyuan'
-import type { DocumentContentSnapshot } from './types'
 
 export async function requestApi<T>(url: string, data?: unknown): Promise<T> {
   const response = await fetchSyncPost(url, data)
@@ -30,7 +30,7 @@ export async function unfoldBlock(id: string) {
 }
 
 export async function checkBlockFold(id: string) {
-  return requestApi<{ isFolded: boolean; isRoot: boolean }>('/api/block/checkBlockFold', {
+  return requestApi<{ isFolded: boolean, isRoot: boolean }>('/api/block/checkBlockFold', {
     id,
   })
 }

@@ -1,10 +1,6 @@
+import type { Plugin } from 'siyuan'
 import type { App as VueApp } from 'vue'
 import { createApp } from 'vue'
-import type { Plugin } from 'siyuan'
-import App from './App.vue'
-import {
-  setPluginInstance,
-} from './plugin-instance'
 import {
   bindPlugin,
   closePanel,
@@ -12,6 +8,10 @@ import {
   resetSearchReplaceState,
   unbindPlugin,
 } from '@/features/search-replace/store'
+import App from './App.vue'
+import {
+  setPluginInstance,
+} from './plugin-instance'
 
 let app: VueApp<Element> | null = null
 let hostElement: HTMLDivElement | null = null

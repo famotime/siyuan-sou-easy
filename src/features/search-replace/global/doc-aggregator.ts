@@ -110,7 +110,7 @@ export function cleanMarkdownFormatting(text: string): string {
 export function isTableSeparatorRow(rawLine: string): boolean {
   const trimmed = rawLine.trim()
   if (!trimmed) return false
-  return /^\|?[\s:\-|]+\|?$/.test(trimmed) && trimmed.includes('-')
+  return /^[\s:\-|]+$/.test(trimmed) && trimmed.includes('-')
 }
 
 export interface ParsedTableRow {
@@ -127,7 +127,7 @@ export function parseTableRowsFromBlock(block: RawBlockRecord): ParsedTableRow[]
   const source = block.markdown?.trim() || block.fcontent?.trim() || block.content?.trim() || ''
   if (!source) return []
 
-  const rawLines = source.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
+  const rawLines = source.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
   const rows: ParsedTableRow[] = []
   let currentRowIndex = 0
 
@@ -142,7 +142,7 @@ export function parseTableRowsFromBlock(block: RawBlockRecord): ParsedTableRow[]
 
     // 分割单元格并清洗各单元格的 markdown 标记
     const rawCells = line.split('|')
-    const cleanCells = rawCells.map(c => cleanMarkdownFormatting(c.trim()))
+    const cleanCells = rawCells.map((c) => cleanMarkdownFormatting(c.trim()))
     const formatted = cleanCells.join(' | ')
 
     if (formatted) {
@@ -178,7 +178,10 @@ export function extractMultiMatchSnippet(
       matchedText: '',
       suffixText: '',
       previewText: fullText,
-      segments: [{ text: fullText, isMatch: false }],
+      segments: [{
+        text: fullText,
+        isMatch: false,
+      }],
     }
   }
 
@@ -203,7 +206,10 @@ export function extractMultiMatchSnippet(
   let cur = prefixStart
 
   if (hasLeadingEllipsis) {
-    segments.push({ text: '...', isMatch: false })
+    segments.push({
+      text: '...',
+      isMatch: false,
+    })
   }
 
   for (const lm of matches) {
@@ -228,11 +234,14 @@ export function extractMultiMatchSnippet(
   }
 
   if (hasTrailingEllipsis) {
-    segments.push({ text: '...', isMatch: false })
+    segments.push({
+      text: '...',
+      isMatch: false,
+    })
   }
 
-  const previewText = segments.map(s => s.text).join('')
-  const matchedText = matches.map(m => m.text).join(', ')
+  const previewText = segments.map((s) => s.text).join('')
+  const matchedText = matches.map((m) => m.text).join(', ')
 
   return {
     prefixText: hasLeadingEllipsis ? '...' : '',
@@ -300,8 +309,7 @@ function collectOccurrencesForTerms(
 
     if (regex) {
       regex.lastIndex = 0
-      let m: RegExpExecArray | null
-      while ((m = regex.exec(content)) !== null) {
+      for (let m = regex.exec(content); m !== null; m = regex.exec(content)) {
         if (m[0].length === 0) {
           regex.lastIndex++
           continue
@@ -321,7 +329,7 @@ function collectOccurrencesForTerms(
       if (pinyinMatches.length > 0) {
         termMatched = true
         for (const pm of pinyinMatches) {
-          const overlapped = allMatches.some(r => !(pm.end <= r.start || pm.start >= r.end))
+          const overlapped = allMatches.some((r) => !(pm.end <= r.start || pm.start >= r.end))
           if (!overlapped) {
             allMatches.push({
               start: pm.start,
@@ -352,7 +360,10 @@ function collectOccurrencesForTerms(
     }
   }
 
-  return { occurrences: deduped, matchedTerms }
+  return {
+    occurrences: deduped,
+    matchedTerms,
+  }
 }
 
 /**
@@ -388,25 +399,28 @@ export function findMatchesInTableBlock(
     const lineText = row.lineText
 
     // 排除词过滤：行内包含任一排除词则忽略此行
-    if (excludeTerms.some(ex => containsNegativeTerm(lineText, ex, options.matchCase))) {
+    if (excludeTerms.some((ex) => containsNegativeTerm(lineText, ex, options.matchCase))) {
       continue
     }
 
-    const { occurrences, matchedTerms } = collectOccurrencesForTerms(lineText, targetTerms, options)
+    const {
+      occurrences,
+      matchedTerms,
+    } = collectOccurrencesForTerms(lineText, targetTerms, options)
     if (!occurrences.length) {
       continue
     }
 
     // 检查此表格单行是否达到“同块/同行完全包含”
     const isFullMatch =
-      mustInclude.length > 0 &&
-      mustInclude.every(t => matchedTerms.has(t)) &&
-      (orGroups.length === 0 || orGroups.every(g => g.some(t => matchedTerms.has(t))))
+      mustInclude.length > 0
+      && mustInclude.every((t) => matchedTerms.has(t))
+      && (orGroups.length === 0 || orGroups.every((g) => g.some((t) => matchedTerms.has(t))))
 
     // 找出关键词命中了哪些单元格，提取第一个命中的单元格作为特征指纹
-    const matchedCell = row.cells.find(cell => {
+    const matchedCell = row.cells.find((cell) => {
       if (!cell) return false
-      return targetTerms.some(term => {
+      return targetTerms.some((term) => {
         if (options.useRegex) {
           try {
             return new RegExp(term, options.matchCase ? 'g' : 'gi').test(cell)
@@ -488,20 +502,23 @@ export function findMatchesInBlock(
   const orGroups = parsed?.orGroups || []
 
   // 排除词过滤：块内包含任一排除词则直接排除
-  if (excludeTerms.some(ex => containsNegativeTerm(content, ex, options.matchCase))) {
+  if (excludeTerms.some((ex) => containsNegativeTerm(content, ex, options.matchCase))) {
     return []
   }
 
-  const { occurrences, matchedTerms } = collectOccurrencesForTerms(content, targetTerms, options)
+  const {
+    occurrences,
+    matchedTerms,
+  } = collectOccurrencesForTerms(content, targetTerms, options)
   if (!occurrences.length) {
     return []
   }
 
   // 判定是否单块全包含所有必需关键词
   const isFullMatch =
-    mustInclude.length > 0 &&
-    mustInclude.every(t => matchedTerms.has(t)) &&
-    (orGroups.length === 0 || orGroups.every(g => g.some(t => matchedTerms.has(t))))
+    mustInclude.length > 0
+    && mustInclude.every((t) => matchedTerms.has(t))
+    && (orGroups.length === 0 || orGroups.every((g) => g.some((t) => matchedTerms.has(t))))
 
   const snippet = extractMultiMatchSnippet(content, occurrences)
 
@@ -539,7 +556,7 @@ export function aggregateBlocksToDocs(
   options: AggregateBlocksOptions = {},
 ): DocAggregateNode[] {
   const targetBlocks = options.docOnly
-    ? blocks.filter(b => b.type === 'd')
+    ? blocks.filter((b) => b.type === 'd')
     : blocks
 
   const docMap = new Map<string, {
@@ -603,7 +620,7 @@ export function aggregateBlocksToDocs(
 
   for (const item of docMap.values()) {
     // 1. 文档级排除词检查：文档标题若包含排除词，则直接剔除整篇文档
-    if (excludeTerms.some(ex => containsNegativeTerm(item.docTitle, ex, options.matchCase))) {
+    if (excludeTerms.some((ex) => containsNegativeTerm(item.docTitle, ex, options.matchCase))) {
       continue
     }
 
@@ -611,7 +628,7 @@ export function aggregateBlocksToDocs(
     let matchType: 'exact-block' | 'cross-block' = 'exact-block'
 
     if (isMultiTerm) {
-      const hasExactBlockMatch = item.matches.some(m => m.isFullBlockMatch)
+      const hasExactBlockMatch = item.matches.some((m) => m.isFullBlockMatch)
 
       if (hasExactBlockMatch) {
         matchType = 'exact-block'
@@ -638,8 +655,8 @@ export function aggregateBlocksToDocs(
           }
         }
 
-        const coversAllMust = mustInclude.every(t => allDocMatchedTerms.has(t))
-        const coversAllOr = orGroups.length === 0 || orGroups.every(g => g.some(t => allDocMatchedTerms.has(t)))
+        const coversAllMust = mustInclude.every((t) => allDocMatchedTerms.has(t))
+        const coversAllOr = orGroups.length === 0 || orGroups.every((g) => g.some((t) => allDocMatchedTerms.has(t)))
 
         if (coversAllMust && coversAllOr) {
           matchType = 'cross-block'

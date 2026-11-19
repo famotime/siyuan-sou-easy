@@ -1,9 +1,21 @@
+import type { ComputedRef } from 'vue'
+import type { SearchReplaceState } from '../store/state'
+import type {
+  EditorContext,
+  SearchMatch,
+} from '../types'
+import type {
+  MinimapDocBlock,
+  MinimapLayout,
+  MinimapMarker,
+  MinimapScrollTarget,
+} from './minimap-layout'
 import {
   computed,
+
   onBeforeUnmount,
   ref,
   watch,
-  type ComputedRef,
 } from 'vue'
 import {
   findEditorContextByRootId,
@@ -14,31 +26,26 @@ import {
   resolveMinimapContext,
   resolveMinimapScrollContainer,
 } from './minimap-context'
-import type { SearchReplaceState } from '../store/state'
-import type {
-  EditorContext,
-  SearchMatch,
-} from '../types'
 import {
+  buildMinimapDocLines,
+  clamp,
+  computeMinimapViewport,
+  createMinimapScrollTarget,
   MINIMAP_GAP,
   MINIMAP_MARKER_MIN_HEIGHT,
   MINIMAP_MAX_HEIGHT,
   MINIMAP_MIN_HEIGHT,
   MINIMAP_WIDTH,
+
+
+
+
   PANEL_MARGIN,
-  buildMinimapDocLines,
-  clamp,
-  computeMinimapViewport,
-  createMinimapScrollTarget,
   projectIndexedMinimapDocBlock,
   projectIndexedMinimapMarker,
   resolveMinimapDocVariant,
   shouldReleaseMinimapScrollTarget,
   syncMinimapScrollTarget,
-  type MinimapDocBlock,
-  type MinimapLayout,
-  type MinimapMarker,
-  type MinimapScrollTarget,
 } from './minimap-layout'
 
 interface UsePanelMinimapOptions {
@@ -76,9 +83,9 @@ export function usePanelMinimap({
       state.currentRootId,
       state.currentTitle,
       state.currentIndex,
-      state.minimapBlocks.map(block => block.blockId).join('|'),
+      state.minimapBlocks.map((block) => block.blockId).join('|'),
       state.searchableBlockCount,
-      state.matches.map(match => match.id).join('|'),
+      state.matches.map((match) => match.id).join('|'),
     ],
     () => {
       refreshMinimap()
@@ -171,7 +178,10 @@ export function usePanelMinimap({
     const height = clamp(scrollRect.height - 16, MINIMAP_MIN_HEIGHT, MINIMAP_MAX_HEIGHT)
     const scrollTop = clamp(scrollContainer.scrollTop || 0, 0, Math.max(0, scrollHeight - clientHeight))
     const indexedViewport = projectIndexedViewport(context, scrollRect, height)
-    const { viewportHeight, viewportTop } = computeMinimapViewport({
+    const {
+      viewportHeight,
+      viewportTop,
+    } = computeMinimapViewport({
       clientHeight,
       height,
       indexedViewport,
@@ -251,7 +261,7 @@ export function usePanelMinimap({
   ) {
     if (state.minimapBlocks.length > 0) {
       const totalBlockCount = Math.max(state.searchableBlockCount, state.minimapBlocks.length)
-      return state.minimapBlocks.map(block => projectIndexedMinimapDocBlock(block, minimapHeight, totalBlockCount))
+      return state.minimapBlocks.map((block) => projectIndexedMinimapDocBlock(block, minimapHeight, totalBlockCount))
     }
 
     return getUniqueBlockElements(context.protyle).flatMap((blockElement) => {
@@ -326,7 +336,7 @@ export function usePanelMinimap({
     }
 
     const blockIndexById = new Map(
-      state.minimapBlocks.map(block => [block.blockId, block.blockIndex] as const),
+      state.minimapBlocks.map((block) => [block.blockId, block.blockIndex] as const),
     )
     const visibleBlocks = getUniqueBlockElements(context.protyle)
       .flatMap((blockElement) => {
