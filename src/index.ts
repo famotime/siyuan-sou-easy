@@ -343,6 +343,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     applyPluginSettings(normalized)
     this.syncCommandHotkeys()
     await saveSettings(this, normalized)
+    this.invalidateRuntimeHotkeySettingsCache()
     if (showSavedMessage) {
       showMessage(this.i18n.settingSaved, 2500, 'info')
     }
@@ -420,12 +421,36 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     return collectKeymapHotkeys((window as any).siyuan?.config?.keymap)
   }
 
+  // handleDocumentKeydown 在每次按键时读取运行时快捷键，
+  // resolveHotkeySettingsFromRuntime 会全量遍历思源 keymap 树，这里做短 TTL 缓存。
+  // 插件自身的设置/快捷键写入会主动失效；外部（思源设置面板）改键最多延迟一个 TTL。
+  private runtimeHotkeySettingsCache: {
+    expiresAt: number
+    value: ReturnType<typeof resolveHotkeySettingsFromRuntime>
+  } | null = null
+  private static readonly RUNTIME_HOTKEY_CACHE_TTL_MS = 5000
+
+  private invalidateRuntimeHotkeySettingsCache() {
+    this.runtimeHotkeySettingsCache = null
+  }
+
   private getRuntimeHotkeySettings() {
-    return resolveHotkeySettingsFromRuntime({
+    const cached = this.runtimeHotkeySettingsCache
+    const now = Date.now()
+    if (cached && now < cached.expiresAt) {
+      return cached.value
+    }
+
+    const value = resolveHotkeySettingsFromRuntime({
       commands: this.commands,
       keymapSources: this.getKeymapHotkeySources(),
       settings: this.settingsData,
     })
+    this.runtimeHotkeySettingsCache = {
+      expiresAt: now + FriendlySearchReplacePlugin.RUNTIME_HOTKEY_CACHE_TTL_MS,
+      value,
+    }
+    return value
   }
 
   private createCheckbox(checked: boolean, onChange: (checked: boolean) => Promise<void>) {
@@ -458,6 +483,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
 
     await setKeymap(nextKeymap)
     siyuanConfig.keymap = nextKeymap
+    this.invalidateRuntimeHotkeySettingsCache()
   }
 
   private async updateNumberSetting(settingKey: NumberSettingKey, value: number) {
