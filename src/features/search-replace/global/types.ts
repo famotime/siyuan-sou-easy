@@ -21,16 +21,11 @@ export interface RawBlockRecord {
   box: string
   path: string
   hpath: string
-  name?: string
-  alias?: string
-  memo?: string
-  tag?: string
   content: string
   fcontent?: string
   markdown?: string
   type: GlobalBlockType
   subtype?: string
-  sub_type?: string
   sort?: number
   created: string
   updated: string
@@ -135,7 +130,6 @@ export interface GlobalSearchStateModel {
     wholeWord: boolean
     useRegex: boolean
     pinyin: boolean
-    fuzzy: boolean
     docOnly: boolean
   }
   filters: GlobalSearchFilters

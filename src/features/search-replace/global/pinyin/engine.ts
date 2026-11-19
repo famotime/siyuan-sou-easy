@@ -164,8 +164,13 @@ function normalizeKey(keys: string): string {
   return normalized.normalize('NFD').replace(/[\u0300-\u036F]/g, '')
 }
 
-function getIndex(py: string[], fullString: string[][], keys: string): [number, number] | false {
-  for (let p = 0; p < py.length; p++) {
+function getIndex(
+  py: string[],
+  fullString: string[][],
+  keys: string,
+  startP = 0,
+): [number, number] | false {
+  for (let p = startP; p < py.length; p++) {
     for (let k = 0; k < fullString.length; k++) {
       const key = fullString[k]
       const keyLength = key.length
@@ -202,15 +207,9 @@ function getIndex(py: string[], fullString: string[][], keys: string): [number, 
 }
 
 /**
- * 匹配拼音或文本
- * 返回匹配的闭区间 [start, end] 或者 false
+ * 在已规范化的文本上匹配拼音或文本，返回匹配的闭区间 [start, end] 或者 false
  */
-export function matchPinyinRange(input: string, rawKeys: string): [number, number] | false {
-  if (!input || !rawKeys) return false
-  const normInput = input.toLowerCase().normalize('NFD').replace(/[\u0300-\u036F]/g, '')
-  const keys = normalizeKey(rawKeys)
-  if (!keys) return false
-
+function matchRangeInNormalized(normInput: string, keys: string): [number, number] | false {
   const indexOf = normInput.indexOf(keys)
   if (indexOf !== -1) {
     return [indexOf, indexOf + keys.length - 1]
@@ -227,11 +226,73 @@ export function matchPinyinRange(input: string, rawKeys: string): [number, numbe
 }
 
 /**
+ * 匹配拼音或文本
+ * 返回匹配的闭区间 [start, end] 或者 false
+ */
+export function matchPinyinRange(input: string, rawKeys: string): [number, number] | false {
+  if (!input || !rawKeys) return false
+  const normInput = input.toLowerCase().normalize('NFD').replace(/[\u0300-\u036F]/g, '')
+  const keys = normalizeKey(rawKeys)
+  if (!keys) return false
+  return matchRangeInNormalized(normInput, keys)
+}
+
+/**
  * 查找文本中全部匹配的闭区间列表
+ *
+ * 性能说明：规范化（toLowerCase + NFD + 去附加符号）通常不改变字符数
+ * （附加符号均在 \u0300-\u036F 区间内会被移除，净长度不变），此时规范化串与原文
+ * 按索引一一对应，可在全文规范化结果上滚动匹配，避免每次迭代对剩余后缀重复
+ * normalize 的 O(n²) 开销；返回的 start/end 即原文索引。
+ * 若规范化改变了总长度（如韩文音节 NFD 展开为字母组合），则回退到旧的逐后缀
+ * 规范化算法，保证与历史行为逐字节一致。
  */
 export function matchAllPinyinRanges(input: string, rawKeys: string): Array<[number, number]> {
   if (!input || !rawKeys) return []
   const results: Array<[number, number]> = []
+
+  const keys = normalizeKey(rawKeys)
+  if (!keys) return []
+
+  const normInput = input.toLowerCase().normalize('NFD').replace(/[\u0300-\u036F]/g, '')
+
+  if (normInput.length === input.length) {
+    // 快路径：长度恒等，规范化串索引与原文一一对应，整段只规范化一次
+    const keyChars = [keys.split('')]
+    let normChars: string[] | null = null
+    let py: string[] | null = null
+    let fullString: string[][] | null = null
+    let offset = 0
+
+    while (offset < input.length) {
+      let matched: [number, number] | false = false
+      const indexOf = normInput.indexOf(keys, offset)
+      if (indexOf !== -1) {
+        matched = [indexOf, indexOf + keys.length - 1]
+      } else {
+        if (!normChars) normChars = normInput.split('')
+        // 原文匹配 (带空格)
+        matched = getIndex(normChars, keyChars, keys, offset)
+        if (!matched) {
+          // 拼音匹配
+          if (!py) py = getPinyin(normInput)
+          if (!fullString) fullString = keyStorage[keys] || getFullKey(keys)
+          matched = getIndex(py, fullString, keys, offset)
+        }
+      }
+      if (!matched) break
+
+      const [start, end] = matched
+      results.push([start, end])
+
+      // 向后推移步长，至少向前进 1
+      offset = Math.max(start + 1, end + 1)
+    }
+
+    return results
+  }
+
+  // 回退路径：规范化改变长度时索引会错位，保持历史逐后缀算法不变
   let offset = 0
 
   while (offset < input.length) {

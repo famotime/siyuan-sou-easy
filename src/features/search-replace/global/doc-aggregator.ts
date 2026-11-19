@@ -275,12 +275,57 @@ function containsNegativeTerm(text: string, term: string, matchCase = false): bo
 }
 
 /**
+ * 提取待检索的关键词列表（parsedQuery 多词模式或单查询词，去重去空）
+ */
+function resolveTargetTerms(query: string, options: AggregateBlocksOptions): string[] {
+  const parsed = options.parsedQuery
+  return parsed
+    ? Array.from(new Set([...(parsed.mustInclude || []), ...(parsed.orGroups?.flat() || [])])).filter(Boolean)
+    : [query].filter(Boolean)
+}
+
+/**
+ * 编译单个目标词的匹配正则（转义/wholeWord/matchCase 逻辑与历史行为完全一致；无效正则返回 null）
+ */
+function compileTermRegex(term: string, options: AggregateBlocksOptions): RegExp | null {
+  try {
+    if (options.useRegex) {
+      return new RegExp(term, options.matchCase ? 'g' : 'gi')
+    }
+    let escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    if (options.wholeWord) {
+      escaped = `\\b${escaped}\\b`
+    }
+    return new RegExp(escaped, options.matchCase ? 'g' : 'gi')
+  } catch {
+    return null
+  }
+}
+
+export type CompiledTermRegexMap = Map<string, RegExp | null>
+
+/**
+ * 按目标词批量预编译匹配正则（词 -> 正则或 null），避免在逐块/逐行/逐单元格循环内反复编译
+ */
+function compileTermRegexes(terms: string[], options: AggregateBlocksOptions): CompiledTermRegexMap {
+  const map: CompiledTermRegexMap = new Map()
+  for (const term of terms) {
+    if (term && !map.has(term)) {
+      map.set(term, compileTermRegex(term, options))
+    }
+  }
+  return map
+}
+
+/**
  * 从文本中收集各目标词的所有匹配 Occurrence 与命中的词集合
+ * compiledRegexes：可选的预编译正则表（键为 targetTerms）；未提供时按需即时编译，行为一致
  */
 function collectOccurrencesForTerms(
   content: string,
   terms: string[],
   options: AggregateBlocksOptions = {},
+  compiledRegexes?: CompiledTermRegexMap,
 ): {
   occurrences: MatchOccurrence[]
   matchedTerms: Set<string>
@@ -290,20 +335,7 @@ function collectOccurrencesForTerms(
 
   for (const term of terms) {
     if (!term) continue
-    let regex: RegExp | null = null
-    try {
-      if (options.useRegex) {
-        regex = new RegExp(term, options.matchCase ? 'g' : 'gi')
-      } else {
-        let escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-        if (options.wholeWord) {
-          escaped = `\\b${escaped}\\b`
-        }
-        regex = new RegExp(escaped, options.matchCase ? 'g' : 'gi')
-      }
-    } catch {
-      regex = null
-    }
+    const regex = compiledRegexes?.get(term) ?? compileTermRegex(term, options)
 
     let termMatched = false
 
@@ -368,11 +400,13 @@ function collectOccurrencesForTerms(
 
 /**
  * 针对表格块（type === 't'）按行检索并聚合生成各行的 MatchSnippet
+ * compiledRegexes：可选的预编译正则表（由 aggregateBlocksToDocs 入口一次编译传入）；未提供时在函数入口编译一次
  */
 export function findMatchesInTableBlock(
   block: RawBlockRecord,
   query: string,
   options: AggregateBlocksOptions = {},
+  compiledRegexes?: CompiledTermRegexMap,
 ): GlobalMatchSnippet[] {
   const tableRows = parseTableRowsFromBlock(block)
   if (!tableRows.length) {
@@ -380,18 +414,19 @@ export function findMatchesInTableBlock(
   }
 
   // 提取待检索的关键词列表
-  const parsed = options.parsedQuery
-  const targetTerms: string[] = parsed
-    ? Array.from(new Set([...(parsed.mustInclude || []), ...(parsed.orGroups?.flat() || [])])).filter(Boolean)
-    : [query].filter(Boolean)
+  const targetTerms = resolveTargetTerms(query, options)
 
   if (!targetTerms.length) {
     return []
   }
 
+  const parsed = options.parsedQuery
   const excludeTerms = parsed?.exclude || []
   const mustInclude = parsed?.mustInclude || []
   const orGroups = parsed?.orGroups || []
+
+  // 行×单元格×词三层循环外一次性预编译，替代循环内逐次 new RegExp
+  const regexMap = compiledRegexes ?? compileTermRegexes(targetTerms, options)
 
   const results: GlobalMatchSnippet[] = []
 
@@ -406,7 +441,7 @@ export function findMatchesInTableBlock(
     const {
       occurrences,
       matchedTerms,
-    } = collectOccurrencesForTerms(lineText, targetTerms, options)
+    } = collectOccurrencesForTerms(lineText, targetTerms, options, regexMap)
     if (!occurrences.length) {
       continue
     }
@@ -422,11 +457,11 @@ export function findMatchesInTableBlock(
       if (!cell) return false
       return targetTerms.some((term) => {
         if (options.useRegex) {
-          try {
-            return new RegExp(term, options.matchCase ? 'g' : 'gi').test(cell)
-          } catch {
-            return false
-          }
+          const regex = regexMap.get(term)
+          // null 为无效正则（与历史 catch 分支一致）；复用前必须重置 lastIndex 以等价于历史“每次新建正则”语义
+          if (!regex) return false
+          regex.lastIndex = 0
+          return regex.test(cell)
         }
         return cell.includes(term)
       })
@@ -438,7 +473,7 @@ export function findMatchesInTableBlock(
       blockId: block.id,
       rootId: block.root_id,
       blockType: block.type,
-      subType: block.subtype || block.sub_type,
+      subType: block.subtype,
       matchedText: snippet.matchedText,
       prefixText: snippet.prefixText,
       suffixText: snippet.suffixText,
@@ -466,15 +501,17 @@ export function findMatchesInTableBlock(
 
 /**
  * 在块文本中寻找匹配，按块合并展示为单一 MatchSnippet（包含块内所有高亮片段）
+ * compiledRegexes：可选的预编译正则表（由 aggregateBlocksToDocs 入口一次编译传入）；未提供时按需在本次调用内编译一次
  */
 export function findMatchesInBlock(
   block: RawBlockRecord,
   query: string,
   options: AggregateBlocksOptions = {},
+  compiledRegexes?: CompiledTermRegexMap,
 ): GlobalMatchSnippet[] {
   // 如果是表格块，优先按表格行检索，展现同行的完整信息并支持定位具体行
   if (block.type === 't') {
-    const tableMatches = findMatchesInTableBlock(block, query, options)
+    const tableMatches = findMatchesInTableBlock(block, query, options, compiledRegexes)
     if (tableMatches.length > 0) {
       return tableMatches
     }
@@ -488,15 +525,13 @@ export function findMatchesInBlock(
     return []
   }
 
-  const parsed = options.parsedQuery
-  const targetTerms: string[] = parsed
-    ? Array.from(new Set([...(parsed.mustInclude || []), ...(parsed.orGroups?.flat() || [])])).filter(Boolean)
-    : [query].filter(Boolean)
+  const targetTerms = resolveTargetTerms(query, options)
 
   if (!targetTerms.length) {
     return []
   }
 
+  const parsed = options.parsedQuery
   const excludeTerms = parsed?.exclude || []
   const mustInclude = parsed?.mustInclude || []
   const orGroups = parsed?.orGroups || []
@@ -506,10 +541,11 @@ export function findMatchesInBlock(
     return []
   }
 
+  const regexMap = compiledRegexes ?? compileTermRegexes(targetTerms, options)
   const {
     occurrences,
     matchedTerms,
-  } = collectOccurrencesForTerms(content, targetTerms, options)
+  } = collectOccurrencesForTerms(content, targetTerms, options, regexMap)
   if (!occurrences.length) {
     return []
   }
@@ -527,7 +563,7 @@ export function findMatchesInBlock(
     blockId: block.id,
     rootId: block.root_id,
     blockType: block.type,
-    subType: block.subtype || block.sub_type,
+    subType: block.subtype,
     matchedText: snippet.matchedText,
     prefixText: snippet.prefixText,
     suffixText: snippet.suffixText,
@@ -579,15 +615,19 @@ export function aggregateBlocksToDocs(
 
   const seenBlockIds = new Set<string>()
 
+  // 全量聚合只编译一次匹配正则（含 useRegex/wholeWord/matchCase 分支），逐块复用；拼音路径不依赖正则，不受影响
+  const compiledRegexes = compileTermRegexes(resolveTargetTerms(query, options), options)
+
   for (const block of targetBlocks) {
     if (seenBlockIds.has(block.id)) {
       continue
     }
-    const matches = findMatchesInBlock(block, query, options)
+    // 处理前先登记：无命中的重复块不再重复执行匹配（同一块内容相同，结果不变）
+    seenBlockIds.add(block.id)
+    const matches = findMatchesInBlock(block, query, options, compiledRegexes)
     if (!matches.length) {
       continue
     }
-    seenBlockIds.add(block.id)
 
     let doc = docMap.get(block.root_id)
     if (!doc) {

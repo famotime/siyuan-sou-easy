@@ -29,7 +29,6 @@ describe('saved-presets', () => {
         wholeWord: false,
         useRegex: false,
         pinyin: false,
-        fuzzy: false,
         docOnly: false,
       },
       filters: {
@@ -69,7 +68,6 @@ describe('saved-presets', () => {
         wholeWord: false,
         useRegex: false,
         pinyin: false,
-        fuzzy: false,
         docOnly: false,
       },
       filters: {},
@@ -118,7 +116,6 @@ describe('saved-presets', () => {
         wholeWord: false,
         useRegex: false,
         pinyin: false,
-        fuzzy: false,
         docOnly: false,
       },
       filters: {},

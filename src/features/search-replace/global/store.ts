@@ -37,7 +37,6 @@ export const globalSearchState = reactive<GlobalSearchStateModel>({
     wholeWord: false,
     useRegex: false,
     pinyin: false,
-    fuzzy: false,
     docOnly: true,
   },
   filters: {
