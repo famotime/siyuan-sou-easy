@@ -32,6 +32,8 @@ export interface ReplaceTransaction {
 
 export const TRANSACTION_STORAGE = 'replace_transactions.json'
 
+const MAX_TRANSACTION_HISTORY = 50
+
 let transactionsMemoryCache: ReplaceTransaction[] = []
 
 export function formatDateTime(ts: number): string {
@@ -65,9 +67,11 @@ export async function persistTransactions(): Promise<void> {
   const plugin = getPluginInstance()
   if (!plugin) return
   try {
-    // 仅保留最近 50 次替换历史
-    const trimmed = transactionsMemoryCache.slice(-50)
-    await plugin.saveData(TRANSACTION_STORAGE, trimmed)
+    // 缓存为最新在前，仅保留最近 50 次替换历史（超出即从尾部丢弃最旧的）
+    if (transactionsMemoryCache.length > MAX_TRANSACTION_HISTORY) {
+      transactionsMemoryCache = transactionsMemoryCache.slice(0, MAX_TRANSACTION_HISTORY)
+    }
+    await plugin.saveData(TRANSACTION_STORAGE, transactionsMemoryCache)
   } catch (err) {
     console.error('persistTransactions failed:', err)
   }
@@ -91,6 +95,10 @@ export async function recordTransaction(
   }
 
   transactionsMemoryCache.unshift(tx)
+  // 内存缓存与磁盘采用同一截断口径，避免长会话中内存无界增长
+  if (transactionsMemoryCache.length > MAX_TRANSACTION_HISTORY) {
+    transactionsMemoryCache = transactionsMemoryCache.slice(0, MAX_TRANSACTION_HISTORY)
+  }
   await persistTransactions()
   return tx
 }
@@ -102,34 +110,48 @@ export function getTransactions(): ReplaceTransaction[] {
 /**
  * 回滚指定的替换事务批次
  */
-export async function revertTransaction(txId: string): Promise<{ success: boolean, revertedCount: number, error?: string }> {
+export async function revertTransaction(txId: string): Promise<{ success: boolean, revertedCount: number, skippedCount: number, error?: string }> {
   const tx = transactionsMemoryCache.find(t => t.id === txId)
   if (!tx) {
-    return { success: false, revertedCount: 0, error: '未找到对应事务记录' }
+    return { success: false, revertedCount: 0, skippedCount: 0, error: '未找到对应事务记录' }
   }
   if (tx.reverted) {
-    return { success: false, revertedCount: 0, error: '该事务已经回滚，不能重复回滚' }
+    return { success: false, revertedCount: 0, skippedCount: 0, error: '该事务已经回滚，不能重复回滚' }
+  }
+
+  // 缺少原始 DOM 记录的条目禁止回退：绝不使用猜测/伪造的内容覆盖文档块
+  const revertableItems = tx.items.filter(item => typeof item.originalDom === 'string' && item.originalDom.trim().length > 0)
+  if (!revertableItems.length) {
+    return {
+      success: false,
+      revertedCount: 0,
+      skippedCount: tx.items.length,
+      error: '事务缺少原始 DOM 记录，无法安全回退',
+    }
   }
 
   let revertedCount = 0
   try {
     // 逆向遍历更新
-    for (const item of tx.items) {
-      if (item.originalDom) {
-        await updateDomBlock(item.blockId, item.originalDom)
-      } else {
-        // 如果没有保存完整 DOM，构造基础段落 DOM
-        const fallbackDom = `<div data-node-id="${item.blockId}" data-type="NodeParagraph" class="p"><div contenteditable="true" spellcheck="false">${item.originalContent}</div></div>`
-        await updateDomBlock(item.blockId, fallbackDom)
-      }
+    for (const item of revertableItems) {
+      await updateDomBlock(item.blockId, item.originalDom)
       revertedCount++
     }
 
     tx.reverted = true
     await persistTransactions()
-    return { success: true, revertedCount }
+    return {
+      success: true,
+      revertedCount,
+      skippedCount: tx.items.length - revertableItems.length,
+    }
   } catch (err: any) {
-    return { success: false, revertedCount, error: err.message || '回滚过程中发生错误' }
+    return {
+      success: false,
+      revertedCount,
+      skippedCount: tx.items.length - revertableItems.length,
+      error: err.message || '回滚过程中发生错误',
+    }
   }
 }
 

@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { setPluginInstance } from '@/plugin-instance'
 import {
   clearTransactionsMemoryForTesting,
   getTransactions,
+  persistTransactions,
   recordTransaction,
   revertTransaction,
+  TRANSACTION_STORAGE,
+  type ReplaceTransaction,
 } from '@/features/search-replace/global/transaction-history'
 import * as kernel from '@/features/search-replace/kernel'
 
@@ -60,5 +64,83 @@ describe('transaction-history', () => {
     const secondTry = await revertTransaction(tx.id)
     expect(secondTry.success).toBe(false)
     expect(secondTry.error).toContain('已经回滚')
+  })
+
+  it('skips items without originalDom and reports skippedCount', async () => {
+    const updateSpy = vi.spyOn(kernel, 'updateDomBlock').mockResolvedValue({} as any)
+
+    const tx = await recordTransaction('foo', 'bar', [
+      {
+        blockId: 'b1',
+        rootId: 'd1',
+        originalDom: '<div>original one</div>',
+        newDom: '<div>replaced one</div>',
+      },
+      {
+        blockId: 'b2',
+        rootId: 'd1',
+        // 缺少 originalDom：不允许伪造内容回退
+        newDom: '<div>replaced two</div>',
+      },
+    ])
+
+    const res = await revertTransaction(tx.id)
+    expect(res.success).toBe(true)
+    expect(res.revertedCount).toBe(1)
+    expect(res.skippedCount).toBe(1)
+    expect(updateSpy).toHaveBeenCalledTimes(1)
+    expect(updateSpy).toHaveBeenCalledWith('b1', '<div>original one</div>')
+    expect(updateSpy).not.toHaveBeenCalledWith('b2', expect.any(String))
+    expect(getTransactions()[0].reverted).toBe(true)
+  })
+
+  it('refuses to revert when no item carries an originalDom record', async () => {
+    const updateSpy = vi.spyOn(kernel, 'updateDomBlock').mockResolvedValue({} as any)
+
+    const tx = await recordTransaction('foo', 'bar', [
+      {
+        blockId: 'b1',
+        rootId: 'd1',
+        fullContent: 'original text',
+        newContent: 'replaced text',
+      },
+    ])
+
+    const res = await revertTransaction(tx.id)
+    expect(res.success).toBe(false)
+    expect(res.revertedCount).toBe(0)
+    expect(res.skippedCount).toBe(1)
+    expect(res.error).toContain('无法安全回退')
+    expect(updateSpy).not.toHaveBeenCalled()
+    expect(getTransactions()[0].reverted).toBe(false)
+  })
+
+  it('trims memory cache to the most recent 50 transactions with newest first', async () => {
+    const saveSpy = vi.fn()
+    setPluginInstance({
+      loadData: vi.fn(async () => null),
+      saveData: saveSpy,
+    } as any)
+
+    let lastTx: ReplaceTransaction | null = null
+    for (let i = 0; i < 55; i++) {
+      lastTx = await recordTransaction(`query-${i}`, 'replacement', [
+        { blockId: `b${i}`, rootId: 'd1', originalDom: `<div>original ${i}</div>` },
+      ])
+    }
+
+    const list = getTransactions()
+    expect(list).toHaveLength(50)
+    expect(list[0].id).toBe(lastTx!.id)
+    expect(list[0].query).toBe('query-54')
+
+    await persistTransactions()
+    const persisted = saveSpy.mock.calls.at(-1)?.[1] as ReplaceTransaction[]
+    expect(persisted).toHaveLength(50)
+    expect(persisted[0].query).toBe('query-54')
+    expect(persisted.at(-1)?.query).toBe('query-5')
+
+    setPluginInstance(null as any)
+    expect(saveSpy).toHaveBeenCalledWith(TRANSACTION_STORAGE, expect.any(Array))
   })
 })

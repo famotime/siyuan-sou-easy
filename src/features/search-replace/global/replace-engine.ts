@@ -134,33 +134,10 @@ export async function executeBatchReplace(
           skippedCount += itemsInBlock.length
         }
       } else {
-        // 如果无法获取 DOM，构造安全回退段落
-        const it = itemsInBlock[0]
-        const fallbackDom = `<div data-node-id="${blockId}" data-type="NodeParagraph" class="p"><div contenteditable="true" spellcheck="false">${it.newContent}</div></div>`
-        try {
-          await updateDomBlock(blockId, fallbackDom)
-          replacedCount += itemsInBlock.length
-          for (const it of itemsInBlock) {
-            transactionItems.push({
-              blockId,
-              rootId: it.rootId,
-              docTitle: it.docTitle,
-              hpath: it.hpath,
-              blockType: it.blockType,
-              originalSnippet: it.originalSnippet,
-              prefixText: it.prefixText,
-              matchedText: it.matchedText,
-              replacedText: it.replacedText,
-              suffixText: it.suffixText,
-              fullContent: it.fullContent,
-              newContent: it.newContent,
-              originalDom: `<div data-node-id="${blockId}" data-type="NodeParagraph" class="p"><div contenteditable="true" spellcheck="false">${it.fullContent}</div></div>`,
-              newDom: fallbackDom,
-            })
-          }
-        } catch {
-          skippedCount += itemsInBlock.length
-        }
+        // 拿不到原始 DOM 时无法安全替换：跳过该块。
+        // 绝不允许用伪造的段落 DOM 覆盖块结构（会把代码块/表格等降级为段落，
+        // 且伪造内容被记入事务后，回退会用它覆盖块的真实原始结构）。
+        skippedCount += itemsInBlock.length
       }
     }
 
