@@ -19,7 +19,10 @@ const NATIVE_NAVIGATION_ACTIONS: TProtyleAction[] = [
 type NativeMatchNavigationResult = 'failed' | 'triggered' | 'unsupported'
 
 export function canTriggerNativeMatchNavigation(match: SearchMatch) {
-  if (match.sourceKind === 'attribute-view') {
+  // 仅允许真实 protyle 块触发原生导航：attribute-view / canvas / terminal 的
+  // blockId 都是合成 id（如 "canvas:xxx"、"surfaceId:row"），传入 openTab
+  // 会打开不存在的文档，配合 removeCurrentTab 还会移除当前页签
+  if (match.sourceKind && match.sourceKind !== 'block') {
     return false
   }
 

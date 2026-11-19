@@ -73,6 +73,7 @@ export function createPendingNavigationController({
 }: PendingNavigationControllerOptions) {
   const NATIVE_NAVIGATION_DISTANCE_THRESHOLD = 20
   const NATIVE_NAVIGATION_WAIT_MS = 1500
+  const UNFOLD_SETTLE_TIMEOUT_MS = 2000
 
   let approximateNavigationProgress: ApproximateNavigationProgress = createApproximateNavigationProgress()
   let pendingNavigationTimer = 0
@@ -84,6 +85,8 @@ export function createPendingNavigationController({
   let nativeNavigationWaitDeadline = 0
 
   function beginPendingNavigation(match: SearchMatch) {
+    // 先终止可能仍在等待的旧重试链，避免旧定时器与新导航交错递增计数
+    window.clearTimeout(pendingNavigationTimer)
     approximateNavigationProgress = resetApproximateNavigationProgress()
     pendingNavigationMatchId = match.id
     pendingNavigationRetryCount = 0
@@ -363,21 +366,30 @@ export function createPendingNavigationController({
       matchId: match.id,
       waitMs: NATIVE_NAVIGATION_WAIT_MS,
     })
-    void triggerNativeMatchNavigation(match).then((result) => {
-      if (pendingNavigationMatchId !== match.id) {
-        return
-      }
+    void triggerNativeMatchNavigation(match)
+      .then((result) => {
+        if (pendingNavigationMatchId !== match.id) {
+          return
+        }
 
-      if (result === 'triggered') {
-        return
-      }
+        if (result === 'triggered') {
+          return
+        }
 
-      nativeNavigationWaitDeadline = 0
-      debugLog('pending-navigation:native-fail', {
-        matchId: match.id,
-        result,
+        nativeNavigationWaitDeadline = 0
+        debugLog('pending-navigation:native-fail', {
+          matchId: match.id,
+          result,
+        })
       })
-    })
+      .catch((error) => {
+        // 触发链路自身的异常不应成为 unhandled rejection
+        nativeNavigationWaitDeadline = 0
+        debugLog('pending-navigation:native-trigger-error', {
+          error: error instanceof Error ? error.message : String(error),
+          matchId: match.id,
+        })
+      })
 
     return true
   }
@@ -409,7 +421,7 @@ export function createPendingNavigationController({
       matchId: match.id,
     })
 
-    void Promise.all(collapsedAncestorIds.map(async (ancestorId) => {
+    const unfoldPromise = Promise.all(collapsedAncestorIds.map(async (ancestorId) => {
       try {
         await unfoldBlock(ancestorId)
       } catch (error) {
@@ -419,7 +431,13 @@ export function createPendingNavigationController({
           matchId: match.id,
         })
       }
-    })).finally(() => {
+    }))
+
+    // unfold 请求可能永不返回（内核无响应）：以超时兜底继续重试，避免导航提示卡死
+    void Promise.race([
+      unfoldPromise,
+      new Promise<void>(resolve => window.setTimeout(resolve, UNFOLD_SETTLE_TIMEOUT_MS)),
+    ]).finally(() => {
       if (pendingNavigationMatchId !== match.id) {
         return
       }
