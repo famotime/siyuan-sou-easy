@@ -571,6 +571,7 @@ import {
 import {
   clearGlobalSearchResults,
   executeGlobalSearch,
+  setGlobalQuery,
   setGlobalSortMode,
   globalSearchState as state,
   toggleAllDocsCollapse,
@@ -616,9 +617,9 @@ const displayDraftKeyword = computed(() => {
 watch(
   () => state.query,
   (newVal) => {
-    if (newVal.trim() !== state.searchedQuery) {
-      clearGlobalSearchResults()
-    }
+    // 与 setGlobalQuery 的语义保持单一实现：query 变化后按需清空过期结果。
+    // 此处 state.query 已是 newVal，setGlobalQuery 内的同值赋值不会再次触发响应。
+    setGlobalQuery(newVal)
   },
 )
 
@@ -830,7 +831,8 @@ function openBatchReplaceDiff() {
     return
   }
   const keywordForReplace = parsedCurrentQuery.value.singleKeyword || state.query
-  const summary = buildVisualDiff(state.results, keywordForReplace, state.replacement, {
+  const summary = buildVisualDiff(state.results, state.replacement, {
+    query: keywordForReplace,
     useRegex: state.options.useRegex,
     matchCase: state.options.matchCase,
     wholeWord: state.options.wholeWord,

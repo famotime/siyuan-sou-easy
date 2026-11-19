@@ -7,8 +7,11 @@ import {
 
   watch,
 } from 'vue'
+import {
+  clamp,
+  PANEL_MARGIN,
+} from './minimap-layout'
 
-const PANEL_MARGIN = 8
 const DEFAULT_PANEL_WIDTH = 480
 const MIN_PANEL_WIDTH = 360
 const NON_DRAG_SELECTOR = [
@@ -319,8 +322,4 @@ function resolveDefaultPanelWidth() {
   }
 
   return clampPanelWidthValue(DEFAULT_PANEL_WIDTH)
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max)
 }

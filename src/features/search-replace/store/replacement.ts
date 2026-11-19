@@ -19,32 +19,22 @@ import {
   isCanvasMatch,
 } from '../match-utils'
 
-interface ReplaceCurrentDependencies {
+interface ReplaceDependenciesBase {
   applyReplacementsToClone: typeof import('../editor').applyReplacementsToClone
   clearSelectionScope: (rootId?: string) => void
   createBlockElementFromDom: typeof import('../editor').createBlockElementFromDom
   getBlockDoms: typeof import('../kernel').getBlockDoms
   getBlockElement: typeof import('../editor').getBlockElement
-  getCurrentMatch: () => SearchMatch | null
   invalidateDocumentSnapshot: (rootId?: string) => void
   refreshMatches: () => Promise<void>
   resolveEditorContext: () => EditorContext | null
-  revealCurrentMatch: (context?: EditorContext, scrollMode?: 'if-needed' | 'none') => void
   state: SearchReplaceState
   updateDomBlock: typeof import('../kernel').updateDomBlock
 }
 
-interface ReplaceAllDependencies {
-  applyReplacementsToClone: typeof import('../editor').applyReplacementsToClone
-  clearSelectionScope: (rootId?: string) => void
-  createBlockElementFromDom: typeof import('../editor').createBlockElementFromDom
-  getBlockDoms: typeof import('../kernel').getBlockDoms
-  getBlockElement: typeof import('../editor').getBlockElement
-  invalidateDocumentSnapshot: (rootId?: string) => void
-  refreshMatches: () => Promise<void>
-  resolveEditorContext: () => EditorContext | null
-  state: SearchReplaceState
-  updateDomBlock: typeof import('../kernel').updateDomBlock
+interface ReplaceCurrentDependencies extends ReplaceDependenciesBase {
+  getCurrentMatch: () => SearchMatch | null
+  revealCurrentMatch: (context?: EditorContext, scrollMode?: 'if-needed' | 'none') => void
 }
 
 /**
@@ -192,7 +182,7 @@ export async function replaceAllMatches({
   resolveEditorContext,
   state,
   updateDomBlock,
-}: ReplaceAllDependencies) {
+}: ReplaceDependenciesBase) {
   if (!state.matches.length || state.busy || state.documentReadonly) {
     return
   }

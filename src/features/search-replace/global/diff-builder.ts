@@ -88,42 +88,13 @@ export function computeReplacement(
 
 /**
  * 根据全库匹配结果生成 Visual Diff 比较树
+ * 注：正则替换的反向引用需要原始查询词，通过 options.query 传入。
  */
 export function buildVisualDiff(
   docNodes: DocAggregateNode[],
   replacement: string,
-  options?: VisualDiffOptions,
-): DiffSummary
-export function buildVisualDiff(
-  docNodes: DocAggregateNode[],
-  query: string,
-  replacement: string,
-  options?: VisualDiffOptions,
-): DiffSummary
-export function buildVisualDiff(
-  docNodes: DocAggregateNode[],
-  arg2: string,
-  arg3?: string | VisualDiffOptions,
-  arg4?: VisualDiffOptions,
+  options: VisualDiffOptions = {},
 ): DiffSummary {
-  let query: string | undefined
-  let replacement: string
-  let options: VisualDiffOptions
-
-  if (typeof arg3 === 'string') {
-    query = arg2
-    replacement = arg3
-    options = arg4 || {}
-  } else {
-    replacement = arg2
-    options = arg3 || {}
-    query = options.query
-  }
-
-  const effectiveOptions: VisualDiffOptions = {
-    ...options,
-    query: options.query ?? query,
-  }
   const groups: DiffDocumentGroup[] = []
   let totalCount = 0
   let includedCount = 0
@@ -143,7 +114,7 @@ export function buildVisualDiff(
 
       for (let occIdx = 0; occIdx < occurrences.length; occIdx++) {
         const occ = occurrences[occIdx]
-        const replacedText = computeReplacement(occ.text, replacement, effectiveOptions)
+        const replacedText = computeReplacement(occ.text, replacement, options)
         const full = match.fullContent
         const newContent = `${full.slice(0, occ.start)}${replacedText}${full.slice(occ.end)}`
         const isExcluded = !match.selectedForReplace

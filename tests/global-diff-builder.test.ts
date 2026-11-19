@@ -152,7 +152,7 @@ describe('diff-builder', () => {
       expect(diff.groups[0].items[1].replacedText).toBe('PAD')
     })
 
-    it('correctly replaces text when called with query and replacement as separate arguments', () => {
+    it('correctly replaces text when query is passed via options', () => {
       const docNodes: DocAggregateNode[] = [
         {
           rootId: 'doc-sz',
@@ -188,8 +188,9 @@ describe('diff-builder', () => {
         },
       ]
 
-      // 模拟 GlobalSearchDockView 中的调用方式：(docNodes, query, replacement, options)
-      const diff = buildVisualDiff(docNodes, '深圳', '广州', {
+      // 模拟 GlobalSearchDockView 中的调用方式：(docNodes, replacement, options)，query 经 options 传入
+      const diff = buildVisualDiff(docNodes, '广州', {
+        query: '深圳',
         useRegex: false,
         matchCase: false,
         wholeWord: false,

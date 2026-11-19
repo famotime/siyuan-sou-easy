@@ -221,6 +221,10 @@ watch(
   (val) => {
     if (!val) {
       collapsedDocIds.value = new Set()
+    } else {
+      // 打开新弹窗时归零进度，避免上次替换的进度残留（本次未触发 setProgress 时尤为明显）
+      processedBlocks.value = 0
+      totalBlocks.value = 0
     }
   },
 )
