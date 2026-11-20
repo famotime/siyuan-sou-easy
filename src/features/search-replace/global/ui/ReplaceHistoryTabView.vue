@@ -7,8 +7,8 @@
           name="history"
           :size="16"
         />
-        <span class="sfsr-history-tab-title">替换事务历史与回退管理</span>
-        <span class="sfsr-history-tab-subtitle">（并排分屏显示，点击段落可在主编辑区直接定位）</span>
+        <span class="sfsr-history-tab-title">{{ t('globalHistoryTitle') }}</span>
+        <span class="sfsr-history-tab-subtitle">{{ t('globalHistorySubtitle') }}</span>
       </div>
 
       <div class="sfsr-history-tab-actions">
@@ -18,7 +18,7 @@
           :disabled="transactions.length === 0"
           @click="toggleAllCards"
         >
-          {{ isAllExpanded ? '全部收起' : '全部展开' }}
+          {{ isAllExpanded ? t('globalHistoryCollapseAll') : t('globalHistoryExpandAll') }}
         </button>
         <span class="sfsr-divider">|</span>
         <button
@@ -31,7 +31,7 @@
             name="history"
             :size="12"
           />
-          <span>{{ loading ? '刷新中...' : '刷新记录' }}</span>
+          <span>{{ loading ? t('globalHistoryRefreshing') : t('globalHistoryRefresh') }}</span>
         </button>
       </div>
     </div>
@@ -42,13 +42,13 @@
         v-if="loading && transactions.length === 0"
         class="sfsr-history-tab-empty"
       >
-        正在读取替换历史...
+        {{ t('globalHistoryLoading') }}
       </div>
       <div
         v-else-if="transactions.length === 0"
         class="sfsr-history-tab-empty"
       >
-        暂无批量替换历史记录
+        {{ t('globalHistoryEmpty') }}
       </div>
 
       <div
@@ -70,7 +70,7 @@
               <span
                 class="sfsr-tx-expand-arrow"
                 :class="{ 'sfsr-tx-expand-arrow--expanded': isTxExpanded(tx.id) }"
-                aria-label="展开或收起明细"
+                :aria-label="t('globalHistoryToggleAria')"
               >
                 <WireframeIcon
                   name="chevron"
@@ -87,11 +87,11 @@
               <span class="sfsr-tx-repl">“{{ tx.replacement }}”</span>
             </div>
             <div class="sfsr-tx-meta">
-              <span>时间: {{ tx.formattedTime }}</span>
+              <span>{{ t('globalHistoryTimeLabel') }} {{ tx.formattedTime }}</span>
               <span class="sfsr-divider">|</span>
-              <span>替换项: {{ tx.itemCount }} 处</span>
+              <span>{{ t('globalHistoryItemLabel') }} {{ tx.itemCount }} {{ t('globalDiffCountUnit') }}</span>
               <span class="sfsr-divider">|</span>
-              <span class="sfsr-tx-toggle-hint">{{ isTxExpanded(tx.id) ? '收起明细' : '查看明细' }}</span>
+              <span class="sfsr-tx-toggle-hint">{{ isTxExpanded(tx.id) ? t('globalHistoryHideDetail') : t('globalHistoryViewDetail') }}</span>
             </div>
           </div>
 
@@ -102,7 +102,7 @@
             <span
               v-if="tx.reverted"
               class="sfsr-reverted-tag"
-            >已回滚</span>
+            >{{ t('globalHistoryReverted') }}</span>
             <button
               v-else
               class="sfsr-revert-btn"
@@ -110,7 +110,7 @@
               :disabled="revertingId === tx.id"
               @click="onRevert(tx.id)"
             >
-              {{ revertingId === tx.id ? '回滚中...' : '一键回退' }}
+              {{ revertingId === tx.id ? t('globalHistoryReverting') : t('globalHistoryRevertBtn') }}
             </button>
           </div>
         </div>
@@ -124,7 +124,7 @@
             v-if="!tx.items || tx.items.length === 0"
             class="sfsr-history-no-details"
           >
-            无明细数据
+            {{ t('globalHistoryNoDetails') }}
           </div>
           <div
             v-for="group in getTxDocGroups(tx)"
@@ -141,7 +141,7 @@
                 <span
                   class="sfsr-history-doc-arrow"
                   :class="{ 'sfsr-history-doc-arrow--expanded': !isDocCollapsed(tx.id, group.rootId) }"
-                  aria-label="折叠或展开文档"
+                  :aria-label="t('globalDiffToggleDocAria')"
                 >
                   <WireframeIcon
                     name="chevron"
@@ -159,7 +159,7 @@
                   class="sfsr-history-doc-path"
                 >({{ group.hpath }})</span>
               </div>
-              <span class="sfsr-history-doc-count">{{ group.items.length }} 处</span>
+              <span class="sfsr-history-doc-count">{{ group.items.length }} {{ t('globalDiffCountUnit') }}</span>
             </div>
 
             <!-- 文档下的段落对比项列表 -->
@@ -171,7 +171,7 @@
                 v-for="(item, idx) in group.items"
                 :key="`${item.blockId}_${idx}`"
                 class="sfsr-history-diff-item"
-                aria-label="点击在主编辑区定位该块"
+                :aria-label="t('globalHistoryLocateAria')"
                 @click="onNavigateToItem(item)"
               >
                 <DiffComparisonLines
@@ -200,6 +200,7 @@ import {
   ref,
 } from 'vue'
 import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
+import { t } from '@/i18n/runtime'
 import { executeGlobalSearch } from '../store'
 import {
   loadTransactions,
@@ -283,7 +284,7 @@ function getTxDocGroups(tx: ReplaceTransaction): HistoryDocGroup[] {
     if (!group) {
       group = {
         rootId,
-        docTitle: item.docTitle || '未知文档',
+        docTitle: item.docTitle || t('globalHistoryUnknownDoc'),
         hpath: item.hpath || '',
         items: [],
       }
@@ -304,7 +305,7 @@ async function onRevert(txId: string) {
       await refreshTransactions()
       await executeGlobalSearch()
     } else {
-      alert(res.error || '回退失败')
+      alert(res.error || t('globalHistoryRevertFailed'))
     }
   } finally {
     revertingId.value = null

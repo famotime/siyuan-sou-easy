@@ -89,6 +89,7 @@ import type {
 } from '../types'
 import { computed } from 'vue'
 import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
+import { t } from '@/i18n/runtime'
 import {
   globalSearchState,
   navigateToGlobalMatch,
@@ -136,27 +137,27 @@ function isSelected(matchId: string) {
 function formatBlockType(type: GlobalBlockType, match?: GlobalMatchSnippet): string {
   // 1. 标题块：h1-h6 或 type 为 h，明确标识为“标题”
   if (type === 'h' || (match?.subType && /^h[1-6]$/i.test(match.subType))) {
-    return '标题'
+    return t('globalBlockTypeH')
   }
 
   // 2. 文档根块：type 为 d/doc，或者块ID为根文档ID，标识为“文档”
   if (type === 'd' || type === 'doc' || (match && match.blockId === match.rootId)) {
-    return '文档'
+    return t('globalBlockTypeD')
   }
 
   // 3. 具体已支持的细分块类型
   switch (type) {
-    case 'p': return '段落'
-    case 'c': return '代码'
-    case 't': return '表格'
-    case 'l': return '列表'
-    case 'i': return '项'
-    case 'b': return '引述'
-    case 'm': return '公式'
-    case 's': return '超级块'
-    case 'av': return '数据库'
+    case 'p': return t('globalBlockTypeP')
+    case 'c': return t('globalBlockTypeC')
+    case 't': return t('globalBlockTypeT')
+    case 'l': return t('globalBlockTypeL')
+    case 'i': return t('globalBlockTypeI')
+    case 'b': return t('globalBlockTypeB')
+    case 'm': return t('globalBlockTypeM')
+    case 's': return t('globalBlockTypeS')
+    case 'av': return t('globalBlockTypeAv')
     // 4. 其余所有未细分的块类型标识为“块”
-    default: return '块'
+    default: return t('globalBlockTypeFallback')
   }
 }
 </script>

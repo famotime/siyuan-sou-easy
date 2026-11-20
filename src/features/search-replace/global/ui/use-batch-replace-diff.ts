@@ -25,12 +25,15 @@ export interface BatchReplaceDiffDeps {
   /** 仅单词（非多词）查询才允许批量替换 */
   singleKeywordForReplace: Ref<string>
   canBatchReplace: Ref<boolean>
-  /** VisualDiffModal 的模板 ref，用于 setExecuting/setProgress */
-  diffModalRef: Ref<{ setExecuting: (v: boolean) => void, setProgress: (processed: number, total: number) => void } | undefined>
 }
 
 export function useBatchReplaceDiff(deps: BatchReplaceDiffDeps) {
   const showDiffModal = ref(false)
+  const executing = ref(false)
+  const progress = ref({
+    processed: 0,
+    total: 0,
+  })
 
   const currentDiffSummary = ref<DiffSummary>({
     totalCount: 0,
@@ -51,6 +54,11 @@ export function useBatchReplaceDiff(deps: BatchReplaceDiffDeps) {
       wholeWord: globalSearchState.options.wholeWord,
     })
     currentDiffSummary.value = summary
+    // 打开新弹窗时归零进度，避免上次替换的进度残留（本次未触发进度回调时尤为明显）
+    progress.value = {
+      processed: 0,
+      total: 0,
+    }
     showDiffModal.value = true
   }
 
@@ -81,14 +89,17 @@ export function useBatchReplaceDiff(deps: BatchReplaceDiffDeps) {
   }
 
   async function onConfirmExecuteReplace() {
-    deps.diffModalRef.value?.setExecuting(true)
+    executing.value = true
     try {
       const result = await executeBatchReplace(
         currentDiffSummary.value,
         globalSearchState.query,
         globalSearchState.replacement,
         (processed, total) => {
-          deps.diffModalRef.value?.setProgress(processed, total)
+          progress.value = {
+            processed,
+            total,
+          }
         },
       )
       if (result.success) {
@@ -96,18 +107,20 @@ export function useBatchReplaceDiff(deps: BatchReplaceDiffDeps) {
         await executeGlobalSearch()
       }
     } finally {
-      deps.diffModalRef.value?.setExecuting(false)
+      executing.value = false
     }
   }
 
   return {
     closeDiffModal,
     currentDiffSummary,
+    executing,
     onConfirmExecuteReplace,
     onToggleDiffAll,
     onToggleDiffGroup,
     onToggleDiffItem,
     openBatchReplaceDiff,
+    progress,
     showDiffModal,
   }
 }

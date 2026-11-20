@@ -61,27 +61,27 @@ defineEmits<{
 
 const helpItems = computed(() => [
   {
-    tag: 'AND 多词',
+    tag: t('searchHelpTagAnd'),
     example: t('searchHelpExampleAnd'),
     desc: t('searchHelpDescAnd'),
   },
   {
-    tag: '短语匹配',
+    tag: t('searchHelpTagPhrase'),
     example: t('searchHelpExamplePhrase'),
     desc: t('searchHelpDescPhrase'),
   },
   {
-    tag: '排除词 NOT',
+    tag: t('searchHelpTagExclude'),
     example: t('searchHelpExampleExclude'),
     desc: t('searchHelpDescExclude'),
   },
   {
-    tag: '逻辑或 OR',
+    tag: t('searchHelpTagOr'),
     example: t('searchHelpExampleOr'),
     desc: t('searchHelpDescOr'),
   },
   {
-    tag: '属性过滤',
+    tag: t('searchHelpTagFilter'),
     example: t('searchHelpExampleFilter'),
     desc: t('searchHelpDescFilter'),
   },

@@ -89,7 +89,8 @@ export async function searchNotesByKeywords(keywords: string[], limit: number) {
   for (const record of records) {
     const docId = record.root_id || record.id
     if (!docId) continue
-    const docTitle = extractDocTitleFromHpath(record.hpath || '') || '未命名笔记'
+    // extractDocTitleFromHpath 恒有回退值（如"未命名文档"），无需再兜底
+    const docTitle = extractDocTitleFromHpath(record.hpath || '')
     const content = (record.content || record.fcontent || '').trim()
     if (!docMap.has(docId)) {
       docMap.set(docId, {

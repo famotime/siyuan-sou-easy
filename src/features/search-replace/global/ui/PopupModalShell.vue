@@ -20,7 +20,7 @@
           <button
             class="sfsr-popup-close"
             type="button"
-            aria-label="关闭弹窗"
+            :aria-label="t('globalModalCloseAria')"
             @click="$emit('close')"
           >
             <WireframeIcon
@@ -41,6 +41,7 @@
 // 拆分自 GlobalSearchDockView.vue（RF-107）：导出/预设弹窗共用的
 // 遮罩 + 标题栏 + 关闭按钮 + 内容插槽外壳。
 import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
+import { t } from '@/i18n/runtime'
 
 defineProps<{
   visible: boolean

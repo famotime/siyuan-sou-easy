@@ -67,6 +67,7 @@ import {
   searchReplaceState,
 } from '@/features/search-replace/store'
 import { UI_STATE_STORAGE } from '@/features/search-replace/store/ui-state'
+import { createTtlCache } from '@/features/search-replace/ttl-cache'
 import {
   collectKeymapHotkeys,
   findHotkeyConflict,
@@ -430,22 +431,20 @@ export default class FriendlySearchReplacePlugin extends Plugin {
   // handleDocumentKeydown 在每次按键时读取运行时快捷键，
   // resolveHotkeySettingsFromRuntime 会全量遍历思源 keymap 树，这里做短 TTL 缓存。
   // 插件自身的设置/快捷键写入会主动失效；外部（思源设置面板）改键最多延迟一个 TTL。
-  private runtimeHotkeySettingsCache: {
-    expiresAt: number
-    value: ReturnType<typeof resolveHotkeySettingsFromRuntime>
-  } | null = null
-
   private static readonly RUNTIME_HOTKEY_CACHE_TTL_MS = 5000
 
+  private runtimeHotkeySettingsCache = createTtlCache<ReturnType<typeof resolveHotkeySettingsFromRuntime>>(
+    FriendlySearchReplacePlugin.RUNTIME_HOTKEY_CACHE_TTL_MS,
+  )
+
   private invalidateRuntimeHotkeySettingsCache() {
-    this.runtimeHotkeySettingsCache = null
+    this.runtimeHotkeySettingsCache.invalidate()
   }
 
   private getRuntimeHotkeySettings() {
-    const cached = this.runtimeHotkeySettingsCache
-    const now = Date.now()
-    if (cached && now < cached.expiresAt) {
-      return cached.value
+    const cached = this.runtimeHotkeySettingsCache.get('runtime')
+    if (cached !== undefined) {
+      return cached
     }
 
     const value = resolveHotkeySettingsFromRuntime({
@@ -453,10 +452,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
       keymapSources: this.getKeymapHotkeySources(),
       settings: this.settingsData,
     })
-    this.runtimeHotkeySettingsCache = {
-      expiresAt: now + FriendlySearchReplacePlugin.RUNTIME_HOTKEY_CACHE_TTL_MS,
-      value,
-    }
+    this.runtimeHotkeySettingsCache.set('runtime', value)
     return value
   }
 

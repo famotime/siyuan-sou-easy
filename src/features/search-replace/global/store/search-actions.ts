@@ -1,3 +1,4 @@
+import { t } from '@/i18n/runtime'
 import {
   aggregateBlocksToDocs,
   sortDocAggregateNodes,
@@ -90,13 +91,16 @@ export async function executeGlobalSearch() {
     globalSearchState.results = sorted
     globalSearchState.totalDocCount = sorted.length
     globalSearchState.totalMatchCount = sorted.reduce((sum, d) => sum + d.totalCount, 0)
-    globalSearchState.statusMessage = `共命中 ${globalSearchState.totalDocCount} 篇文档，${globalSearchState.totalMatchCount} 处匹配`
+    globalSearchState.statusMessage = t('globalSearchStatus', {
+      docCount: globalSearchState.totalDocCount,
+      matchCount: globalSearchState.totalMatchCount,
+    })
   } catch (err: any) {
     // 过期搜索的异常同样丢弃，避免覆盖新搜索的状态
     if (globalSearchRevision.isStale(revision)) {
       return
     }
-    globalSearchState.error = err.message || '搜索执行失败'
+    globalSearchState.error = err.message || t('globalSearchFailed')
     globalSearchState.results = []
     globalSearchState.searchedQuery = raw
   } finally {

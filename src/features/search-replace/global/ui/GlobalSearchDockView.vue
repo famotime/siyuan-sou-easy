@@ -9,14 +9,14 @@
             :size="14"
           />
         </span>
-        <span class="sfsr-dock-title">全库搜索与替换</span>
+        <span class="sfsr-dock-title">{{ t('globalDockHeaderTitle') }}</span>
       </div>
       <div class="sfsr-dock-header-actions">
         <button
           class="sfsr-dock-action-btn b3-tooltips b3-tooltips__sw"
           :class="{ 'sfsr-dock-action-btn--active': showPresetsModal }"
           type="button"
-          aria-label="常用搜索预设"
+          :aria-label="t('globalDockPresetsBtn')"
           @click="togglePresetsMenu"
         >
           <WireframeIcon
@@ -28,7 +28,7 @@
           class="sfsr-dock-action-btn b3-tooltips b3-tooltips__sw"
           :class="{ 'sfsr-dock-action-btn--active': showExportModal }"
           type="button"
-          aria-label="批量导出结果"
+          :aria-label="t('globalDockExportBtn')"
           @click="toggleExportMenu"
         >
           <WireframeIcon
@@ -39,7 +39,7 @@
         <button
           class="sfsr-dock-action-btn b3-tooltips b3-tooltips__sw"
           type="button"
-          aria-label="替换事务历史与回退（分屏页签打开）"
+          :aria-label="t('globalDockHistoryBtn')"
           @click="openHistoryTab"
         >
           <WireframeIcon
@@ -54,7 +54,7 @@
             'sfsr-dock-action-btn--has-filter': hasActiveFilters,
           }"
           type="button"
-          :aria-label="showAdvancedDrawer ? '收起高级筛选' : '高级筛选与排序'"
+          :aria-label="showAdvancedDrawer ? t('globalDockCollapseAdvanced') : t('globalDockExpandAdvanced')"
           @click="showAdvancedDrawer = !showAdvancedDrawer"
         >
           <WireframeIcon
@@ -73,7 +73,7 @@
           class="sfsr-dock-toggle-replace-btn b3-tooltips b3-tooltips__se"
           :class="{ 'sfsr-dock-toggle-replace-btn--active': state.replaceVisible }"
           type="button"
-          :aria-label="state.replaceVisible ? '收起替换栏' : '展开替换栏'"
+          :aria-label="state.replaceVisible ? t('globalDockCollapseReplace') : t('globalDockExpandReplace')"
           @click="toggleGlobalReplace"
         >
           <WireframeIcon
@@ -88,7 +88,7 @@
             v-model="state.query"
             class="sfsr-dock-input sfsr-dock-input--search"
             type="text"
-            placeholder="搜索全库... (Enter 搜, Esc 关)"
+            :placeholder="t('globalDockSearchPlaceholder')"
             @keydown.enter="onEnterSearch"
             @keydown.esc.stop="onInputEsc"
           >
@@ -97,7 +97,7 @@
               v-if="state.query"
               class="sfsr-dock-clear-btn b3-tooltips b3-tooltips__s"
               type="button"
-              aria-label="清空搜索词"
+              :aria-label="t('globalDockClearSearch')"
               @click="clearQuery"
             >
               <WireframeIcon
@@ -113,7 +113,7 @@
               <button
                 class="sfsr-dock-help-btn"
                 type="button"
-                aria-label="搜索语法与样例"
+                :aria-label="t('globalDockSearchHelp')"
                 @click.stop="toggleHelpPopover"
               >
                 <WireframeIcon
@@ -129,7 +129,7 @@
           class="sfsr-dock-search-btn b3-tooltips b3-tooltips__w"
           type="button"
           :disabled="state.searching"
-          aria-label="执行搜索 (Enter)"
+          :aria-label="t('globalDockSearchBtn')"
           @click="onEnterSearch"
         >
           <WireframeIcon
@@ -159,7 +159,7 @@
             v-model="state.replacement"
             class="sfsr-dock-input sfsr-dock-input--replace"
             type="text"
-            placeholder="输入全库替换文本..."
+            :placeholder="t('globalDockReplacePlaceholder')"
             @keydown.enter="onEnterSearch"
             @keydown.esc.stop="onInputEsc"
           >
@@ -167,7 +167,7 @@
             v-if="state.replacement"
             class="sfsr-dock-clear-btn b3-tooltips b3-tooltips__s"
             type="button"
-            aria-label="清空替换词"
+            :aria-label="t('globalDockClearReplace')"
             @click="state.replacement = ''"
           >
             <WireframeIcon
@@ -198,7 +198,7 @@
             class="sfsr-dock-opt-btn b3-tooltips b3-tooltips__se"
             :class="{ 'sfsr-dock-opt-btn--active': state.options.matchCase }"
             type="button"
-            :aria-label="state.options.matchCase ? '区分大小写（已开启）' : '区分大小写 (Match Case)'"
+            :aria-label="state.options.matchCase ? t('globalDockMatchCaseOn') : t('globalDockMatchCaseOff')"
             @click="toggleGlobalOption('matchCase')"
           >
             Aa
@@ -207,7 +207,7 @@
             class="sfsr-dock-opt-btn b3-tooltips b3-tooltips__s"
             :class="{ 'sfsr-dock-opt-btn--active': state.options.wholeWord }"
             type="button"
-            :aria-label="state.options.wholeWord ? '全词匹配（已开启）' : '全词匹配 (Whole Word)'"
+            :aria-label="state.options.wholeWord ? t('globalDockWholeWordOn') : t('globalDockWholeWordOff')"
             @click="toggleGlobalOption('wholeWord')"
           >
             \b
@@ -219,7 +219,7 @@
               'b3-tooltips b3-tooltips__s': !state.options.useRegex,
             }"
             type="button"
-            :aria-label="state.options.useRegex ? undefined : '正则表达式 (Regex)'"
+            :aria-label="state.options.useRegex ? undefined : t('globalDockRegexOff')"
             @mouseenter="onRegexBtnMouseEnter"
             @mouseleave="onRegexBtnMouseLeave"
             @click="onToggleRegexOption"
@@ -230,17 +230,17 @@
             class="sfsr-dock-opt-btn b3-tooltips b3-tooltips__sw"
             :class="{ 'sfsr-dock-opt-btn--active': state.options.pinyin }"
             type="button"
-            :aria-label="state.options.pinyin ? '拼音搜索（已开启）' : '拼音搜索 (Pinyin)'"
+            :aria-label="state.options.pinyin ? t('globalDockPinyinOn') : t('globalDockPinyinOff')"
             @click="toggleGlobalOption('pinyin')"
           >
-            拼
+            {{ t('globalDockPinyinChip') }}
           </button>
         </div>
 
         <label
           class="sfsr-dock-opt-btn sfsr-dock-opt-chip b3-tooltips b3-tooltips__s"
           :class="{ 'sfsr-dock-opt-btn--active': state.options.docOnly }"
-          :aria-label="state.options.docOnly ? '仅匹配文档（已开启）' : '仅匹配文档'"
+          :aria-label="state.options.docOnly ? t('globalDockDocOnlyOn') : t('globalDockDocOnlyOff')"
         >
           <input
             type="checkbox"
@@ -253,13 +253,13 @@
             name="document"
             :size="11"
           />
-          <span class="sfsr-dock-chip-text">仅文档</span>
+          <span class="sfsr-dock-chip-text">{{ t('globalDockDocOnlyChip') }}</span>
         </label>
 
         <button
           class="sfsr-dock-opt-btn sfsr-dock-collapse-btn b3-tooltips b3-tooltips__sw"
           type="button"
-          :aria-label="isAllCollapsed ? '全部展开文档' : '全部折叠文档'"
+          :aria-label="isAllCollapsed ? t('globalDockExpandAllDocs') : t('globalDockCollapseAllDocs')"
           :disabled="state.results.length === 0"
           @click="onToggleCollapseAll"
         >
@@ -292,16 +292,16 @@
       />
       <div class="sfsr-dock-sort-row">
         <label class="sfsr-dock-sort-label">
-          排序:
+          {{ t('globalDockSortLabel') }}
           <select
             :value="state.sortMode"
             class="sfsr-dock-sort-select"
             @change="onSortChange"
           >
-            <option value="relevance">相关度优先</option>
-            <option value="updatedDesc">修改时间倒序</option>
-            <option value="createdDesc">创建时间倒序</option>
-            <option value="readingOrder">路径/阅读顺序</option>
+            <option value="relevance">{{ t('globalDockSortRelevance') }}</option>
+            <option value="updatedDesc">{{ t('globalDockSortUpdatedDesc') }}</option>
+            <option value="createdDesc">{{ t('globalDockSortCreatedDesc') }}</option>
+            <option value="readingOrder">{{ t('globalDockSortReadingOrder') }}</option>
           </select>
         </label>
       </div>
@@ -321,7 +321,7 @@
         v-if="state.searching"
         class="sfsr-dock-empty"
       >
-        正在高速检索全库数据...
+        {{ t('globalDockSearching') }}
       </div>
       <div
         v-else-if="state.error"
@@ -333,37 +333,46 @@
         v-else-if="!state.query.trim()"
         class="sfsr-dock-empty sfsr-dock-empty--hint"
       >
-        输入关键词并按 Enter 全库检索
+        {{ t('globalDockEmptyHint') }}
       </div>
       <div
         v-else-if="isDraftQuery"
         class="sfsr-dock-empty sfsr-dock-empty--draft"
       >
-        按 Enter 检索: {{ displayDraftKeyword }}
+        {{ t('globalDockDraftHint') }} {{ displayDraftKeyword }}
       </div>
       <div
         v-else-if="state.results.length === 0"
         class="sfsr-dock-empty"
       >
-        未找到匹配文档内容
+        {{ t('globalDockNoResults') }}
       </div>
       <div
         v-else
         class="sfsr-dock-results"
       >
         <DocAggregateItem
-          v-for="doc in state.results"
+          v-for="doc in visibleResults"
           :key="doc.rootId"
           :doc="doc"
         />
+        <button
+          v-if="hiddenResultCount > 0"
+          class="sfsr-dock-load-more"
+          type="button"
+          @click="loadMoreResults"
+        >
+          {{ t('globalDockLoadMore', { count: hiddenResultCount }) }}
+        </button>
       </div>
     </div>
 
     <!-- Visual Diff 差异对比视窗 (屏幕居中宽屏 Modal) -->
     <Teleport to="body">
       <VisualDiffModal
-        ref="diffModalRef"
         :visible="showDiffModal"
+        :executing="batchDiff.executing"
+        :progress="batchDiff.progress"
         :diff-summary="currentDiffSummary"
         @cancel="closeDiffModal"
         @confirm="onConfirmExecuteReplace"
@@ -440,10 +449,26 @@ import { useHoverPopover } from './use-hover-popover'
 import VisualDiffModal from './VisualDiffModal.vue'
 
 const inputRef = ref<HTMLInputElement>()
-const diffModalRef = ref<InstanceType<typeof VisualDiffModal>>()
 
 const notebooks = ref<NotebookInfo[]>([])
 const showAdvancedDrawer = ref(false)
+
+// 结果列表窗口化渲染（RF-203）：拼音模式 limit=2000 时不全量渲染 DocAggregateItem
+const RESULT_PAGE_SIZE = 50
+const visibleResultCount = ref(RESULT_PAGE_SIZE)
+const visibleResults = computed(() => state.results.slice(0, visibleResultCount.value))
+const hiddenResultCount = computed(() => Math.max(0, state.results.length - visibleResultCount.value))
+// 新一轮搜索（results 数组整体替换）时窗口重置回首屏
+watch(
+  () => state.results,
+  () => {
+    visibleResultCount.value = RESULT_PAGE_SIZE
+  },
+)
+
+function loadMoreResults() {
+  visibleResultCount.value += RESULT_PAGE_SIZE
+}
 
 const isDraftQuery = computed(() => {
   const trimmed = state.query.trim()
@@ -483,7 +508,7 @@ const replaceBtnTooltip = computed(() => {
   if (parsedCurrentQuery.value.isMultiTermQuery) {
     return t('multiTermReplaceDisabled')
   }
-  return '差异预览与替换'
+  return t('globalDockReplaceTooltip')
 })
 
 // 搜索语法 / 正则两个 hover 弹窗（RF-107：抽离共用的延迟开启/关闭计时器逻辑）
@@ -621,6 +646,10 @@ function onSortChange(e: Event) {
 
 // 批量替换 Diff 弹窗编排（RF-107：抽离至 use-batch-replace-diff.ts）
 const keywordForReplace = computed(() => parsedCurrentQuery.value.singleKeyword || state.query)
+const batchDiff = useBatchReplaceDiff({
+  canBatchReplace,
+  singleKeywordForReplace: keywordForReplace,
+})
 const {
   closeDiffModal,
   currentDiffSummary,
@@ -630,11 +659,7 @@ const {
   onToggleDiffItem,
   openBatchReplaceDiff,
   showDiffModal,
-} = useBatchReplaceDiff({
-  canBatchReplace,
-  diffModalRef,
-  singleKeywordForReplace: keywordForReplace,
-})
+} = batchDiff
 
 async function openHistoryTab() {
   await openReplaceHistoryTab('right')
@@ -1126,6 +1151,23 @@ onUnmounted(() => {
 .sfsr-dock-results {
   display: flex;
   flex-direction: column;
+}
+
+.sfsr-dock-load-more {
+  margin: 6px auto 2px;
+  padding: 4px 12px;
+  border: 1px solid var(--b3-border-color, rgba(128, 128, 128, 0.2));
+  border-radius: 12px;
+  background: var(--b3-theme-surface, transparent);
+  color: var(--b3-theme-on-surface);
+  cursor: pointer;
+  font-size: 11px;
+  transition: all 0.15s ease;
+}
+
+.sfsr-dock-load-more:hover {
+  border-color: var(--b3-theme-primary);
+  color: var(--b3-theme-primary);
 }
 
 </style>

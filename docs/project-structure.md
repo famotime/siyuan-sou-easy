@@ -2,7 +2,7 @@
 
 本文档记录 `siyuan-sou-easy` 插件的代码组织、核心模块划分与职责映射，供开发者与维护 Agent 查阅。
 
-> 状态基准：第 2 轮重构（RF-101~RF-114，见 `docs/refactor-plan.md`）完成后的结构，99 个测试文件 / 527 用例全过。
+> 状态基准：第 2 轮重构（RF-101~RF-114）与遗留项轮（RF-201~RF-204，见 `docs/refactor-plan.md`）完成后的结构，101 个测试文件 / 537 用例全过。
 
 ## 1. 目录总览
 
@@ -18,6 +18,7 @@ siyuan-sou-easy/
 │   ├── index.scss                    # 全局及组件样式
 │   ├── plugin-instance.ts            # 插件实例全局引用 (供 i18n 等模块访问)
 │   ├── lunaria-bus.ts                # Lunaria 工具总线注册体与 searchNotesByKeywords 执行
+│   ├── ttl-cache.ts                  # 共享 TTL 缓存（运行时快捷键/文档只读态）
 │   ├── components/                   # 公共 UI 组件
 │   │   └── SiyuanTheme/              # WireframeIcon 线框图标组件
 │   ├── features/search-replace/      # 核心业务功能目录
@@ -103,7 +104,7 @@ siyuan-sou-easy/
 │   │       ├── filter-utils.ts       # hasActiveGlobalFilters 共享谓词 (双实现漂移修复)
 │   │       ├── dock-manager.ts       # 思源 Dock 挂载与焦点管理
 │   │       ├── history-tab-manager.ts# 替换历史独立 Tab 挂载
-│   │       ├── doc-aggregator.ts     # 全库结果聚合与排序 (跨块校验已拆 verifyCrossBlockMatch)
+│   │       ├── doc-aggregator.ts     # 全库结果聚合与排序 (跨块校验复用收集阶段 matchedTerms，RF-201 修复正则/拼音词误杀)
 │   │       ├── replace-engine.ts     # 全库批量替换引擎与事务生成
 │   │       ├── diff-builder.ts       # 替换差异计算 + recalculateDiffSummary 汇总重算
 │   │       ├── transaction-history.ts# 替换事务历史记录与回退管理
@@ -114,7 +115,7 @@ siyuan-sou-easy/
 │   │       ├── pinyin-match.ts       # 拼音模糊匹配
 │   │       ├── pinyin/               # 拼音词典与拼音检索引擎
 │   │       └── ui/                   # 全库搜索 UI 组件
-│   │           ├── GlobalSearchDockView.vue # 全库搜索主视图 (弹窗/Popover/Diff 编排已拆出)
+│   │           ├── GlobalSearchDockView.vue # 全库搜索主视图 (弹窗/Popover/Diff 编排已拆出；结果列表窗口化渲染)
 │   │           ├── DocAggregateItem.vue     # 单文档匹配折叠项
 │   │           ├── FilterPillsBar.vue       # 过滤标签栏
 │   │           ├── PopupModalShell.vue      # 弹窗外壳 (遮罩/标题栏/关闭)
@@ -128,7 +129,7 @@ siyuan-sou-easy/
 │   │           ├── use-hover-popover.ts     # hover 弹窗延迟开/关计时器 Hook
 │   │           ├── use-batch-replace-diff.ts# 批量替换 Diff 弹窗编排 Hook
 │   │           └── use-toggle-set.ts        # Set 折叠切换共享 Hook
-│   ├── i18n/                         # 国际化语言包 (zh_CN.json, en_US.json)
+│   ├── i18n/                         # 国际化语言包 (zh_CN.json, en_US.json，各 220 key，全库 UI 已全部接入 t())
 │   └── types/                        # 全局 TypeScript 类型声明
 ├── tests/                            # 自动化测试套件 (99 文件 / 527 用例)
 │   ├── helpers/                      # 共享测试工具层

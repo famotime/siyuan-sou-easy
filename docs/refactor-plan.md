@@ -69,7 +69,10 @@
 | RF-112 | 2026-11-20 | 2026-11-20 | lunaria 定向 5 新用例 + 入口回归 + 全量 527 pass + typecheck/eslint 干净 | pass | 待统一刷新 | index.ts Lunaria 注册体抽 lunaria-bus.ts；工具描述修正 keywords AND 语义说明（运行时不变）；新增 5 单测钉住 root_id 回退与标题回退现状 |
 | RF-113 | 2026-11-20 | 2026-11-20 | Diff UI 定向 11 用例 + 全量 527 pass + typecheck/eslint 干净 | pass | 待统一刷新 | 新增 DiffComparisonLines.vue（模板+约 110 行 CSS 去重）与 useToggleSet（三处折叠切换收敛）；两组件改用后行为不变 |
 | RF-114 | 2026-11-21 | 2026-11-21 | 全量 99 文件 / 527 pass（守恒）+ typecheck/eslint 干净 | pass | 待统一刷新 | vitest 默认环境 node→jsdom；65 处 jsdom pragma 移除、33 处 node 反向标注（逐文件环境等价；canvas-live-refresh 的 docblock 误判已修正）；三大测试文件按主题补 14 个嵌套 describe |
-
+| RF-201 | 2026-11-21 | 2026-11-21 | 钉住测试红→绿 + 聚合定向 17/17 + 全量 529 pass | pass | 待统一刷新 | GlobalMatchSnippet 增 matchedTerms（收集阶段真实命中词），verifyCrossBlockMatch 联合判定；正则词（深.+）与拼音词（sz+ddc）跨块联合命中从恒丢弃变为正确命中；普通词路径行为不变 |
+| RF-204 | 2026-11-21 | 2026-11-21 | ttl-cache 4 新用例 + 相关定向 39 用例 + 全量 533 pass | pass | 待统一刷新 | VisualDiffModal 改 props 驱动（executing/progress），diffModalRef 删除；createTtlCache 统一 index/search-controller 手写缓存；lunaria 死分支移除 |
+| RF-203 | 2026-11-21 | 2026-11-21 | 分页 4 新用例红→绿 + 相关定向 + 全量 537 pass | pass | 待统一刷新 | DockView 结果列表首屏 50 篇 + 加载更多按钮渐进扩展；results 数组替换时窗口重置；拼音 limit=2000 不再全量渲染 |
+| RF-202 | 2026-11-21 | 2026-11-21 | release-precheck key 对齐 + 全量 537 pass + CJK 审计归零 + build 通过 | pass | 待统一刷新 | 语言包 97→220 key（中英对齐），全库 UI 约 125 处硬编码中文抽 key 补英文；状态消息插值化；zh 值逐字保持原串故既有断言全绿 |
 ## 5. 决策与确认
 
 - 用户批准的条目：RF-101~RF-114 全部批准（2026-11-20，AskUserQuestion 确认"全部批准 RF-101~RF-114"）
@@ -83,15 +86,21 @@
 - `README.md`：用户可见能力与开发命令核对无过期项；补充 `docs/project-structure.md` 架构文档链接。
 - 最终同步检查：`pnpm typecheck` 干净 + `pnpm test` 99 文件 / 527 用例全过 + `eslint src/ tests/` 0 错误 + `pnpm build` 产物校验通过（2026-11-21）。
 
-## 7. 范围外备注（本次不做，留待产品决策或后续轮次）
+## 7. 范围外备注 → 遗留项轮（RF-201~RF-204）
 
-1. **i18n 一致化**：GlobalSearchDockView 约 40 处硬编码中文 vs 两个 HelpPopover 全走 `t()`；是否补齐双语 key 取决于产品语言策略。
-2. **结果列表窗口化渲染**：拼音模式 `limit=2000` 全量渲染 DocAggregateItem 的性能保护（新能力，非重构）。
-3. **doc-aggregator 跨块校验语义修正**：正则/拼音词在跨块联合匹配中被 `includes` 误杀——已由 RF-111 的钉住测试固化现状（`tests/global-search-aggregator.test.ts`），修复属行为变更需单独决策。
-4. **defineExpose → props/emits 改造**、**手写 TTL 缓存统一**、**lunaria 中 `|| '未命名笔记'` 死分支**：风格改进，价值一般（lunaria 现状已在单测中钉住）。
+> 2026-11-21 用户确认全部四项列入执行（AskUserQuestion 多选全选）。
+
+| ID | 优先级 | 模块/场景 | 涉及文件 | 重构目标 | 风险等级 | 重构前测试清单 | 文档影响 | 状态 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| RF-201 | P0 | 跨块校验误杀修复（行为变更） | `global/doc-aggregator.ts`<br>`global/types.ts`<br>`tests/global-search-aggregator.test.ts` | 验证改为复用收集阶段的真实匹配结果：`GlobalMatchSnippet` 增加可选 `matchedTerms`（收集阶段已计算的块内命中词集合），`verifyCrossBlockMatch` 联合各块 `matchedTerms` 判定，替代对 occ.text 的 `includes` 字面扫描（含 regex/pinyin 误杀）；缺失字段时保留旧扫描兜底 | 中（行为变更：正则/拼音多词跨块联合匹配从"恒丢弃"变为"正确命中"） | - [x] 钉住测试更新：普通词 cross-block/exact-block 保持通过，正则词（`深.+`）用例改为断言 cross-block 命中，新增拼音词（sz+ddc）跨块用例与 matchedTerms 透传断言（红→绿）<br>- [x] `pnpm test tests/global-search-aggregator.test.ts` 17/17 + 相关定向通过<br>- [x] `pnpm test` 全量 529 pass<br>- [x] `pnpm typecheck` + eslint 干净 | `project-structure.md`：doc-aggregator 描述更新 | done |
+| RF-204 | P2 | 风格项清理 | `global/ui/VisualDiffModal.vue`、`global/ui/use-batch-replace-diff.ts`、`global/ui/GlobalSearchDockView.vue`<br>新增 `ttl-cache.ts` + `tests/ttl-cache.test.ts`（4 用例）<br>`index.ts`、`store/search-controller.ts`<br>`lunaria-bus.ts` | VisualDiffModal 的 `defineExpose(setExecuting/setProgress)` 改为 props 驱动（进度归零移至父组件 open 时重置）；手写 TTL 缓存统一为共享 `createTtlCache`（index 热键缓存单键、controller 只读态按 rootId 多键，falsy 值不视为缺失）；移除 lunaria `|| '未命名笔记'` 永不为真死分支 | 低 | - [x] 新增 ttl-cache 4 用例（TTL 过期/falsy 值/单键与全部失效/覆盖刷新）<br>- [x] 定向 39 用例 + `pnpm test` 全量 533 pass<br>- [x] `pnpm typecheck` + eslint 干净 | `project-structure.md`：微调 | done |
+| RF-203 | P2 | 结果列表窗口化渲染（新能力） | `global/ui/GlobalSearchDockView.vue`<br>新增 `tests/global-search-dock-pagination.test.ts`（4 用例） | 结果列表首屏限量渲染（50 篇文档）+ "加载更多（还有 N 篇）"按钮渐进扩展，拼音模式 limit=2000 不再全量渲染；results 数组整体替换（新搜索）时窗口自动重置回首屏 | 低 | - [x] 新增 4 用例（首屏限量/点击扩展/不足一页无按钮/重搜重置，红→绿）<br>- [x] `pnpm test` 全量 537 pass<br>- [x] `pnpm typecheck` + eslint 干净 | `project-structure.md`：微调 | done |
+| RF-202 | P1 | i18n 一致化补齐 | `global/ui/*.vue`（DockView/弹窗/FilterPillsBar/DocAggregateItem/ReplaceHistoryTabView/DiffComparisonLines/PopupModalShell/SearchHelpPopover）<br>`global/store/search-actions.ts`<br>`src/i18n/zh_CN.json`、`src/i18n/en_US.json`（97→220 key） | 全库 UI 约 125 处硬编码中文（aria-label/placeholder/按钮/空态/排序项/块类型标签/状态消息/帮助标签）全部抽入语言包并补英文翻译；zh 值与原字符串逐字一致（t() 无插件实例回退 zh_CN，既有断言全绿）；状态消息改用 {docCount}/{matchCount} 插值；CJK 残留审计归零 | 低-中 | - [x] 确认 runtime 回退：`t()` 无插件实例时回退 zh_CN[key]<br>- [x] `pnpm test tests/panel-i18n.test.ts tests/release-precheck.test.ts`（key 对齐校验通过）<br>- [x] `pnpm test` 全量 537 pass + CJK 残留审计归零<br>- [x] `pnpm build` 通过 | `project-structure.md`：i18n 说明更新 | done |
+
+状态说明：`pending` / `in_progress` / `done` / `blocked`
 
 ## 8. 下一步
 
-1. 第 2 轮重构（RF-101~RF-114）已全部完成并通过最终同步检查。
-2. 建议以一个 `refactor` 提交（或按 P0/P1/P2 分三个提交）入库本批改动。
-3. 范围外备注中的行为级修复（尤其第 3 项）可在下一轮单独决策执行。
+1. 第 2 轮重构（RF-101~RF-114）已提交（7883de1）。
+2. 遗留项轮 RF-201~RF-204 执行中（用户 2026-11-21 批准全部四项）。
+3. 完成后刷新文档并提交。

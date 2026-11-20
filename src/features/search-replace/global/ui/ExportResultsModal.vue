@@ -2,7 +2,7 @@
   <PopupModalShell
     :visible="visible"
     icon="export"
-    title="批量导出搜索结果"
+    :title="t('globalExportModalTitle')"
     @close="$emit('close')"
   >
     <button
@@ -14,7 +14,7 @@
         name="document"
         :size="13"
       />
-      <span>复制为 Markdown 链接列表</span>
+      <span>{{ t('globalExportMarkdown') }}</span>
     </button>
     <button
       class="sfsr-popup-btn"
@@ -25,7 +25,7 @@
         name="link"
         :size="13"
       />
-      <span>复制为思源块引用列表 ((id '锚文本'))</span>
+      <span>{{ t('globalExportBlockRefs') }}</span>
     </button>
     <button
       class="sfsr-popup-btn"
@@ -36,13 +36,14 @@
         name="code"
         :size="13"
       />
-      <span>复制为思源 SQL 嵌入块</span>
+      <span>{{ t('globalExportEmbedSql') }}</span>
     </button>
   </PopupModalShell>
 </template>
 
 <script setup lang="ts">
 import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
+import { t } from '@/i18n/runtime'
 // 拆分自 GlobalSearchDockView.vue（RF-107）：批量导出弹窗。
 // 导出结果写回全局 state.statusMessage 的行为与原实现保持一致。
 import {
@@ -67,7 +68,7 @@ async function onExportMarkdown() {
   const ok = await copyToClipboard(content)
   emit('close')
   if (ok) {
-    globalSearchState.statusMessage = '已复制 Markdown 链接列表到剪贴板'
+    globalSearchState.statusMessage = t('globalExportCopiedMarkdown')
   }
 }
 
@@ -76,7 +77,7 @@ async function onExportBlockRefs() {
   const ok = await copyToClipboard(content)
   emit('close')
   if (ok) {
-    globalSearchState.statusMessage = '已复制思源块引用列表到剪贴板'
+    globalSearchState.statusMessage = t('globalExportCopiedBlockRefs')
   }
 }
 
@@ -85,7 +86,7 @@ async function onExportEmbedSql() {
   const ok = await copyToClipboard(content)
   emit('close')
   if (ok) {
-    globalSearchState.statusMessage = '已复制思源 SQL 嵌入块到剪贴板'
+    globalSearchState.statusMessage = t('globalExportCopiedEmbedSql')
   }
 }
 </script>

@@ -2,7 +2,7 @@
   <div class="sfsr-pills-bar">
     <!-- 内容类型胶囊 -->
     <div class="sfsr-pill-group">
-      <span class="sfsr-pill-label">类型:</span>
+      <span class="sfsr-pill-label">{{ t('globalFilterTypeLabel') }}</span>
       <button
         v-for="item in typeOptions"
         :key="item.key"
@@ -17,7 +17,7 @@
 
     <!-- 时间范围胶囊 -->
     <div class="sfsr-pill-group">
-      <span class="sfsr-pill-label">更新时间:</span>
+      <span class="sfsr-pill-label">{{ t('globalFilterTimeLabel') }}</span>
       <button
         v-for="item in timeOptions"
         :key="item.key"
@@ -35,14 +35,14 @@
       v-if="notebooks.length > 0"
       class="sfsr-pill-group"
     >
-      <span class="sfsr-pill-label">笔记本:</span>
+      <span class="sfsr-pill-label">{{ t('globalFilterNotebookLabel') }}</span>
       <select
         :value="filters.notebookId || ''"
         class="sfsr-pill-select"
         @change="onNotebookChange"
       >
         <option value="">
-          全部笔记本
+          {{ t('globalFilterAllNotebooks') }}
         </option>
         <option
           v-for="nb in notebooks"
@@ -61,7 +61,7 @@
       class="sfsr-pill-reset"
       @click="resetFilters"
     >
-      重置过滤
+      {{ t('globalFilterReset') }}
     </button>
   </div>
 </template>
@@ -70,6 +70,7 @@
 import type { NotebookInfo } from '../kernel-query'
 import type { GlobalSearchFilters } from '../types'
 import { computed } from 'vue'
+import { t } from '@/i18n/runtime'
 import { hasActiveGlobalFilters } from '../filter-utils'
 
 const props = defineProps<{
@@ -83,43 +84,44 @@ const emit = defineEmits<{
 
 const notebooks = computed(() => props.notebooks || [])
 
-const typeOptions = [
+// 选项文案走 i18n（RF-202）：响应语言切换需保持 computed
+const typeOptions = computed(() => [
   {
     key: 'p',
-    label: '正文',
+    label: t('globalFilterTypeP'),
   },
   {
     key: 'h',
-    label: '标题',
+    label: t('globalFilterTypeH'),
   },
   {
     key: 'c',
-    label: '代码',
+    label: t('globalFilterTypeC'),
   },
   {
     key: 't',
-    label: '表格',
+    label: t('globalFilterTypeT'),
   },
-]
+])
 
-const timeOptions = [
+const timeOptions = computed(() => [
   {
     key: 'today',
-    label: '今天',
+    label: t('globalFilterTimeToday'),
   },
   {
     key: '3d',
-    label: '近3天',
+    label: t('globalFilterTime3d'),
   },
   {
     key: '7d',
-    label: '近7天',
+    label: t('globalFilterTime7d'),
   },
   {
     key: '30d',
-    label: '近30天',
+    label: t('globalFilterTime30d'),
   },
-]
+])
 
 function isTypeSelected(key: string) {
   return props.filters.types?.includes(key)

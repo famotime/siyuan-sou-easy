@@ -1,13 +1,13 @@
 <template>
   <div class="sfsr-diff-comparison">
     <div class="sfsr-diff-line sfsr-diff-line--before">
-      <span class="sfsr-diff-badge sfsr-diff-badge--del">- 原文</span>
+      <span class="sfsr-diff-badge sfsr-diff-badge--del">{{ t('globalDiffBadgeDel') }}</span>
       <span class="sfsr-diff-text">
         {{ prefixText }}<del class="sfsr-del-highlight">{{ matchedText }}</del>{{ suffixText }}
       </span>
     </div>
     <div class="sfsr-diff-line sfsr-diff-line--after">
-      <span class="sfsr-diff-badge sfsr-diff-badge--ins">+ 替换</span>
+      <span class="sfsr-diff-badge sfsr-diff-badge--ins">{{ t('globalDiffBadgeIns') }}</span>
       <span class="sfsr-diff-text">
         {{ prefixText }}<ins class="sfsr-ins-highlight">{{ replacedText }}</ins>{{ suffixText }}
       </span>
@@ -19,6 +19,8 @@
 // 拆分自 VisualDiffModal.vue / ReplaceHistoryTabView.vue（RF-113）：
 // 两处逐字重复的「- 原文 / + 替换」对比行模板与样式。
 // 回退逻辑（如 matchedText || tx.query）由调用方解析后传入。
+import { t } from '@/i18n/runtime'
+
 defineProps<{
   matchedText: string
   prefixText: string

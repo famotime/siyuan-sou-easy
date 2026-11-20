@@ -11,12 +11,12 @@
             name="diff"
             :size="15"
           />
-          <span>批量替换变更对比 (Visual Diff)</span>
+          <span>{{ t('globalDiffModalTitle') }}</span>
         </div>
         <button
           class="sfsr-diff-close"
           type="button"
-          aria-label="关闭对比视窗"
+          :aria-label="t('globalDiffClose')"
           @click="onCancel"
         >
           <WireframeIcon
@@ -28,11 +28,11 @@
 
       <div class="sfsr-diff-summary-bar">
         <div class="sfsr-diff-stats">
-          <span>总计待替换: <strong>{{ diffSummary.includedCount }}</strong> 处</span>
+          <span>{{ t('globalDiffTotalLabel') }} <strong>{{ diffSummary.includedCount }}</strong> {{ t('globalDiffCountUnit') }}</span>
           <span class="sfsr-divider">|</span>
-          <span>已排除: <strong>{{ diffSummary.excludedCount }}</strong> 处</span>
+          <span>{{ t('globalDiffExcludedLabel') }} <strong>{{ diffSummary.excludedCount }}</strong> {{ t('globalDiffCountUnit') }}</span>
           <span class="sfsr-divider">|</span>
-          <span>受影响文档: <strong>{{ diffSummary.affectedDocCount }}</strong> 篇</span>
+          <span>{{ t('globalDiffAffectedLabel') }} <strong>{{ diffSummary.affectedDocCount }}</strong> {{ t('globalDiffDocUnit') }}</span>
         </div>
         <div class="sfsr-diff-quick-actions">
           <button
@@ -40,14 +40,14 @@
             type="button"
             @click="toggleIncludeAll(true)"
           >
-            全部包含
+            {{ t('globalDiffIncludeAll') }}
           </button>
           <button
             class="sfsr-diff-text-btn"
             type="button"
             @click="toggleIncludeAll(false)"
           >
-            全部排除
+            {{ t('globalDiffExcludeAll') }}
           </button>
           <span class="sfsr-divider">|</span>
           <button
@@ -55,14 +55,14 @@
             type="button"
             @click="toggleCollapseAll(true)"
           >
-            全部折叠
+            {{ t('globalDiffCollapseAll') }}
           </button>
           <button
             class="sfsr-diff-text-btn"
             type="button"
             @click="toggleCollapseAll(false)"
           >
-            全部展开
+            {{ t('globalDiffExpandAll') }}
           </button>
         </div>
       </div>
@@ -82,7 +82,7 @@
               <span
                 class="sfsr-diff-group-arrow"
                 :class="{ 'sfsr-diff-group-arrow--expanded': !isGroupCollapsed(group.rootId) }"
-                aria-label="折叠或展开文档"
+                :aria-label="t('globalDiffToggleDocAria')"
               >
                 <WireframeIcon
                   name="chevron"
@@ -112,7 +112,7 @@
                 class="sfsr-group-path"
               >({{ group.hpath }})</span>
             </div>
-            <span class="sfsr-group-count">{{ group.items.length }} 处</span>
+            <span class="sfsr-group-count">{{ group.items.length }} {{ t('globalDiffCountUnit') }}</span>
           </div>
 
           <div
@@ -152,7 +152,7 @@
           class="sfsr-progress-bar"
           :style="{ width: `${progressPercent}%` }"
         />
-        <span class="sfsr-progress-text">正在安全执行替换... ({{ processedBlocks }} / {{ totalBlocks }})</span>
+        <span class="sfsr-progress-text">{{ t('globalDiffProgressPrefix') }} ({{ processedBlocks }} / {{ totalBlocks }})</span>
       </div>
 
       <div class="sfsr-diff-footer">
@@ -162,7 +162,7 @@
           :disabled="executing"
           @click="onCancel"
         >
-          取消
+          {{ t('globalDiffCancelBtn') }}
         </button>
         <button
           class="sfsr-btn sfsr-btn--primary"
@@ -170,7 +170,7 @@
           :disabled="executing || diffSummary.includedCount === 0"
           @click="onConfirm"
         >
-          {{ executing ? '替换中...' : `确认执行替换 (${diffSummary.includedCount} 处)` }}
+          {{ executing ? t('globalDiffExecutingBtn') : t('globalDiffConfirmBtn', { count: diffSummary.includedCount }) }}
         </button>
       </div>
     </div>
@@ -185,16 +185,19 @@ import type {
 } from '../diff-builder'
 import {
   computed,
-  ref,
   watch,
 } from 'vue'
 import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
+import { t } from '@/i18n/runtime'
 import DiffComparisonLines from './DiffComparisonLines.vue'
 import { useToggleSet } from './use-toggle-set'
 
 const props = defineProps<{
   visible: boolean
   diffSummary: DiffSummary
+  /** 替换执行中（进度条与按钮状态由父组件驱动，RF-204 由 defineExpose 改造而来） */
+  executing?: boolean
+  progress?: { processed: number, total: number }
 }>()
 
 const emit = defineEmits<{
@@ -205,9 +208,9 @@ const emit = defineEmits<{
   (e: 'toggle-all', include: boolean): void
 }>()
 
-const executing = ref(false)
-const processedBlocks = ref(0)
-const totalBlocks = ref(0)
+const executing = computed(() => props.executing ?? false)
+const processedBlocks = computed(() => props.progress?.processed ?? 0)
+const totalBlocks = computed(() => props.progress?.total ?? 0)
 const collapsedDocIds = useToggleSet()
 
 watch(
@@ -215,11 +218,8 @@ watch(
   (val) => {
     if (!val) {
       collapsedDocIds.clear()
-    } else {
-      // 打开新弹窗时归零进度，避免上次替换的进度残留（本次未触发 setProgress 时尤为明显）
-      processedBlocks.value = 0
-      totalBlocks.value = 0
     }
+    // 进度归零由父组件在打开弹窗时重置 progress props（RF-204）
   },
 )
 
@@ -262,15 +262,6 @@ function toggleIncludeAll(include: boolean) {
   emit('toggle-all', include)
 }
 
-defineExpose({
-  setExecuting(isExecuting: boolean) {
-    executing.value = isExecuting
-  },
-  setProgress(processed: number, total: number) {
-    processedBlocks.value = processed
-    totalBlocks.value = total
-  },
-})
 </script>
 
 <style scoped>

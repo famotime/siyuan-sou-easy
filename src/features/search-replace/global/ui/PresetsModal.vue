@@ -2,7 +2,7 @@
   <PopupModalShell
     :visible="visible"
     icon="star"
-    title="常用搜索预设"
+    :title="t('globalPresetsModalTitle')"
     modal-class="sfsr-popup-modal--presets"
     @close="$emit('close')"
   >
@@ -11,7 +11,7 @@
         v-model="newPresetName"
         class="sfsr-preset-input"
         type="text"
-        placeholder="输入新预设名称..."
+        :placeholder="t('globalPresetsNamePlaceholder')"
         @keydown.enter="onSaveCurrentAsPreset"
       >
       <button
@@ -19,7 +19,7 @@
         type="button"
         @click="onSaveCurrentAsPreset"
       >
-        保存当前条件
+        {{ t('globalPresetsSaveBtn') }}
       </button>
     </div>
     <div class="sfsr-preset-list">
@@ -27,7 +27,7 @@
         v-if="presetList.length === 0"
         class="sfsr-empty-tip"
       >
-        暂无保存的预设
+        {{ t('globalPresetsEmpty') }}
       </div>
       <div
         v-for="p in presetList"
@@ -43,7 +43,7 @@
         <button
           class="sfsr-preset-del"
           type="button"
-          aria-label="删除预设"
+          :aria-label="t('globalPresetsDeleteBtn')"
           @click="onDeletePreset(p.id)"
         >
           <WireframeIcon
@@ -65,6 +65,7 @@ import {
   watch,
 } from 'vue'
 import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
+import { t } from '@/i18n/runtime'
 import {
   deletePreset,
   getSavedPresets,
@@ -103,7 +104,7 @@ async function refreshPresets() {
 
 async function onSaveCurrentAsPreset() {
   if (!newPresetName.value.trim()) {
-    alert('请输入预设名称')
+    alert(t('globalPresetsNameRequired'))
     return
   }
   await savePreset(newPresetName.value, {
@@ -114,7 +115,7 @@ async function onSaveCurrentAsPreset() {
   })
   newPresetName.value = ''
   presetList.value = getSavedPresets()
-  alert('预设保存成功！')
+  alert(t('globalPresetsSaved'))
 }
 
 function onApplyPreset(preset: SavedSearchPreset) {

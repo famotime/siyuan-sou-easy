@@ -123,7 +123,7 @@ describe('lunaria bus（RF-112）', () => {
     expect(data).toHaveLength(3)
     expect(data[1]).toMatchObject({
       docId: 'doc-2',
-      // extractDocTitleFromHpath 的回退值为"未命名文档"，代码中的 || '未命名笔记' 永不生效（现状）
+      // extractDocTitleFromHpath 的回退值（RF-204 已移除其后的死分支 || '未命名笔记'）
       title: '未命名文档',
       snippet: '无路径内容',
     })

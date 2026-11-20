@@ -481,22 +481,52 @@ describe('doc-aggregator', () => {
       expect(nodes[0]!.matchType).toBe('exact-block')
     })
 
-    it('已知缺陷钉住：多词含正则词时跨块校验用 occ.text.includes(词) 判定导致误杀', () => {
-      // occ.text 是命中的原文（如"深圳"），而 mustInclude 中的正则词"深\S+"
-      // 不可能是原文子串 → 跨块联合匹配恒失败，文档被丢弃。
-      // 修复属行为变更，需单独决策（见 refactor-plan.md 范围外备注 3）。
+    it('多词含正则词时按收集阶段真实匹配结果联合命中（RF-201 修复）', () => {
+      // 修复前：occ.text.includes('深.+') 是字面包含判定，恒为 false，跨块联合匹配被误杀丢弃。
+      // 修复后：复用收集阶段的 matchedTerms（正则真实匹配）联合判定。
       const nodes = aggregateBlocksToDocs(
         [
           makeBlock('block-a', '深圳的天气很好'),
           makeBlock('block-b', '电动车正在充电'),
         ],
-        '深\S+ 电动车',
+        '深.+ 电动车',
         {
           useRegex: true,
-          parsedQuery: makeParsed(['深\S+', '电动车'], '深\S+ 电动车'),
+          parsedQuery: makeParsed(['深.+', '电动车'], '深.+ 电动车'),
         },
       )
-      expect(nodes).toEqual([])
+      expect(nodes).toHaveLength(1)
+      expect(nodes[0]!.matchType).toBe('cross-block')
+      expect(nodes[0]!.totalCount).toBe(2)
+    })
+
+    it('多词拼音词跨块联合命中（RF-201 修复）', () => {
+      // 修复前：occ.text.includes('sz') 对命中的原文"深圳"恒为 false，文档被误杀。
+      const nodes = aggregateBlocksToDocs(
+        [
+          makeBlock('block-a', '深圳的天气很好'),
+          makeBlock('block-b', '电动车正在充电'),
+        ],
+        'sz ddc',
+        {
+          pinyin: true,
+          parsedQuery: makeParsed(['sz', 'ddc'], 'sz ddc'),
+        },
+      )
+      expect(nodes).toHaveLength(1)
+      expect(nodes[0]!.matchType).toBe('cross-block')
+      expect(nodes[0]!.totalCount).toBe(2)
+    })
+
+    it('snippet 携带 matchedTerms 供跨块校验复用', () => {
+      const nodes = aggregateBlocksToDocs(
+        [makeBlock('block-a', '深圳的电动车很多')],
+        '深圳 电动车',
+        {
+          parsedQuery: makeParsed(['深圳', '电动车'], '深圳 电动车'),
+        },
+      )
+      expect(nodes[0]!.matches[0]!.matchedTerms).toEqual(['深圳', '电动车'])
     })
   })
 })

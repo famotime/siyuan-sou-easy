@@ -21,6 +21,7 @@ import {
 } from '../editor'
 import { getBlockAttrs } from '../kernel'
 import { findMatches } from '../search-engine'
+import { createTtlCache } from '../ttl-cache'
 import {
   clearSelectionScope,
   rememberEditorContext,
@@ -43,11 +44,6 @@ interface SearchControllerOptions {
   state: SearchReplaceState
 }
 
-interface DocumentReadonlyCacheEntry {
-  readonly: boolean
-  timestamp: number
-}
-
 // 只读判定结果按 rootId 缓存：refreshMatches 在每次按键防抖后都会调用，
 // 不缓存则每个按键都触发一次 getBlockAttrs 内核请求。
 // 失效策略：rootId 变化自然走新 key；叠加 TTL 防外部修改只读状态后长期陈旧；
@@ -61,7 +57,7 @@ export function createSearchController({
   let refreshTimer = 0
   let latestRefreshRevision = 0
   let pendingQueryIndex: number | null = null
-  const documentReadonlyCache = new Map<string, DocumentReadonlyCacheEntry>()
+  const documentReadonlyCache = createTtlCache<boolean>(DOCUMENT_READONLY_CACHE_TTL_MS)
 
   const pendingNavigation = createPendingNavigationController({
     getCurrentMatch,
@@ -92,7 +88,7 @@ export function createSearchController({
   function resetSearchSession() {
     pendingNavigation.reset()
     documentEvents.reset()
-    documentReadonlyCache.clear()
+    documentReadonlyCache.invalidate()
     clearDocumentSnapshotCache()
     clearSearchDecorations()
   }
@@ -295,17 +291,14 @@ export function createSearchController({
     }
 
     const cached = documentReadonlyCache.get(context.rootId)
-    if (cached && Date.now() - cached.timestamp < DOCUMENT_READONLY_CACHE_TTL_MS) {
-      return cached.readonly
+    if (cached !== undefined) {
+      return cached
     }
 
     try {
       const attrs = await getBlockAttrs(context.rootId)
       const readonly = isReadonlyBlockAttrs(attrs)
-      documentReadonlyCache.set(context.rootId, {
-        readonly,
-        timestamp: Date.now(),
-      })
+      documentReadonlyCache.set(context.rootId, readonly)
       return readonly
     } catch {
       // 查询失败不写缓存，下次刷新重试

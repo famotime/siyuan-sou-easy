@@ -437,6 +437,7 @@ function buildGlobalMatchSnippet(
   isFullMatch: boolean,
   matchId: string,
   fullContent: string,
+  matchedTerms: string[],
   extras?: GlobalMatchSnippetTableExtras,
 ): GlobalMatchSnippet {
   return {
@@ -461,6 +462,7 @@ function buildGlobalMatchSnippet(
     endOffset: occurrences[occurrences.length - 1].end,
     occurrences,
     isFullBlockMatch: isFullMatch,
+    matchedTerms,
     ...(extras?.tableRowIndex !== undefined || extras?.tableRowText !== undefined || extras?.matchedCellText !== undefined
       ? {
           matchedCellText: extras?.matchedCellText,
@@ -545,6 +547,7 @@ export function findMatchesInTableBlock(
       isFullMatch,
       `${block.id}:tr:${row.rowIndex}`,
       lineText,
+      Array.from(matchedTerms),
       {
         matchedCellText: matchedCell,
         tableRowIndex: row.rowIndex,
@@ -619,6 +622,7 @@ export function findMatchesInBlock(
     isFullMatch,
     `${block.id}:${occurrences[0].start}`,
     content,
+    Array.from(matchedTerms),
   )]
 }
 
@@ -729,11 +733,8 @@ export function aggregateBlocksToDocs(
  * 智能双层匹配校验（RF-111 自 aggregateBlocksToDocs 拆出的纯函数段）。
  * 返回 'drop' 表示不满足多词组合逻辑，文档应被丢弃。
  *
- * 已知缺陷（现状钉住于 tests/global-search-aggregator.test.ts，修复需单独决策）：
- * 跨块校验用 occ.text.includes(词) 判定——occ.text 是命中的原文而非查询词本身，
- * 对正则词（如 `深\S+`）或拼音词（如 `sz` 命中"深圳"）includes 恒为 false，
- * 会导致跨块联合匹配被误杀。与 collectOccurrencesForTerms（走 regex/pinyin
- * 真实匹配）的语义不一致。
+ * RF-201 修复：命中词判定改用收集阶段（collectOccurrencesForTerms）算出的
+ * matchedTerms（正则/拼音真实匹配），与单块全包含判定 isFullBlockMatch 语义一致。
  */
 function verifyCrossBlockMatch(
   matches: GlobalMatchSnippet[],
@@ -746,9 +747,19 @@ function verifyCrossBlockMatch(
     return 'exact-block'
   }
 
-  // 跨块联合匹配校验：收集该文档所有命中块涵盖的所有关键词
+  // 跨块联合匹配校验：联合各命中块在收集阶段算出的真实命中词集合（RF-201 修复）。
+  // 旧实现用 occ.text.includes(词) 字面扫描——occ.text 是命中原文而非查询词本身，
+  // 对正则词（如 深\S+）与拼音词（如 sz 命中"深圳"）恒为 false，导致误杀。
+  // matchedTerms 缺失时保留旧扫描作为兜底。
   const allDocMatchedTerms = new Set<string>()
   for (const m of matches) {
+    if (m.matchedTerms) {
+      for (const term of m.matchedTerms) {
+        allDocMatchedTerms.add(term)
+      }
+      continue
+    }
+
     if (m.occurrences) {
       for (const occ of m.occurrences) {
         const text = occ.text.toLowerCase()

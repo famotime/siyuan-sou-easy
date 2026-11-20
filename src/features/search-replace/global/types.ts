@@ -84,6 +84,8 @@ export interface GlobalMatchSnippet {
   matchedCellText?: string
   occurrences?: MatchOccurrence[]
   isFullBlockMatch?: boolean
+  /** 本块内真实命中的目标词集合（收集阶段计算，供跨块多词校验复用） */
+  matchedTerms?: string[]
 }
 
 export interface DocAggregateNode {
