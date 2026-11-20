@@ -91,6 +91,13 @@ export function createPendingNavigationController({
   let directNavigationProgress: DirectNavigationProgress<EditorContext['protyleRef']> = createDirectNavigationProgress()
   let nativeNavigationAttemptedMatchId = ''
   let nativeNavigationWaitDeadline = 0
+  // 单轮重试内的 loadedBlockRange 缓存（key 为滚动容器，null 表示未解析到容器）。
+  // 同一轮内、applyApproximateScroll 首次执行之前，minimapBlocks、搜索根 DOM 与滚动位置
+  // 均不会合法变化（轮内无 await、无派发事件、updateIndex/原生导航触发后立即结束本轮），
+  // 因此直接导航判定、原生导航距离与首个近似滚动容器对同一容器的重复全量扫描可安全复用。
+  // 生命周期：每轮 retryPendingNavigation 入口清空；applyApproximateScroll 改动滚动位置后
+  // 整体清空（视口相对矩形随滚动变化，后续候选容器必须重新解析）。
+  const loadedBlockRangeCache = new Map<HTMLElement | null, LoadedBlockRange | null>()
 
   function beginPendingNavigation(match: SearchMatch) {
     // 先终止可能仍在等待的旧重试链，避免旧定时器与新导航交错递增计数
@@ -125,6 +132,8 @@ export function createPendingNavigationController({
   }
 
   function retryPendingNavigation() {
+    // 轮次边界：上一轮结束后异步加载可能已更新 DOM/滚动位置，缓存一律作废
+    loadedBlockRangeCache.clear()
     const currentMatch = getCurrentMatch()
     const context = resolveEditorContext()
     if (!state.visible || !currentMatch || currentMatch.id !== pendingNavigationMatchId) {
@@ -560,6 +569,15 @@ export function createPendingNavigationController({
   }
 
   function applyApproximateScroll(state: ApproximateScrollState): ApproximateScrollApplication {
+    const application = computeApproximateScrollApplication(state)
+    // 本轮内唯一改动滚动位置/DOM 的入口（含边界 nudge 及其同步派发的 scroll/wheel 事件）。
+    // 滚动会改变所有内容的视口相对矩形，更早缓存的 loadedBlockRange 一律作废，
+    // 后续候选容器（含 defer 场景下被推迟的主容器）必须重新解析。
+    loadedBlockRangeCache.clear()
+    return application
+  }
+
+  function computeApproximateScrollApplication(state: ApproximateScrollState): ApproximateScrollApplication {
     if (typeof state.scrollContainer.scrollTo === 'function') {
       state.scrollContainer.scrollTo({
         behavior: 'auto',
@@ -682,6 +700,17 @@ export function createPendingNavigationController({
   }
 
   function resolveLoadedBlockRange(context: EditorContext, scrollContainer?: HTMLElement | null): LoadedBlockRange | null {
+    const cacheKey = scrollContainer ?? null
+    if (loadedBlockRangeCache.has(cacheKey)) {
+      return loadedBlockRangeCache.get(cacheKey) ?? null
+    }
+
+    const loadedBlockRange = computeLoadedBlockRange(context, scrollContainer)
+    loadedBlockRangeCache.set(cacheKey, loadedBlockRange)
+    return loadedBlockRange
+  }
+
+  function computeLoadedBlockRange(context: EditorContext, scrollContainer?: HTMLElement | null): LoadedBlockRange | null {
     const blockIndexById = new Map(state.minimapBlocks.map((block) => [block.blockId, block.blockIndex]))
     if (!blockIndexById.size) {
       return null
