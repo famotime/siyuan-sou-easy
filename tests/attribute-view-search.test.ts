@@ -1,5 +1,3 @@
-// @vitest-environment jsdom
-
 import type {
   EditorContext,
   SearchOptions,
@@ -46,8 +44,9 @@ describe('attribute view search', () => {
     vi.clearAllMocks()
   })
 
-  it('searches visible attribute view cells when renderAttributeView returns no rows', async () => {
-    const context = renderEditor(`
+  describe('dOM 兜底采集', () => {
+    it('searches visible attribute view cells when renderAttributeView returns no rows', async () => {
+      const context = renderEditor(`
       <div data-node-id="av-block-1" data-type="NodeAttributeView" class="av" data-av-id="av-1" data-render="true">
         <div class="av__row av__row--header">
           <div class="av__body">
@@ -66,24 +65,24 @@ describe('attribute view search', () => {
       </div>
     `)
 
-    const result = await searchAttributeViewMatches({
-      context,
-      options: DEFAULT_OPTIONS,
-      query: '传感器',
-      startingBlockIndex: 0,
+      const result = await searchAttributeViewMatches({
+        context,
+        options: DEFAULT_OPTIONS,
+        query: '传感器',
+        startingBlockIndex: 0,
+      })
+
+      expect(result.matches).toHaveLength(3)
+      expect(result.matches.map((match) => match.attributeView?.columnIndex)).toEqual([0, 1, 2])
+      expect(result.matches.map((match) => match.previewText)).toEqual([
+        '文本: [传感器]',
+        '链接: [传感器]',
+        '电话: [传感器]',
+      ])
     })
 
-    expect(result.matches).toHaveLength(3)
-    expect(result.matches.map((match) => match.attributeView?.columnIndex)).toEqual([0, 1, 2])
-    expect(result.matches.map((match) => match.previewText)).toEqual([
-      '文本: [传感器]',
-      '链接: [传感器]',
-      '电话: [传感器]',
-    ])
-  })
-
-  it('searches visible attribute view titles and headers when API data is unavailable', async () => {
-    const context = renderEditor(`
+    it('searches visible attribute view titles and headers when API data is unavailable', async () => {
+      const context = renderEditor(`
       <div data-node-id="av-block-2" data-type="NodeAttributeView" class="av" data-av-id="av-2" data-render="true">
         <div class="av__title">传感器表格</div>
         <div class="av__row av__row--header">
@@ -95,26 +94,26 @@ describe('attribute view search', () => {
       </div>
     `)
 
-    const result = await searchAttributeViewMatches({
-      context,
-      options: DEFAULT_OPTIONS,
-      query: '传感器',
-      startingBlockIndex: 0,
+      const result = await searchAttributeViewMatches({
+        context,
+        options: DEFAULT_OPTIONS,
+        query: '传感器',
+        startingBlockIndex: 0,
+      })
+
+      expect(result.matches).toHaveLength(2)
+      expect(result.matches.map((match) => match.attributeView?.targetKind)).toEqual([
+        'view-name',
+        'column-header',
+      ])
+      expect(result.matches.map((match) => match.previewText)).toEqual([
+        '[传感器]表格',
+        '[传感器]列',
+      ])
     })
 
-    expect(result.matches).toHaveLength(2)
-    expect(result.matches.map((match) => match.attributeView?.targetKind)).toEqual([
-      'view-name',
-      'column-header',
-    ])
-    expect(result.matches.map((match) => match.previewText)).toEqual([
-      '[传感器]表格',
-      '[传感器]列',
-    ])
-  })
-
-  it('searches grouped visible attribute view rows when API data is unavailable', async () => {
-    const context = renderEditor(`
+    it('searches grouped visible attribute view rows when API data is unavailable', async () => {
+      const context = renderEditor(`
       <div data-node-id="av-block-3" data-type="NodeAttributeView" class="av" data-av-id="av-3" data-render="true">
         <div class="av__group">
           <div class="av__group-title">传感器分组</div>
@@ -127,27 +126,27 @@ describe('attribute view search', () => {
       </div>
     `)
 
-    const result = await searchAttributeViewMatches({
-      context,
-      options: DEFAULT_OPTIONS,
-      query: '传感器',
-      startingBlockIndex: 0,
+      const result = await searchAttributeViewMatches({
+        context,
+        options: DEFAULT_OPTIONS,
+        query: '传感器',
+        startingBlockIndex: 0,
+      })
+
+      const rowMatch = result.matches.find((match) => match.attributeView?.targetKind === 'cell')
+      expect(rowMatch).toBeDefined()
+      expect(rowMatch?.attributeView).toMatchObject({
+        avBlockId: 'av-block-3',
+        columnIndex: 0,
+        itemID: 'item-3',
+        rowID: 'item-3',
+        targetKind: 'cell',
+      })
+      expect(rowMatch?.previewText).toBe('分组里的[传感器]')
     })
 
-    const rowMatch = result.matches.find((match) => match.attributeView?.targetKind === 'cell')
-    expect(rowMatch).toBeDefined()
-    expect(rowMatch?.attributeView).toMatchObject({
-      avBlockId: 'av-block-3',
-      columnIndex: 0,
-      itemID: 'item-3',
-      rowID: 'item-3',
-      targetKind: 'cell',
-    })
-    expect(rowMatch?.previewText).toBe('分组里的[传感器]')
-  })
-
-  it('searches grouped attribute view titles when API data is unavailable', async () => {
-    const context = renderEditor(`
+    it('searches grouped attribute view titles when API data is unavailable', async () => {
+      const context = renderEditor(`
       <div data-node-id="av-block-group-title" data-type="NodeAttributeView" class="av" data-av-id="av-group-title" data-render="true">
         <div class="av__group">
           <div class="av__group-title">传感器分组</div>
@@ -160,23 +159,23 @@ describe('attribute view search', () => {
       </div>
     `)
 
-    const result = await searchAttributeViewMatches({
-      context,
-      options: DEFAULT_OPTIONS,
-      query: '传感器',
-      startingBlockIndex: 0,
+      const result = await searchAttributeViewMatches({
+        context,
+        options: DEFAULT_OPTIONS,
+        query: '传感器',
+        startingBlockIndex: 0,
+      })
+
+      expect(result.matches).toHaveLength(1)
+      expect(result.matches[0]?.attributeView).toMatchObject({
+        avBlockId: 'av-block-group-title',
+        targetKind: 'group-title',
+      })
+      expect(result.matches[0]?.previewText).toBe('[传感器]分组')
     })
 
-    expect(result.matches).toHaveLength(1)
-    expect(result.matches[0]?.attributeView).toMatchObject({
-      avBlockId: 'av-block-group-title',
-      targetKind: 'group-title',
-    })
-    expect(result.matches[0]?.previewText).toBe('[传感器]分组')
-  })
-
-  it('keeps grouped DOM matches in visual top-to-bottom left-to-right order', async () => {
-    const context = renderEditor(`
+    it('keeps grouped DOM matches in visual top-to-bottom left-to-right order', async () => {
+      const context = renderEditor(`
       <div data-node-id="av-block-dom-order" data-type="NodeAttributeView" class="av" data-av-id="av-dom-order" data-render="true">
         <div class="av__title">传感器</div>
         <div class="av__group">
@@ -220,27 +219,27 @@ describe('attribute view search', () => {
       </div>
     `)
 
-    const result = await searchAttributeViewMatches({
-      context,
-      options: DEFAULT_OPTIONS,
-      query: '传感器',
-      startingBlockIndex: 0,
+      const result = await searchAttributeViewMatches({
+        context,
+        options: DEFAULT_OPTIONS,
+        query: '传感器',
+        startingBlockIndex: 0,
+      })
+
+      expect(result.matches.map((match) => match.previewText)).toEqual([
+        '[传感器]',
+        '[传感器]',
+        '[传感器]',
+        '单选: [传感器]',
+        '字段 [[传感器]] 为空',
+        '[传感器]',
+        '[传感器]',
+        '传感器: [传感器]',
+      ])
     })
 
-    expect(result.matches.map((match) => match.previewText)).toEqual([
-      '[传感器]',
-      '[传感器]',
-      '[传感器]',
-      '单选: [传感器]',
-      '字段 [[传感器]] 为空',
-      '[传感器]',
-      '[传感器]',
-      '传感器: [传感器]',
-    ])
-  })
-
-  it('deduplicates split-pane table cells while keeping logical column order', async () => {
-    const context = renderEditor(`
+    it('deduplicates split-pane table cells while keeping logical column order', async () => {
+      const context = renderEditor(`
       <div data-node-id="av-block-split-order" data-type="NodeAttributeView" class="av" data-av-id="av-split-order" data-render="true">
         <div class="av__row av__row--header">
           <div class="av__body">
@@ -278,62 +277,64 @@ describe('attribute view search', () => {
       </div>
     `)
 
-    const result = await searchAttributeViewMatches({
-      context,
-      options: DEFAULT_OPTIONS,
-      query: '传感器',
-      startingBlockIndex: 0,
-    })
+      const result = await searchAttributeViewMatches({
+        context,
+        options: DEFAULT_OPTIONS,
+        query: '传感器',
+        startingBlockIndex: 0,
+      })
 
-    expect(result.matches).toHaveLength(6)
-    expect(result.matches.map((match) => ({
-      columnIndex: match.attributeView?.columnIndex,
-      keyID: match.attributeView?.keyID,
-      rowID: match.attributeView?.rowID,
-    }))).toEqual([
-      {
-        columnIndex: 0,
-        keyID: 'col-fixed',
-        rowID: 'item-1',
-      },
-      {
-        columnIndex: 1,
-        keyID: 'col-main',
-        rowID: 'item-1',
-      },
-      {
-        columnIndex: 2,
-        keyID: 'col-tail',
-        rowID: 'item-1',
-      },
-      {
-        columnIndex: 0,
-        keyID: 'col-fixed',
-        rowID: 'item-2',
-      },
-      {
-        columnIndex: 1,
-        keyID: 'col-main',
-        rowID: 'item-2',
-      },
-      {
-        columnIndex: 2,
-        keyID: 'col-tail',
-        rowID: 'item-2',
-      },
-    ])
-    expect(result.matches.map((match) => match.previewText)).toEqual([
-      '固定列: [传感器]-fixed',
-      '主列: [传感器]-main',
-      '尾列: [传感器]-tail',
-      '固定列: [传感器]-fixed-2',
-      '主列: [传感器]-main-2',
-      '尾列: [传感器]-tail-2',
-    ])
+      expect(result.matches).toHaveLength(6)
+      expect(result.matches.map((match) => ({
+        columnIndex: match.attributeView?.columnIndex,
+        keyID: match.attributeView?.keyID,
+        rowID: match.attributeView?.rowID,
+      }))).toEqual([
+        {
+          columnIndex: 0,
+          keyID: 'col-fixed',
+          rowID: 'item-1',
+        },
+        {
+          columnIndex: 1,
+          keyID: 'col-main',
+          rowID: 'item-1',
+        },
+        {
+          columnIndex: 2,
+          keyID: 'col-tail',
+          rowID: 'item-1',
+        },
+        {
+          columnIndex: 0,
+          keyID: 'col-fixed',
+          rowID: 'item-2',
+        },
+        {
+          columnIndex: 1,
+          keyID: 'col-main',
+          rowID: 'item-2',
+        },
+        {
+          columnIndex: 2,
+          keyID: 'col-tail',
+          rowID: 'item-2',
+        },
+      ])
+      expect(result.matches.map((match) => match.previewText)).toEqual([
+        '固定列: [传感器]-fixed',
+        '主列: [传感器]-main',
+        '尾列: [传感器]-tail',
+        '固定列: [传感器]-fixed-2',
+        '主列: [传感器]-main-2',
+        '尾列: [传感器]-tail-2',
+      ])
+    })
   })
 
-  it('keeps blank keyed header slots in canonical split-pane column order', async () => {
-    const context = renderEditor(`
+  describe('分栏与列序对齐', () => {
+    it('keeps blank keyed header slots in canonical split-pane column order', async () => {
+      const context = renderEditor(`
       <div data-node-id="av-block-split-blank-header" data-type="NodeAttributeView" class="av" data-av-id="av-split-blank-header" data-render="true">
         <div class="av__row av__row--header">
           <div class="av__body">
@@ -360,39 +361,39 @@ describe('attribute view search', () => {
       </div>
     `)
 
-    const result = await searchAttributeViewMatches({
-      context,
-      options: DEFAULT_OPTIONS,
-      query: '传感器',
-      startingBlockIndex: 0,
+      const result = await searchAttributeViewMatches({
+        context,
+        options: DEFAULT_OPTIONS,
+        query: '传感器',
+        startingBlockIndex: 0,
+      })
+
+      expect(result.matches).toHaveLength(3)
+      expect(result.matches.map((match) => ({
+        columnIndex: match.attributeView?.columnIndex,
+        keyID: match.attributeView?.keyID,
+        previewText: match.previewText,
+      }))).toEqual([
+        {
+          columnIndex: 0,
+          keyID: 'col-fixed',
+          previewText: '固定列: [传感器]-fixed',
+        },
+        {
+          columnIndex: 1,
+          keyID: 'col-blank',
+          previewText: '[传感器]-blank',
+        },
+        {
+          columnIndex: 2,
+          keyID: 'col-tail',
+          previewText: '尾列: [传感器]-tail',
+        },
+      ])
     })
 
-    expect(result.matches).toHaveLength(3)
-    expect(result.matches.map((match) => ({
-      columnIndex: match.attributeView?.columnIndex,
-      keyID: match.attributeView?.keyID,
-      previewText: match.previewText,
-    }))).toEqual([
-      {
-        columnIndex: 0,
-        keyID: 'col-fixed',
-        previewText: '固定列: [传感器]-fixed',
-      },
-      {
-        columnIndex: 1,
-        keyID: 'col-blank',
-        previewText: '[传感器]-blank',
-      },
-      {
-        columnIndex: 2,
-        keyID: 'col-tail',
-        previewText: '尾列: [传感器]-tail',
-      },
-    ])
-  })
-
-  it('appends body-only keyed columns after header-defined columns', async () => {
-    const context = renderEditor(`
+    it('appends body-only keyed columns after header-defined columns', async () => {
+      const context = renderEditor(`
       <div data-node-id="av-block-body-only-column" data-type="NodeAttributeView" class="av" data-av-id="av-body-only-column" data-render="true">
         <div class="av__row av__row--header">
           <div class="av__body">
@@ -410,43 +411,43 @@ describe('attribute view search', () => {
       </div>
     `)
 
-    const result = await searchAttributeViewMatches({
-      context,
-      options: DEFAULT_OPTIONS,
-      query: '传感器',
-      startingBlockIndex: 0,
+      const result = await searchAttributeViewMatches({
+        context,
+        options: DEFAULT_OPTIONS,
+        query: '传感器',
+        startingBlockIndex: 0,
+      })
+
+      expect(result.matches).toHaveLength(3)
+      expect(result.matches.map((match) => ({
+        columnIndex: match.attributeView?.columnIndex,
+        columnName: match.attributeView?.columnName,
+        keyID: match.attributeView?.keyID,
+        previewText: match.previewText,
+      }))).toEqual([
+        {
+          columnIndex: 0,
+          columnName: '固定列',
+          keyID: 'col-fixed',
+          previewText: '固定列: [传感器]-fixed',
+        },
+        {
+          columnIndex: 1,
+          columnName: '主列',
+          keyID: 'col-main',
+          previewText: '主列: [传感器]-main',
+        },
+        {
+          columnIndex: 2,
+          columnName: '',
+          keyID: 'col-extra',
+          previewText: '[传感器]-extra',
+        },
+      ])
     })
 
-    expect(result.matches).toHaveLength(3)
-    expect(result.matches.map((match) => ({
-      columnIndex: match.attributeView?.columnIndex,
-      columnName: match.attributeView?.columnName,
-      keyID: match.attributeView?.keyID,
-      previewText: match.previewText,
-    }))).toEqual([
-      {
-        columnIndex: 0,
-        columnName: '固定列',
-        keyID: 'col-fixed',
-        previewText: '固定列: [传感器]-fixed',
-      },
-      {
-        columnIndex: 1,
-        columnName: '主列',
-        keyID: 'col-main',
-        previewText: '主列: [传感器]-main',
-      },
-      {
-        columnIndex: 2,
-        columnName: '',
-        keyID: 'col-extra',
-        previewText: '[传感器]-extra',
-      },
-    ])
-  })
-
-  it('does not reuse unkeyed header slots for body-only keyed columns', async () => {
-    const context = renderEditor(`
+    it('does not reuse unkeyed header slots for body-only keyed columns', async () => {
+      const context = renderEditor(`
       <div data-node-id="av-block-mixed-header-extra" data-type="NodeAttributeView" class="av" data-av-id="av-mixed-header-extra" data-render="true">
         <div class="av__row av__row--header">
           <div class="av__body">
@@ -465,43 +466,43 @@ describe('attribute view search', () => {
       </div>
     `)
 
-    const result = await searchAttributeViewMatches({
-      context,
-      options: DEFAULT_OPTIONS,
-      query: '传感器',
-      startingBlockIndex: 0,
+      const result = await searchAttributeViewMatches({
+        context,
+        options: DEFAULT_OPTIONS,
+        query: '传感器',
+        startingBlockIndex: 0,
+      })
+
+      expect(result.matches).toHaveLength(3)
+      expect(result.matches.map((match) => ({
+        columnIndex: match.attributeView?.columnIndex,
+        columnName: match.attributeView?.columnName,
+        keyID: match.attributeView?.keyID,
+        previewText: match.previewText,
+      }))).toEqual([
+        {
+          columnIndex: 1,
+          columnName: '固定列',
+          keyID: 'col-fixed',
+          previewText: '固定列: [传感器]-fixed',
+        },
+        {
+          columnIndex: 2,
+          columnName: '主列',
+          keyID: 'col-main',
+          previewText: '主列: [传感器]-main',
+        },
+        {
+          columnIndex: 3,
+          columnName: '',
+          keyID: 'col-extra',
+          previewText: '[传感器]-extra',
+        },
+      ])
     })
 
-    expect(result.matches).toHaveLength(3)
-    expect(result.matches.map((match) => ({
-      columnIndex: match.attributeView?.columnIndex,
-      columnName: match.attributeView?.columnName,
-      keyID: match.attributeView?.keyID,
-      previewText: match.previewText,
-    }))).toEqual([
-      {
-        columnIndex: 1,
-        columnName: '固定列',
-        keyID: 'col-fixed',
-        previewText: '固定列: [传感器]-fixed',
-      },
-      {
-        columnIndex: 2,
-        columnName: '主列',
-        keyID: 'col-main',
-        previewText: '主列: [传感器]-main',
-      },
-      {
-        columnIndex: 3,
-        columnName: '',
-        keyID: 'col-extra',
-        previewText: '[传感器]-extra',
-      },
-    ])
-  })
-
-  it('deduplicates cloned DOM rows for the same attribute view cell', async () => {
-    const context = renderEditor(`
+    it('deduplicates cloned DOM rows for the same attribute view cell', async () => {
+      const context = renderEditor(`
       <div data-node-id="av-block-dom-clones" data-type="NodeAttributeView" class="av" data-av-id="av-dom-clones" data-render="true">
         <div class="av__row av__row--header">
           <div class="av__body">
@@ -525,19 +526,19 @@ describe('attribute view search', () => {
       </div>
     `)
 
-    const result = await searchAttributeViewMatches({
-      context,
-      options: DEFAULT_OPTIONS,
-      query: '传感器',
-      startingBlockIndex: 0,
+      const result = await searchAttributeViewMatches({
+        context,
+        options: DEFAULT_OPTIONS,
+        query: '传感器',
+        startingBlockIndex: 0,
+      })
+
+      expect(result.matches).toHaveLength(1)
+      expect(result.matches[0]?.previewText).toBe('主键: [传感器]')
     })
 
-    expect(result.matches).toHaveLength(1)
-    expect(result.matches[0]?.previewText).toBe('主键: [传感器]')
-  })
-
-  it('does not double-count a logical cell rendered in multiple panes', async () => {
-    const context = renderEditor(`
+    it('does not double-count a logical cell rendered in multiple panes', async () => {
+      const context = renderEditor(`
       <div data-node-id="av-block-split-duplicates" data-type="NodeAttributeView" class="av" data-av-id="av-split-duplicates" data-render="true">
         <div class="av__row av__row--header">
           <div class="av__body">
@@ -562,24 +563,26 @@ describe('attribute view search', () => {
       </div>
     `)
 
-    const result = await searchAttributeViewMatches({
-      context,
-      options: DEFAULT_OPTIONS,
-      query: '传感器',
-      startingBlockIndex: 0,
-    })
+      const result = await searchAttributeViewMatches({
+        context,
+        options: DEFAULT_OPTIONS,
+        query: '传感器',
+        startingBlockIndex: 0,
+      })
 
-    expect(result.matches).toHaveLength(1)
-    expect(result.matches[0]?.attributeView).toMatchObject({
-      columnIndex: 0,
-      keyID: 'col-primary',
-      rowID: 'item-1',
+      expect(result.matches).toHaveLength(1)
+      expect(result.matches[0]?.attributeView).toMatchObject({
+        columnIndex: 0,
+        keyID: 'col-primary',
+        rowID: 'item-1',
+      })
+      expect(result.matches[0]?.previewText).toBe('主键: [传感器]')
     })
-    expect(result.matches[0]?.previewText).toBe('主键: [传感器]')
   })
 
-  it('ignores hidden inactive attribute view DOM from other views', async () => {
-    const context = renderEditor(`
+  describe('可见性与隐藏视图', () => {
+    it('ignores hidden inactive attribute view DOM from other views', async () => {
+      const context = renderEditor(`
       <div data-node-id="av-block-hidden-views" data-type="NodeAttributeView" class="av" data-av-id="av-hidden-views" data-render="true">
         <div class="av__view av__view--table">
           <div class="av__row av__row--header">
@@ -610,19 +613,19 @@ describe('attribute view search', () => {
       </div>
     `)
 
-    const result = await searchAttributeViewMatches({
-      context,
-      options: DEFAULT_OPTIONS,
-      query: '传感器',
-      startingBlockIndex: 0,
+      const result = await searchAttributeViewMatches({
+        context,
+        options: DEFAULT_OPTIONS,
+        query: '传感器',
+        startingBlockIndex: 0,
+      })
+
+      expect(result.matches).toHaveLength(1)
+      expect(result.matches[0]?.previewText).toBe('主键: [传感器]')
     })
 
-    expect(result.matches).toHaveLength(1)
-    expect(result.matches[0]?.previewText).toBe('主键: [传感器]')
-  })
-
-  it('does not search text that exists only inside hidden inactive views', async () => {
-    const context = renderEditor(`
+    it('does not search text that exists only inside hidden inactive views', async () => {
+      const context = renderEditor(`
       <div data-node-id="av-block-hidden-only" data-type="NodeAttributeView" class="av" data-av-id="av-hidden-only" data-render="true">
         <div class="av__view av__view--table">
           <div class="av__row av__row--header">
@@ -646,18 +649,18 @@ describe('attribute view search', () => {
       </div>
     `)
 
-    const result = await searchAttributeViewMatches({
-      context,
-      options: DEFAULT_OPTIONS,
-      query: '传感器',
-      startingBlockIndex: 0,
+      const result = await searchAttributeViewMatches({
+        context,
+        options: DEFAULT_OPTIONS,
+        query: '传感器',
+        startingBlockIndex: 0,
+      })
+
+      expect(result.matches).toHaveLength(0)
     })
 
-    expect(result.matches).toHaveLength(0)
-  })
-
-  it('uses data-field-id for gallery fields and only searches visible block content text', async () => {
-    const context = renderEditor(`
+    it('uses data-field-id for gallery fields and only searches visible block content text', async () => {
+      const context = renderEditor(`
       <div data-node-id="av-block-gallery-real-dom" data-type="NodeAttributeView" class="av" data-av-id="av-gallery-real-dom" data-render="true">
         <div class="av__gallery-item" data-id="item-1">
           <div class="av__gallery-fields">
@@ -679,279 +682,285 @@ describe('attribute view search', () => {
       </div>
     `)
 
-    const result = await searchAttributeViewMatches({
-      context,
-      options: DEFAULT_OPTIONS,
-      query: '传感器',
-      startingBlockIndex: 0,
-    })
+      const result = await searchAttributeViewMatches({
+        context,
+        options: DEFAULT_OPTIONS,
+        query: '传感器',
+        startingBlockIndex: 0,
+      })
 
-    expect(result.matches).toHaveLength(2)
-    expect(result.matches.map((match) => ({
-      columnIndex: match.attributeView?.columnIndex,
-      keyID: match.attributeView?.keyID,
-      previewText: match.previewText,
-      rowID: match.attributeView?.rowID,
-    }))).toEqual([
-      {
-        columnIndex: 0,
-        keyID: 'col-block',
-        previewText: '[传感器]',
-        rowID: 'item-1',
-      },
-      {
-        columnIndex: 1,
-        keyID: 'col-text',
-        previewText: '次要[传感器]',
-        rowID: 'item-1',
-      },
-    ])
+      expect(result.matches).toHaveLength(2)
+      expect(result.matches.map((match) => ({
+        columnIndex: match.attributeView?.columnIndex,
+        keyID: match.attributeView?.keyID,
+        previewText: match.previewText,
+        rowID: match.attributeView?.rowID,
+      }))).toEqual([
+        {
+          columnIndex: 0,
+          keyID: 'col-block',
+          previewText: '[传感器]',
+          rowID: 'item-1',
+        },
+        {
+          columnIndex: 1,
+          keyID: 'col-text',
+          previewText: '次要[传感器]',
+          rowID: 'item-1',
+        },
+      ])
+    })
   })
 
-  it('searches rendered number field content when DOM candidates are unavailable', async () => {
-    kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
-      {
-        id: 'col-score',
-        name: '评分',
-      },
-    ])
-    kernelMocks.renderAttributeView.mockResolvedValue({
-      view: {
-        columns: [
-          {
-            id: 'col-score',
-            name: '评分',
-            type: 'number',
-          },
-        ],
-        rows: [{
-          cells: [{
-            keyID: 'col-score',
-            value: {
-              number: {
-                formattedContent: '42.5',
-              },
+  describe('渲染数据路径', () => {
+    it('searches rendered number field content when DOM candidates are unavailable', async () => {
+      kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
+        {
+          id: 'col-score',
+          name: '评分',
+        },
+      ])
+      kernelMocks.renderAttributeView.mockResolvedValue({
+        view: {
+          columns: [
+            {
+              id: 'col-score',
+              name: '评分',
               type: 'number',
             },
+          ],
+          rows: [{
+            cells: [{
+              keyID: 'col-score',
+              value: {
+                number: {
+                  formattedContent: '42.5',
+                },
+                type: 'number',
+              },
+            }],
+            id: 'item-4',
           }],
-          id: 'item-4',
-        }],
-      },
-      viewType: 'table',
-    })
+        },
+        viewType: 'table',
+      })
 
-    const context = renderEditor(`
+      const context = renderEditor(`
       <div data-node-id="av-block-4" data-type="NodeAttributeView" class="av" data-av-id="av-4"></div>
     `)
 
-    const result = await searchAttributeViewMatches({
-      context,
-      options: DEFAULT_OPTIONS,
-      query: '42.5',
-      startingBlockIndex: 0,
+      const result = await searchAttributeViewMatches({
+        context,
+        options: DEFAULT_OPTIONS,
+        query: '42.5',
+        startingBlockIndex: 0,
+      })
+
+      expect(result.matches).toHaveLength(1)
+      expect(result.matches[0]?.attributeView).toMatchObject({
+        avBlockId: 'av-block-4',
+        avID: 'av-4',
+        columnName: '评分',
+        itemID: 'item-4',
+        keyID: 'col-score',
+      })
+      expect(result.matches[0]?.previewText).toBe('评分: [42.5]')
     })
 
-    expect(result.matches).toHaveLength(1)
-    expect(result.matches[0]?.attributeView).toMatchObject({
-      avBlockId: 'av-block-4',
-      avID: 'av-4',
-      columnName: '评分',
-      itemID: 'item-4',
-      keyID: 'col-score',
-    })
-    expect(result.matches[0]?.previewText).toBe('评分: [42.5]')
-  })
-
-  it('searches rendered rollup field content when DOM candidates are unavailable', async () => {
-    kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
-      {
-        id: 'col-rollup',
-        name: '成员',
-      },
-    ])
-    kernelMocks.renderAttributeView.mockResolvedValue({
-      view: {
-        columns: [
-          {
-            id: 'col-rollup',
-            name: '成员',
-            type: 'rollup',
-          },
-        ],
-        rows: [{
-          cells: [{
-            keyID: 'col-rollup',
-            value: {
-              rollup: {
-                contents: ['Alice', 'Bob'],
-              },
+    it('searches rendered rollup field content when DOM candidates are unavailable', async () => {
+      kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
+        {
+          id: 'col-rollup',
+          name: '成员',
+        },
+      ])
+      kernelMocks.renderAttributeView.mockResolvedValue({
+        view: {
+          columns: [
+            {
+              id: 'col-rollup',
+              name: '成员',
               type: 'rollup',
             },
+          ],
+          rows: [{
+            cells: [{
+              keyID: 'col-rollup',
+              value: {
+                rollup: {
+                  contents: ['Alice', 'Bob'],
+                },
+                type: 'rollup',
+              },
+            }],
+            id: 'item-5',
           }],
-          id: 'item-5',
-        }],
-      },
-      viewType: 'table',
-    })
+        },
+        viewType: 'table',
+      })
 
-    const context = renderEditor(`
+      const context = renderEditor(`
       <div data-node-id="av-block-5" data-type="NodeAttributeView" class="av" data-av-id="av-5"></div>
     `)
 
-    const result = await searchAttributeViewMatches({
-      context,
-      options: DEFAULT_OPTIONS,
-      query: 'Alice Bob',
-      startingBlockIndex: 0,
-    })
+      const result = await searchAttributeViewMatches({
+        context,
+        options: DEFAULT_OPTIONS,
+        query: 'Alice Bob',
+        startingBlockIndex: 0,
+      })
 
-    expect(result.matches).toHaveLength(1)
-    expect(result.matches[0]?.previewText).toBe('成员: [Alice Bob]')
+      expect(result.matches).toHaveLength(1)
+      expect(result.matches[0]?.previewText).toBe('成员: [Alice Bob]')
+    })
   })
 
-  it('resolves attribute view and view ids from block attrs when dataset ids are missing', async () => {
-    kernelMocks.getBlockAttrs.mockResolvedValue({
-      'custom-avs': '["av-6"]',
-      'custom-sy-av-view': 'view-6',
-    })
-    kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
-      {
-        id: 'col-title',
-        name: '标题',
-      },
-    ])
-    kernelMocks.renderAttributeView.mockResolvedValue({
-      view: {
-        columns: [
-          {
-            id: 'col-title',
-            name: '标题',
-            type: 'text',
-          },
-        ],
-        rows: [{
-          cells: [{
-            keyID: 'col-title',
-            value: {
-              text: {
-                content: '属性视图标题',
-              },
+  describe('块属性 ID 解析', () => {
+    it('resolves attribute view and view ids from block attrs when dataset ids are missing', async () => {
+      kernelMocks.getBlockAttrs.mockResolvedValue({
+        'custom-avs': '["av-6"]',
+        'custom-sy-av-view': 'view-6',
+      })
+      kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
+        {
+          id: 'col-title',
+          name: '标题',
+        },
+      ])
+      kernelMocks.renderAttributeView.mockResolvedValue({
+        view: {
+          columns: [
+            {
+              id: 'col-title',
+              name: '标题',
               type: 'text',
             },
-          }],
-          id: 'item-6',
-        }],
-      },
-      viewType: 'table',
-    })
-
-    const context = renderEditor(`
-      <div data-node-id="av-block-6" data-type="NodeAttributeView" class="av"></div>
-    `)
-
-    const result = await searchAttributeViewMatches({
-      context,
-      options: DEFAULT_OPTIONS,
-      query: '属性视图标题',
-      startingBlockIndex: 0,
-    })
-
-    expect(kernelMocks.renderAttributeView).toHaveBeenCalledWith('av-6', 'view-6')
-    expect(result.matches).toHaveLength(1)
-    expect(result.matches[0]?.attributeView?.avID).toBe('av-6')
-  })
-
-  it('resolves view ids from sy-av-view block attrs when custom-sy-av-view is unavailable', async () => {
-    kernelMocks.getBlockAttrs.mockResolvedValue({
-      'custom-avs': '["av-6b"]',
-      'sy-av-view': 'view-6b',
-    })
-    kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
-      {
-        id: 'col-title',
-        name: '标题',
-      },
-    ])
-    kernelMocks.renderAttributeView.mockResolvedValue({
-      view: {
-        columns: [
-          {
-            id: 'col-title',
-            name: '标题',
-            type: 'text',
-          },
-        ],
-        rows: [{
-          cells: [{
-            keyID: 'col-title',
-            value: {
-              text: {
-                content: '属性视图标题',
-              },
-              type: 'text',
-            },
-          }],
-          id: 'item-6b',
-        }],
-      },
-      viewType: 'kanban',
-      viewID: 'view-6b',
-    })
-
-    const context = renderEditor(`
-      <div data-node-id="av-block-6b" data-type="NodeAttributeView" class="av"></div>
-    `)
-
-    const result = await searchAttributeViewMatches({
-      context,
-      options: DEFAULT_OPTIONS,
-      query: '属性视图标题',
-      startingBlockIndex: 0,
-    })
-
-    expect(kernelMocks.renderAttributeView).toHaveBeenCalledWith('av-6b', 'view-6b')
-    expect(result.matches).toHaveLength(1)
-    expect(result.matches[0]?.attributeView?.avID).toBe('av-6b')
-  })
-
-  it('merges rendered kanban card content when DOM only exposes titles and headers', async () => {
-    kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
-      {
-        id: 'col-title',
-        name: '标题',
-      },
-    ])
-    kernelMocks.renderAttributeView.mockResolvedValue({
-      view: {
-        columns: [
-          {
-            id: 'col-title',
-            name: '标题',
-            type: 'text',
-          },
-        ],
-        groups: [{
-          id: 'group-1',
-          cards: [{
-            id: 'card-1',
-            itemID: 'card-1',
-            fields: [{
+          ],
+          rows: [{
+            cells: [{
               keyID: 'col-title',
               value: {
                 text: {
-                  content: '看板里的传感器卡片',
+                  content: '属性视图标题',
                 },
                 type: 'text',
               },
             }],
+            id: 'item-6',
           }],
-        }],
-      },
-      viewID: 'view-kanban',
-      viewType: 'kanban',
+        },
+        viewType: 'table',
+      })
+
+      const context = renderEditor(`
+      <div data-node-id="av-block-6" data-type="NodeAttributeView" class="av"></div>
+    `)
+
+      const result = await searchAttributeViewMatches({
+        context,
+        options: DEFAULT_OPTIONS,
+        query: '属性视图标题',
+        startingBlockIndex: 0,
+      })
+
+      expect(kernelMocks.renderAttributeView).toHaveBeenCalledWith('av-6', 'view-6')
+      expect(result.matches).toHaveLength(1)
+      expect(result.matches[0]?.attributeView?.avID).toBe('av-6')
     })
 
-    const context = renderEditor(`
+    it('resolves view ids from sy-av-view block attrs when custom-sy-av-view is unavailable', async () => {
+      kernelMocks.getBlockAttrs.mockResolvedValue({
+        'custom-avs': '["av-6b"]',
+        'sy-av-view': 'view-6b',
+      })
+      kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
+        {
+          id: 'col-title',
+          name: '标题',
+        },
+      ])
+      kernelMocks.renderAttributeView.mockResolvedValue({
+        view: {
+          columns: [
+            {
+              id: 'col-title',
+              name: '标题',
+              type: 'text',
+            },
+          ],
+          rows: [{
+            cells: [{
+              keyID: 'col-title',
+              value: {
+                text: {
+                  content: '属性视图标题',
+                },
+                type: 'text',
+              },
+            }],
+            id: 'item-6b',
+          }],
+        },
+        viewType: 'kanban',
+        viewID: 'view-6b',
+      })
+
+      const context = renderEditor(`
+      <div data-node-id="av-block-6b" data-type="NodeAttributeView" class="av"></div>
+    `)
+
+      const result = await searchAttributeViewMatches({
+        context,
+        options: DEFAULT_OPTIONS,
+        query: '属性视图标题',
+        startingBlockIndex: 0,
+      })
+
+      expect(kernelMocks.renderAttributeView).toHaveBeenCalledWith('av-6b', 'view-6b')
+      expect(result.matches).toHaveLength(1)
+      expect(result.matches[0]?.attributeView?.avID).toBe('av-6b')
+    })
+  })
+
+  describe('看板与画廊合并', () => {
+    it('merges rendered kanban card content when DOM only exposes titles and headers', async () => {
+      kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
+        {
+          id: 'col-title',
+          name: '标题',
+        },
+      ])
+      kernelMocks.renderAttributeView.mockResolvedValue({
+        view: {
+          columns: [
+            {
+              id: 'col-title',
+              name: '标题',
+              type: 'text',
+            },
+          ],
+          groups: [{
+            id: 'group-1',
+            cards: [{
+              id: 'card-1',
+              itemID: 'card-1',
+              fields: [{
+                keyID: 'col-title',
+                value: {
+                  text: {
+                    content: '看板里的传感器卡片',
+                  },
+                  type: 'text',
+                },
+              }],
+            }],
+          }],
+        },
+        viewID: 'view-kanban',
+        viewType: 'kanban',
+      })
+
+      const context = renderEditor(`
       <div
         data-node-id="av-block-7"
         data-type="NodeAttributeView"
@@ -969,58 +978,58 @@ describe('attribute view search', () => {
       </div>
     `)
 
-    const result = await searchAttributeViewMatches({
-      context,
-      options: DEFAULT_OPTIONS,
-      query: '传感器卡片',
-      startingBlockIndex: 0,
+      const result = await searchAttributeViewMatches({
+        context,
+        options: DEFAULT_OPTIONS,
+        query: '传感器卡片',
+        startingBlockIndex: 0,
+      })
+
+      expect(result.matches).toHaveLength(1)
+      expect(result.matches[0]?.attributeView).toMatchObject({
+        avBlockId: 'av-block-7',
+        avID: 'av-7',
+        itemID: 'card-1',
+        keyID: 'col-title',
+        targetKind: 'cell',
+      })
+      expect(result.matches[0]?.previewText).toBe('标题: 看板里的[传感器卡片]')
     })
 
-    expect(result.matches).toHaveLength(1)
-    expect(result.matches[0]?.attributeView).toMatchObject({
-      avBlockId: 'av-block-7',
-      avID: 'av-7',
-      itemID: 'card-1',
-      keyID: 'col-title',
-      targetKind: 'cell',
-    })
-    expect(result.matches[0]?.previewText).toBe('标题: 看板里的[传感器卡片]')
-  })
-
-  it('ignores rendered fallback rows when the API returns a different view than the active kanban view', async () => {
-    kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
-      {
-        id: 'col-title',
-        name: '标题',
-      },
-    ])
-    kernelMocks.renderAttributeView.mockResolvedValue({
-      view: {
-        columns: [
-          {
-            id: 'col-title',
-            name: '标题',
-            type: 'text',
-          },
-        ],
-        rows: [{
-          id: 'row-table-1',
-          cells: [{
-            keyID: 'col-title',
-            value: {
-              text: {
-                content: '默认表格里的传感器',
-              },
+    it('ignores rendered fallback rows when the API returns a different view than the active kanban view', async () => {
+      kernelMocks.getAttributeViewKeysByAvID.mockResolvedValue([
+        {
+          id: 'col-title',
+          name: '标题',
+        },
+      ])
+      kernelMocks.renderAttributeView.mockResolvedValue({
+        view: {
+          columns: [
+            {
+              id: 'col-title',
+              name: '标题',
               type: 'text',
             },
+          ],
+          rows: [{
+            id: 'row-table-1',
+            cells: [{
+              keyID: 'col-title',
+              value: {
+                text: {
+                  content: '默认表格里的传感器',
+                },
+                type: 'text',
+              },
+            }],
           }],
-        }],
-      },
-      viewID: 'view-table',
-      viewType: 'table',
-    })
+        },
+        viewID: 'view-table',
+        viewType: 'table',
+      })
 
-    const context = renderEditor(`
+      const context = renderEditor(`
       <div
         data-node-id="av-block-8"
         data-type="NodeAttributeView"
@@ -1033,18 +1042,20 @@ describe('attribute view search', () => {
       </div>
     `)
 
-    const result = await searchAttributeViewMatches({
-      context,
-      options: DEFAULT_OPTIONS,
-      query: '默认表格里的传感器',
-      startingBlockIndex: 0,
-    })
+      const result = await searchAttributeViewMatches({
+        context,
+        options: DEFAULT_OPTIONS,
+        query: '默认表格里的传感器',
+        startingBlockIndex: 0,
+      })
 
-    expect(result.matches).toHaveLength(0)
+      expect(result.matches).toHaveLength(0)
+    })
   })
 
-  it('aborts attribute view collection once isStale turns true mid-block', async () => {
-    const context = renderEditor(`
+  describe('生命周期与汇总', () => {
+    it('aborts attribute view collection once isStale turns true mid-block', async () => {
+      const context = renderEditor(`
       <div data-node-id="av-block-1" data-type="NodeAttributeView" class="av" data-av-id="av-1" data-render="true">
         <div class="av__row" data-id="item-1">
           <div class="av__body">
@@ -1061,33 +1072,33 @@ describe('attribute view search', () => {
       </div>
     `)
 
-    // 块缺少 viewID 时 resolveAttributeViewInfo 会逐块调用 getBlockAttrs，
-    // 以它作为过期翻转点：第一个块的信息解析完成后搜索即被判过期
-    let stale = false
-    let attrsCalls = 0
-    kernelMocks.getBlockAttrs.mockImplementation(async () => {
-      attrsCalls += 1
-      stale = true
-      return {}
+      // 块缺少 viewID 时 resolveAttributeViewInfo 会逐块调用 getBlockAttrs，
+      // 以它作为过期翻转点：第一个块的信息解析完成后搜索即被判过期
+      let stale = false
+      let attrsCalls = 0
+      kernelMocks.getBlockAttrs.mockImplementation(async () => {
+        attrsCalls += 1
+        stale = true
+        return {}
+      })
+
+      const result = await searchAttributeViewMatches({
+        context,
+        isStale: () => stale,
+        options: DEFAULT_OPTIONS,
+        query: '传感器',
+        startingBlockIndex: 0,
+      })
+
+      // 第一个块在信息解析后、候选采集前被过期检查中断，后续块不再进入循环；
+      // 中断发生在块摘要 push 之前，因此不产生任何块或匹配
+      expect(attrsCalls).toBe(1)
+      expect(result.blocks).toEqual([])
+      expect(result.matches).toEqual([])
     })
 
-    const result = await searchAttributeViewMatches({
-      context,
-      isStale: () => stale,
-      options: DEFAULT_OPTIONS,
-      query: '传感器',
-      startingBlockIndex: 0,
-    })
-
-    // 第一个块在信息解析后、候选采集前被过期检查中断，后续块不再进入循环；
-    // 中断发生在块摘要 push 之前，因此不产生任何块或匹配
-    expect(attrsCalls).toBe(1)
-    expect(result.blocks).toEqual([])
-    expect(result.matches).toEqual([])
-  })
-
-  it('excludes failed attribute view blocks from the searched blocks summary', async () => {
-    const context = renderEditor(`
+    it('excludes failed attribute view blocks from the searched blocks summary', async () => {
+      const context = renderEditor(`
       <div data-node-id="av-block-ok" data-type="NodeAttributeView" class="av" data-av-id="av-ok" data-render="true">
         <div class="av__row" data-id="item-ok">
           <div class="av__body">
@@ -1104,26 +1115,27 @@ describe('attribute view search', () => {
       </div>
     `)
 
-    // 第二个块的信息解析失败，模拟内核请求异常
-    let attrsCalls = 0
-    kernelMocks.getBlockAttrs.mockImplementation(async () => {
-      attrsCalls += 1
-      if (attrsCalls >= 2) {
-        throw new Error('kernel unavailable')
-      }
-      return {}
-    })
+      // 第二个块的信息解析失败，模拟内核请求异常
+      let attrsCalls = 0
+      kernelMocks.getBlockAttrs.mockImplementation(async () => {
+        attrsCalls += 1
+        if (attrsCalls >= 2) {
+          throw new Error('kernel unavailable')
+        }
+        return {}
+      })
 
-    const result = await searchAttributeViewMatches({
-      context,
-      options: DEFAULT_OPTIONS,
-      query: '传感器',
-      startingBlockIndex: 0,
-    })
+      const result = await searchAttributeViewMatches({
+        context,
+        options: DEFAULT_OPTIONS,
+        query: '传感器',
+        startingBlockIndex: 0,
+      })
 
-    // 失败块不再计入已搜索块摘要（此前会在 try 之前被提前 push 导致计数虚高）
-    expect(result.blocks.map((block) => block.blockId)).toEqual(['av-block-ok'])
-    expect(result.matches.every((match) => match.attributeView?.avBlockId === 'av-block-ok')).toBe(true)
+      // 失败块不再计入已搜索块摘要（此前会在 try 之前被提前 push 导致计数虚高）
+      expect(result.blocks.map((block) => block.blockId)).toEqual(['av-block-ok'])
+      expect(result.matches.every((match) => match.attributeView?.avBlockId === 'av-block-ok')).toBe(true)
+    })
   })
 })
 

@@ -1,5 +1,3 @@
-// @vitest-environment jsdom
-
 import type {
   EditorContext,
   SearchMatch,
@@ -27,67 +25,68 @@ describe('match scrolling', () => {
     restoreRangeMethods()
   })
 
-  it('does not scroll when the current match is already visible and scrolling is if-needed', () => {
-    const {
-      block,
-      context,
-    } = setupEditor()
-    const scrollSpy = vi.fn()
-    block.scrollIntoView = scrollSpy
+  describe('基础可见性与缺失判定', () => {
+    it('does not scroll when the current match is already visible and scrolling is if-needed', () => {
+      const {
+        block,
+        context,
+      } = setupEditor()
+      const scrollSpy = vi.fn()
+      block.scrollIntoView = scrollSpy
 
-    vi.spyOn(block, 'getBoundingClientRect').mockReturnValue({
-      bottom: 260,
-      height: 40,
-      left: 0,
-      right: 300,
-      toJSON: () => ({}),
-      top: 220,
-      width: 300,
-      x: 0,
-      y: 220,
+      vi.spyOn(block, 'getBoundingClientRect').mockReturnValue({
+        bottom: 260,
+        height: 40,
+        left: 0,
+        right: 300,
+        toJSON: () => ({}),
+        top: 220,
+        width: 300,
+        x: 0,
+        y: 220,
+      })
+
+      ;(scrollMatchIntoView as any)(context, createMatch(), 'if-needed')
+
+      expect(scrollSpy).not.toHaveBeenCalled()
     })
 
-    ;(scrollMatchIntoView as any)(context, createMatch(), 'if-needed')
+    it('scrolls when the current match is outside the visible range and scrolling is if-needed', () => {
+      const {
+        block,
+        context,
+      } = setupEditor()
+      const scrollSpy = vi.fn()
+      block.scrollIntoView = scrollSpy
 
-    expect(scrollSpy).not.toHaveBeenCalled()
-  })
+      vi.spyOn(block, 'getBoundingClientRect').mockReturnValue({
+        bottom: 520,
+        height: 40,
+        left: 0,
+        right: 300,
+        toJSON: () => ({}),
+        top: 480,
+        width: 300,
+        x: 0,
+        y: 480,
+      })
 
-  it('scrolls when the current match is outside the visible range and scrolling is if-needed', () => {
-    const {
-      block,
-      context,
-    } = setupEditor()
-    const scrollSpy = vi.fn()
-    block.scrollIntoView = scrollSpy
+      ;(scrollMatchIntoView as any)(context, createMatch(), 'if-needed')
 
-    vi.spyOn(block, 'getBoundingClientRect').mockReturnValue({
-      bottom: 520,
-      height: 40,
-      left: 0,
-      right: 300,
-      toJSON: () => ({}),
-      top: 480,
-      width: 300,
-      x: 0,
-      y: 480,
+      expect(scrollSpy).toHaveBeenCalledTimes(1)
     })
 
-    ;(scrollMatchIntoView as any)(context, createMatch(), 'if-needed')
+    it('reports missing when the target block has not been loaded into the editor DOM yet', () => {
+      const { context } = setupEditor()
+      document.querySelector('[data-node-id="block-1"]')?.remove()
 
-    expect(scrollSpy).toHaveBeenCalledTimes(1)
-  })
+      const result = scrollMatchIntoView(context, createMatch(), 'if-needed')
 
-  it('reports missing when the target block has not been loaded into the editor DOM yet', () => {
-    const { context } = setupEditor()
-    document.querySelector('[data-node-id="block-1"]')?.remove()
+      expect(result).toBe('missing')
+    })
 
-    const result = scrollMatchIntoView(context, createMatch(), 'if-needed')
-
-    expect(result).toBe('missing')
-  })
-
-  it('reports missing when only a metadata element with the same node id exists', () => {
-    document.body.innerHTML = `
+    it('reports missing when only a metadata element with the same node id exists', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-background" data-node-id="root-1"></div>
         <div class="protyle-title" data-node-id="root-1"></div>
@@ -100,15 +99,15 @@ describe('match scrolling', () => {
       </div>
     `
 
-    const protyle = document.querySelector<HTMLElement>('.protyle')!
+      const protyle = document.querySelector<HTMLElement>('.protyle')!
 
-    const result = scrollMatchIntoView(protyleContext(protyle), createMatch(), 'if-needed')
+      const result = scrollMatchIntoView(protyleContext(protyle), createMatch(), 'if-needed')
 
-    expect(result).toBe('missing')
-  })
+      expect(result).toBe('missing')
+    })
 
-  it('prefers the renderable editor block when duplicate node ids exist in the DOM', () => {
-    document.body.innerHTML = `
+    it('prefers the renderable editor block when duplicate node ids exist in the DOM', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-background" data-node-id="root-1"></div>
         <div class="protyle-title" data-node-id="root-1"></div>
@@ -126,44 +125,46 @@ describe('match scrolling', () => {
       </div>
     `
 
-    const protyle = document.querySelector<HTMLElement>('.protyle')!
-    const duplicatedBlocks = document.querySelectorAll<HTMLElement>('.protyle-wysiwyg [data-node-id="block-1"][data-type="NodeParagraph"]')
-    const hiddenBlock = duplicatedBlocks[0]!
-    const realBlock = duplicatedBlocks[1]!
-    const scrollSpy = vi.fn()
-    realBlock.scrollIntoView = scrollSpy
+      const protyle = document.querySelector<HTMLElement>('.protyle')!
+      const duplicatedBlocks = document.querySelectorAll<HTMLElement>('.protyle-wysiwyg [data-node-id="block-1"][data-type="NodeParagraph"]')
+      const hiddenBlock = duplicatedBlocks[0]!
+      const realBlock = duplicatedBlocks[1]!
+      const scrollSpy = vi.fn()
+      realBlock.scrollIntoView = scrollSpy
 
-    vi.spyOn(hiddenBlock, 'getBoundingClientRect').mockReturnValue({
-      bottom: 0,
-      height: 0,
-      left: 0,
-      right: 0,
-      toJSON: () => ({}),
-      top: 0,
-      width: 0,
-      x: 0,
-      y: 0,
+      vi.spyOn(hiddenBlock, 'getBoundingClientRect').mockReturnValue({
+        bottom: 0,
+        height: 0,
+        left: 0,
+        right: 0,
+        toJSON: () => ({}),
+        top: 0,
+        width: 0,
+        x: 0,
+        y: 0,
+      })
+      vi.spyOn(realBlock, 'getBoundingClientRect').mockReturnValue({
+        bottom: 520,
+        height: 40,
+        left: 0,
+        right: 300,
+        toJSON: () => ({}),
+        top: 480,
+        width: 300,
+        x: 0,
+        y: 480,
+      })
+
+      const result = scrollMatchIntoView(protyleContext(protyle), createMatch(), 'if-needed')
+
+      expect(result).toBe('scrolled')
+      expect(scrollSpy).toHaveBeenCalledTimes(1)
     })
-    vi.spyOn(realBlock, 'getBoundingClientRect').mockReturnValue({
-      bottom: 520,
-      height: 40,
-      left: 0,
-      right: 300,
-      toJSON: () => ({}),
-      top: 480,
-      width: 300,
-      x: 0,
-      y: 480,
-    })
-
-    const result = scrollMatchIntoView(protyleContext(protyle), createMatch(), 'if-needed')
-
-    expect(result).toBe('scrolled')
-    expect(scrollSpy).toHaveBeenCalledTimes(1)
   })
 
-  it('scrolls when a long paragraph block is visible but the matched text range is below the viewport', () => {
-    document.body.innerHTML = `
+  describe('长块滚动定位', () => {
+    it('scrolls when a long paragraph block is visible but the matched text range is below the viewport', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-background" data-node-id="root-1"></div>
         <div class="protyle-title" data-node-id="root-1"></div>
@@ -178,86 +179,86 @@ describe('match scrolling', () => {
       </div>
     `
 
-    const protyle = document.querySelector<HTMLElement>('.protyle')!
-    const container = document.querySelector<HTMLElement>('.protyle-content')!
-    const block = document.querySelector<HTMLElement>('[data-node-id="block-1"]')!
-    const blockScrollSpy = vi.fn()
-    const containerScrollSpy = vi.fn()
-    block.scrollIntoView = blockScrollSpy
-    container.scrollTo = containerScrollSpy as any
+      const protyle = document.querySelector<HTMLElement>('.protyle')!
+      const container = document.querySelector<HTMLElement>('.protyle-content')!
+      const block = document.querySelector<HTMLElement>('[data-node-id="block-1"]')!
+      const blockScrollSpy = vi.fn()
+      const containerScrollSpy = vi.fn()
+      block.scrollIntoView = blockScrollSpy
+      container.scrollTo = containerScrollSpy as any
 
-    Object.defineProperty(container, 'clientHeight', {
-      configurable: true,
-      value: 300,
-    })
-    Object.defineProperty(container, 'scrollHeight', {
-      configurable: true,
-      value: 1200,
-    })
-    Object.defineProperty(container, 'scrollTop', {
-      configurable: true,
-      get: () => 0,
-      set: () => {},
+      Object.defineProperty(container, 'clientHeight', {
+        configurable: true,
+        value: 300,
+      })
+      Object.defineProperty(container, 'scrollHeight', {
+        configurable: true,
+        value: 1200,
+      })
+      Object.defineProperty(container, 'scrollTop', {
+        configurable: true,
+        get: () => 0,
+        set: () => {},
+      })
+
+      vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
+        bottom: 400,
+        height: 300,
+        left: 0,
+        right: 320,
+        toJSON: () => ({}),
+        top: 100,
+        width: 320,
+        x: 0,
+        y: 100,
+      })
+      vi.spyOn(block, 'getBoundingClientRect').mockReturnValue({
+        bottom: 380,
+        height: 240,
+        left: 0,
+        right: 320,
+        toJSON: () => ({}),
+        top: 140,
+        width: 320,
+        x: 0,
+        y: 140,
+      })
+      mockRangeRects({
+        bottom: 500,
+        height: 24,
+        left: 0,
+        right: 120,
+        top: 476,
+        width: 120,
+        x: 0,
+        y: 476,
+      })
+
+      const result = scrollMatchIntoView(protyleContext(protyle), {
+        blockId: 'block-1',
+        blockIndex: 0,
+        blockType: 'NodeParagraph',
+        end: 16,
+        id: 'block-1:11:16',
+        matchedText: 'Gamma',
+        previewText: 'Alpha Beta [Gamma] Delta',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 11,
+        occ: 0,
+      }, 'if-needed')
+
+      expect(result).toBe('scrolled')
+      expect(containerScrollSpy).toHaveBeenCalled()
+      expect(blockScrollSpy).not.toHaveBeenCalledWith({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'center',
+      })
     })
 
-    vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
-      bottom: 400,
-      height: 300,
-      left: 0,
-      right: 320,
-      toJSON: () => ({}),
-      top: 100,
-      width: 320,
-      x: 0,
-      y: 100,
-    })
-    vi.spyOn(block, 'getBoundingClientRect').mockReturnValue({
-      bottom: 380,
-      height: 240,
-      left: 0,
-      right: 320,
-      toJSON: () => ({}),
-      top: 140,
-      width: 320,
-      x: 0,
-      y: 140,
-    })
-    mockRangeRects({
-      bottom: 500,
-      height: 24,
-      left: 0,
-      right: 120,
-      top: 476,
-      width: 120,
-      x: 0,
-      y: 476,
-    })
-
-    const result = scrollMatchIntoView(protyleContext(protyle), {
-      blockId: 'block-1',
-      blockIndex: 0,
-      blockType: 'NodeParagraph',
-      end: 16,
-      id: 'block-1:11:16',
-      matchedText: 'Gamma',
-      previewText: 'Alpha Beta [Gamma] Delta',
-      replaceable: true,
-      rootId: 'root-1',
-      start: 11,
-      occ: 0,
-    }, 'if-needed')
-
-    expect(result).toBe('scrolled')
-    expect(containerScrollSpy).toHaveBeenCalled()
-    expect(blockScrollSpy).not.toHaveBeenCalledWith({
-      behavior: 'smooth',
-      block: 'center',
-      inline: 'center',
-    })
-  })
-
-  it('scrolls when a long code block is visible but the matched text range is below the viewport', () => {
-    document.body.innerHTML = `
+    it('scrolls when a long code block is visible but the matched text range is below the viewport', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-background" data-node-id="root-1"></div>
         <div class="protyle-title" data-node-id="root-1"></div>
@@ -272,80 +273,82 @@ describe('match scrolling', () => {
       </div>
     `
 
-    const protyle = document.querySelector<HTMLElement>('.protyle')!
-    const container = document.querySelector<HTMLElement>('.protyle-content')!
-    const block = document.querySelector<HTMLElement>('[data-node-id="code-1"]')!
-    const containerScrollSpy = vi.fn()
-    block.scrollIntoView = vi.fn()
-    container.scrollTo = containerScrollSpy as any
+      const protyle = document.querySelector<HTMLElement>('.protyle')!
+      const container = document.querySelector<HTMLElement>('.protyle-content')!
+      const block = document.querySelector<HTMLElement>('[data-node-id="code-1"]')!
+      const containerScrollSpy = vi.fn()
+      block.scrollIntoView = vi.fn()
+      container.scrollTo = containerScrollSpy as any
 
-    Object.defineProperty(container, 'clientHeight', {
-      configurable: true,
-      value: 300,
-    })
-    Object.defineProperty(container, 'scrollHeight', {
-      configurable: true,
-      value: 1600,
-    })
-    Object.defineProperty(container, 'scrollTop', {
-      configurable: true,
-      get: () => 120,
-      set: () => {},
-    })
+      Object.defineProperty(container, 'clientHeight', {
+        configurable: true,
+        value: 300,
+      })
+      Object.defineProperty(container, 'scrollHeight', {
+        configurable: true,
+        value: 1600,
+      })
+      Object.defineProperty(container, 'scrollTop', {
+        configurable: true,
+        get: () => 120,
+        set: () => {},
+      })
 
-    vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
-      bottom: 460,
-      height: 300,
-      left: 0,
-      right: 480,
-      toJSON: () => ({}),
-      top: 160,
-      width: 480,
-      x: 0,
-      y: 160,
-    })
-    vi.spyOn(block, 'getBoundingClientRect').mockReturnValue({
-      bottom: 430,
-      height: 220,
-      left: 0,
-      right: 480,
-      toJSON: () => ({}),
-      top: 210,
-      width: 480,
-      x: 0,
-      y: 210,
-    })
-    mockRangeRects({
-      bottom: 540,
-      height: 20,
-      left: 0,
-      right: 180,
-      top: 520,
-      width: 180,
-      x: 0,
-      y: 520,
-    })
+      vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
+        bottom: 460,
+        height: 300,
+        left: 0,
+        right: 480,
+        toJSON: () => ({}),
+        top: 160,
+        width: 480,
+        x: 0,
+        y: 160,
+      })
+      vi.spyOn(block, 'getBoundingClientRect').mockReturnValue({
+        bottom: 430,
+        height: 220,
+        left: 0,
+        right: 480,
+        toJSON: () => ({}),
+        top: 210,
+        width: 480,
+        x: 0,
+        y: 210,
+      })
+      mockRangeRects({
+        bottom: 540,
+        height: 20,
+        left: 0,
+        right: 180,
+        top: 520,
+        width: 180,
+        x: 0,
+        y: 520,
+      })
 
-    const result = scrollMatchIntoView(protyleContext(protyle), {
-      blockId: 'code-1',
-      blockIndex: 0,
-      blockType: 'NodeCodeBlock',
-      end: 50,
-      id: 'code-1:45:50',
-      matchedText: 'gamma',
-      previewText: 'const beta = 2; const [gamma] = 3;',
-      replaceable: true,
-      rootId: 'root-1',
-      start: 45,
-      occ: 0,
-    }, 'if-needed')
+      const result = scrollMatchIntoView(protyleContext(protyle), {
+        blockId: 'code-1',
+        blockIndex: 0,
+        blockType: 'NodeCodeBlock',
+        end: 50,
+        id: 'code-1:45:50',
+        matchedText: 'gamma',
+        previewText: 'const beta = 2; const [gamma] = 3;',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 45,
+        occ: 0,
+      }, 'if-needed')
 
-    expect(result).toBe('scrolled')
-    expect(containerScrollSpy).toHaveBeenCalled()
+      expect(result).toBe('scrolled')
+      expect(containerScrollSpy).toHaveBeenCalled()
+    })
   })
 
-  it('scrolls the matched table cell instead of the whole table when the cell is outside the visible range', () => {
-    document.body.innerHTML = `
+  describe('表格单元格定位', () => {
+    it('scrolls the matched table cell instead of the whole table when the cell is outside the visible range', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-background" data-node-id="root-1"></div>
         <div class="protyle-title" data-node-id="root-1"></div>
@@ -367,70 +370,70 @@ describe('match scrolling', () => {
       </div>
     `
 
-    const protyle = document.querySelector<HTMLElement>('.protyle')!
-    const container = document.querySelector<HTMLElement>('.protyle-content')!
-    const tableBlock = document.querySelector<HTMLElement>('[data-node-id="table-1"]')!
-    const targetCell = document.querySelector<HTMLElement>('[data-node-id="cell-2"]')!
-    const tableScrollSpy = vi.fn()
-    const cellScrollSpy = vi.fn()
-    tableBlock.scrollIntoView = tableScrollSpy
-    targetCell.scrollIntoView = cellScrollSpy
+      const protyle = document.querySelector<HTMLElement>('.protyle')!
+      const container = document.querySelector<HTMLElement>('.protyle-content')!
+      const tableBlock = document.querySelector<HTMLElement>('[data-node-id="table-1"]')!
+      const targetCell = document.querySelector<HTMLElement>('[data-node-id="cell-2"]')!
+      const tableScrollSpy = vi.fn()
+      const cellScrollSpy = vi.fn()
+      tableBlock.scrollIntoView = tableScrollSpy
+      targetCell.scrollIntoView = cellScrollSpy
 
-    vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
-      bottom: 400,
-      height: 300,
-      left: 0,
-      right: 320,
-      toJSON: () => ({}),
-      top: 100,
-      width: 320,
-      x: 0,
-      y: 100,
+      vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
+        bottom: 400,
+        height: 300,
+        left: 0,
+        right: 320,
+        toJSON: () => ({}),
+        top: 100,
+        width: 320,
+        x: 0,
+        y: 100,
+      })
+      vi.spyOn(tableBlock, 'getBoundingClientRect').mockReturnValue({
+        bottom: 360,
+        height: 220,
+        left: 0,
+        right: 320,
+        toJSON: () => ({}),
+        top: 140,
+        width: 320,
+        x: 0,
+        y: 140,
+      })
+      vi.spyOn(targetCell, 'getBoundingClientRect').mockReturnValue({
+        bottom: 520,
+        height: 40,
+        left: 0,
+        right: 320,
+        toJSON: () => ({}),
+        top: 480,
+        width: 320,
+        x: 0,
+        y: 480,
+      })
+
+      const result = scrollMatchIntoView(protyleContext(protyle), {
+        blockId: 'table-1',
+        blockIndex: 0,
+        blockType: 'NodeTable',
+        end: 19,
+        id: 'table-1:15:19',
+        matchedText: 'Beta',
+        previewText: 'Cell AlphaCell [Beta]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 15,
+        occ: 0,
+      }, 'if-needed')
+
+      expect(result).toBe('scrolled')
+      expect(cellScrollSpy).toHaveBeenCalledTimes(1)
+      expect(tableScrollSpy).not.toHaveBeenCalled()
     })
-    vi.spyOn(tableBlock, 'getBoundingClientRect').mockReturnValue({
-      bottom: 360,
-      height: 220,
-      left: 0,
-      right: 320,
-      toJSON: () => ({}),
-      top: 140,
-      width: 320,
-      x: 0,
-      y: 140,
-    })
-    vi.spyOn(targetCell, 'getBoundingClientRect').mockReturnValue({
-      bottom: 520,
-      height: 40,
-      left: 0,
-      right: 320,
-      toJSON: () => ({}),
-      top: 480,
-      width: 320,
-      x: 0,
-      y: 480,
-    })
 
-    const result = scrollMatchIntoView(protyleContext(protyle), {
-      blockId: 'table-1',
-      blockIndex: 0,
-      blockType: 'NodeTable',
-      end: 19,
-      id: 'table-1:15:19',
-      matchedText: 'Beta',
-      previewText: 'Cell AlphaCell [Beta]',
-      replaceable: true,
-      rootId: 'root-1',
-      start: 15,
-      occ: 0,
-    }, 'if-needed')
-
-    expect(result).toBe('scrolled')
-    expect(cellScrollSpy).toHaveBeenCalledTimes(1)
-    expect(tableScrollSpy).not.toHaveBeenCalled()
-  })
-
-  it('scrolls and centers the matched table cell when it is horizontally outside the visible range', () => {
-    document.body.innerHTML = `
+    it('scrolls and centers the matched table cell when it is horizontally outside the visible range', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-background" data-node-id="root-1"></div>
         <div class="protyle-title" data-node-id="root-1"></div>
@@ -452,67 +455,67 @@ describe('match scrolling', () => {
       </div>
     `
 
-    const protyle = document.querySelector<HTMLElement>('.protyle')!
-    const targetRow = document.querySelector<HTMLElement>('.table__row')!
-    const targetCell = document.querySelector<HTMLElement>('[data-node-id="cell-2"]')!
-    const rowScrollSpy = vi.fn()
-    const cellScrollSpy = vi.fn()
-    targetRow.scrollIntoView = rowScrollSpy
-    targetCell.scrollIntoView = cellScrollSpy
+      const protyle = document.querySelector<HTMLElement>('.protyle')!
+      const targetRow = document.querySelector<HTMLElement>('.table__row')!
+      const targetCell = document.querySelector<HTMLElement>('[data-node-id="cell-2"]')!
+      const rowScrollSpy = vi.fn()
+      const cellScrollSpy = vi.fn()
+      targetRow.scrollIntoView = rowScrollSpy
+      targetCell.scrollIntoView = cellScrollSpy
 
-    const container = document.querySelector<HTMLElement>('.protyle-content')!
-    vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
-      bottom: 400,
-      height: 300,
-      left: 0,
-      right: 320,
-      toJSON: () => ({}),
-      top: 100,
-      width: 320,
-      x: 0,
-      y: 100,
-    })
-    vi.spyOn(targetCell, 'getBoundingClientRect').mockReturnValue({
-      bottom: 260,
-      height: 40,
-      left: 540,
-      right: 860,
-      toJSON: () => ({}),
-      top: 220,
-      width: 320,
-      x: 540,
-      y: 220,
+      const container = document.querySelector<HTMLElement>('.protyle-content')!
+      vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
+        bottom: 400,
+        height: 300,
+        left: 0,
+        right: 320,
+        toJSON: () => ({}),
+        top: 100,
+        width: 320,
+        x: 0,
+        y: 100,
+      })
+      vi.spyOn(targetCell, 'getBoundingClientRect').mockReturnValue({
+        bottom: 260,
+        height: 40,
+        left: 540,
+        right: 860,
+        toJSON: () => ({}),
+        top: 220,
+        width: 320,
+        x: 540,
+        y: 220,
+      })
+
+      const result = scrollMatchIntoView(protyleContext(protyle), {
+        blockId: 'table-1',
+        blockIndex: 0,
+        blockType: 'NodeTable',
+        end: 19,
+        id: 'table-1:15:19',
+        matchedText: 'Beta',
+        previewText: 'Cell AlphaCell [Beta]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 15,
+        occ: 0,
+      }, 'if-needed')
+
+      expect(result).toBe('scrolled')
+      expect(rowScrollSpy).toHaveBeenCalledWith({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'nearest',
+      })
+      expect(cellScrollSpy).toHaveBeenCalledWith({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      })
     })
 
-    const result = scrollMatchIntoView(protyleContext(protyle), {
-      blockId: 'table-1',
-      blockIndex: 0,
-      blockType: 'NodeTable',
-      end: 19,
-      id: 'table-1:15:19',
-      matchedText: 'Beta',
-      previewText: 'Cell AlphaCell [Beta]',
-      replaceable: true,
-      rootId: 'root-1',
-      start: 15,
-      occ: 0,
-    }, 'if-needed')
-
-    expect(result).toBe('scrolled')
-    expect(rowScrollSpy).toHaveBeenCalledWith({
-      behavior: 'smooth',
-      block: 'center',
-      inline: 'nearest',
-    })
-    expect(cellScrollSpy).toHaveBeenCalledWith({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'center',
-    })
-  })
-
-  it('scrolls the matched table cell when it is vertically clipped by a nested table scroll container', () => {
-    document.body.innerHTML = `
+    it('scrolls the matched table cell when it is vertically clipped by a nested table scroll container', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-background" data-node-id="root-1"></div>
         <div class="protyle-title" data-node-id="root-1"></div>
@@ -538,79 +541,79 @@ describe('match scrolling', () => {
       </div>
     `
 
-    const protyle = document.querySelector<HTMLElement>('.protyle')!
-    const container = document.querySelector<HTMLElement>('.protyle-content')!
-    const tableScrollContainer = document.querySelector<HTMLElement>('.table-scroll')!
-    const targetRow = document.querySelectorAll<HTMLElement>('.table__row')[1]!
-    const targetCell = document.querySelector<HTMLElement>('[data-node-id="cell-2"]')!
-    const rowScrollSpy = vi.fn()
-    const cellScrollSpy = vi.fn()
-    targetRow.scrollIntoView = rowScrollSpy
-    targetCell.scrollIntoView = cellScrollSpy
+      const protyle = document.querySelector<HTMLElement>('.protyle')!
+      const container = document.querySelector<HTMLElement>('.protyle-content')!
+      const tableScrollContainer = document.querySelector<HTMLElement>('.table-scroll')!
+      const targetRow = document.querySelectorAll<HTMLElement>('.table__row')[1]!
+      const targetCell = document.querySelector<HTMLElement>('[data-node-id="cell-2"]')!
+      const rowScrollSpy = vi.fn()
+      const cellScrollSpy = vi.fn()
+      targetRow.scrollIntoView = rowScrollSpy
+      targetCell.scrollIntoView = cellScrollSpy
 
-    vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
-      bottom: 700,
-      height: 600,
-      left: 0,
-      right: 900,
-      toJSON: () => ({}),
-      top: 100,
-      width: 900,
-      x: 0,
-      y: 100,
-    })
-    vi.spyOn(tableScrollContainer, 'getBoundingClientRect').mockReturnValue({
-      bottom: 360,
-      height: 240,
-      left: 40,
-      right: 360,
-      toJSON: () => ({}),
-      top: 120,
-      width: 320,
-      x: 40,
-      y: 120,
-    })
-    vi.spyOn(targetCell, 'getBoundingClientRect').mockReturnValue({
-      bottom: 500,
-      height: 40,
-      left: 40,
-      right: 360,
-      toJSON: () => ({}),
-      top: 460,
-      width: 320,
-      x: 40,
-      y: 460,
+      vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
+        bottom: 700,
+        height: 600,
+        left: 0,
+        right: 900,
+        toJSON: () => ({}),
+        top: 100,
+        width: 900,
+        x: 0,
+        y: 100,
+      })
+      vi.spyOn(tableScrollContainer, 'getBoundingClientRect').mockReturnValue({
+        bottom: 360,
+        height: 240,
+        left: 40,
+        right: 360,
+        toJSON: () => ({}),
+        top: 120,
+        width: 320,
+        x: 40,
+        y: 120,
+      })
+      vi.spyOn(targetCell, 'getBoundingClientRect').mockReturnValue({
+        bottom: 500,
+        height: 40,
+        left: 40,
+        right: 360,
+        toJSON: () => ({}),
+        top: 460,
+        width: 320,
+        x: 40,
+        y: 460,
+      })
+
+      const result = scrollMatchIntoView(protyleContext(protyle), {
+        blockId: 'table-1',
+        blockIndex: 1,
+        blockType: 'NodeTable',
+        end: 19,
+        id: 'table-1:15:19',
+        matchedText: 'Beta',
+        previewText: 'Cell AlphaCell [Beta]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 15,
+        occ: 0,
+      }, 'if-needed')
+
+      expect(result).toBe('scrolled')
+      expect(rowScrollSpy).toHaveBeenCalledWith({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'nearest',
+      })
+      expect(cellScrollSpy).toHaveBeenCalledWith({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      })
     })
 
-    const result = scrollMatchIntoView(protyleContext(protyle), {
-      blockId: 'table-1',
-      blockIndex: 1,
-      blockType: 'NodeTable',
-      end: 19,
-      id: 'table-1:15:19',
-      matchedText: 'Beta',
-      previewText: 'Cell AlphaCell [Beta]',
-      replaceable: true,
-      rootId: 'root-1',
-      start: 15,
-      occ: 0,
-    }, 'if-needed')
-
-    expect(result).toBe('scrolled')
-    expect(rowScrollSpy).toHaveBeenCalledWith({
-      behavior: 'smooth',
-      block: 'center',
-      inline: 'nearest',
-    })
-    expect(cellScrollSpy).toHaveBeenCalledWith({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'center',
-    })
-  })
-
-  it('treats a table match as visible even when the row has sub-pixel overflow against a container', () => {
-    document.body.innerHTML = `
+    it('treats a table match as visible even when the row has sub-pixel overflow against a container', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-background" data-node-id="root-1"></div>
         <div class="protyle-title" data-node-id="root-1"></div>
@@ -631,79 +634,81 @@ describe('match scrolling', () => {
       </div>
     `
 
-    const protyle = document.querySelector<HTMLElement>('.protyle')!
-    const container = document.querySelector<HTMLElement>('.protyle-content')!
-    const tableScrollContainer = document.querySelector<HTMLElement>('.table-scroll')!
-    const targetRow = document.querySelector<HTMLElement>('.table__row')!
-    const targetCell = document.querySelector<HTMLElement>('[data-node-id="cell-1"]')!
+      const protyle = document.querySelector<HTMLElement>('.protyle')!
+      const container = document.querySelector<HTMLElement>('.protyle-content')!
+      const tableScrollContainer = document.querySelector<HTMLElement>('.table-scroll')!
+      const targetRow = document.querySelector<HTMLElement>('.table__row')!
+      const targetCell = document.querySelector<HTMLElement>('[data-node-id="cell-1"]')!
 
-    vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
-      bottom: 700,
-      height: 600,
-      left: 0,
-      right: 900,
-      toJSON: () => ({}),
-      top: 100,
-      width: 900,
-      x: 0,
-      y: 100,
-    })
-    vi.spyOn(tableScrollContainer, 'getBoundingClientRect').mockReturnValue({
-      bottom: 360,
-      height: 240,
-      left: 40,
-      right: 360,
-      toJSON: () => ({}),
-      top: 120,
-      width: 320,
-      x: 40,
-      y: 120,
-    })
-    vi.spyOn(targetCell, 'getBoundingClientRect').mockReturnValue({
-      bottom: 240,
-      height: 40,
-      left: 50,
-      right: 250,
-      toJSON: () => ({}),
-      top: 200,
-      width: 200,
-      x: 50,
-      y: 200,
-    })
-    vi.spyOn(targetRow, 'getBoundingClientRect').mockReturnValue({
-      bottom: 240,
-      height: 40,
-      left: 40,
-      right: 360.0001,
-      toJSON: () => ({}),
-      top: 200,
-      width: 320.0001,
-      x: 40,
-      y: 200,
-    })
+      vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
+        bottom: 700,
+        height: 600,
+        left: 0,
+        right: 900,
+        toJSON: () => ({}),
+        top: 100,
+        width: 900,
+        x: 0,
+        y: 100,
+      })
+      vi.spyOn(tableScrollContainer, 'getBoundingClientRect').mockReturnValue({
+        bottom: 360,
+        height: 240,
+        left: 40,
+        right: 360,
+        toJSON: () => ({}),
+        top: 120,
+        width: 320,
+        x: 40,
+        y: 120,
+      })
+      vi.spyOn(targetCell, 'getBoundingClientRect').mockReturnValue({
+        bottom: 240,
+        height: 40,
+        left: 50,
+        right: 250,
+        toJSON: () => ({}),
+        top: 200,
+        width: 200,
+        x: 50,
+        y: 200,
+      })
+      vi.spyOn(targetRow, 'getBoundingClientRect').mockReturnValue({
+        bottom: 240,
+        height: 40,
+        left: 40,
+        right: 360.0001,
+        toJSON: () => ({}),
+        top: 200,
+        width: 320.0001,
+        x: 40,
+        y: 200,
+      })
 
-    const match: SearchMatch = {
-      blockId: 'table-1',
-      blockIndex: 0,
-      blockType: 'NodeTable',
-      end: 10,
-      id: 'table-1:5:10',
-      matchedText: 'Alpha',
-      previewText: 'Cell [Alpha]',
-      replaceable: true,
-      rootId: 'root-1',
-      start: 5,
-      occ: 0,
-    }
+      const match: SearchMatch = {
+        blockId: 'table-1',
+        blockIndex: 0,
+        blockType: 'NodeTable',
+        end: 10,
+        id: 'table-1:5:10',
+        matchedText: 'Alpha',
+        previewText: 'Cell [Alpha]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 5,
+        occ: 0,
+      }
 
-    const context = protyleContext(protyle)
-    expect(isMatchVisible(context, match)).toBe(true)
-    const result = scrollMatchIntoView(context, match, 'if-needed')
-    expect(result).toBe('visible')
+      const context = protyleContext(protyle)
+      expect(isMatchVisible(context, match)).toBe(true)
+      const result = scrollMatchIntoView(context, match, 'if-needed')
+      expect(result).toBe('visible')
+    })
   })
 
-  it('uses table metadata to center the matched row instead of the whole table when live offsets are stale', () => {
-    document.body.innerHTML = `
+  describe('表格行与复杂表格结构', () => {
+    it('uses table metadata to center the matched row instead of the whole table when live offsets are stale', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-background" data-node-id="root-1"></div>
         <div class="protyle-title" data-node-id="root-1"></div>
@@ -727,107 +732,107 @@ describe('match scrolling', () => {
       </div>
     `
 
-    const protyle = document.querySelector<HTMLElement>('.protyle')!
-    const container = document.querySelector<HTMLElement>('.protyle-content')!
-    const tableBlock = document.querySelector<HTMLElement>('[data-node-id="table-1"]')!
-    const targetRow = document.querySelectorAll<HTMLElement>('.table__row')[1]!
-    const targetCell = document.querySelector<HTMLElement>('[data-node-id="cell-2"]')!
-    const tableScrollSpy = vi.fn()
-    const rowScrollSpy = vi.fn()
-    const cellScrollSpy = vi.fn()
-    tableBlock.scrollIntoView = tableScrollSpy
-    targetRow.scrollIntoView = rowScrollSpy
-    targetCell.scrollIntoView = cellScrollSpy
-    const containerScrollSpy = vi.fn()
+      const protyle = document.querySelector<HTMLElement>('.protyle')!
+      const container = document.querySelector<HTMLElement>('.protyle-content')!
+      const tableBlock = document.querySelector<HTMLElement>('[data-node-id="table-1"]')!
+      const targetRow = document.querySelectorAll<HTMLElement>('.table__row')[1]!
+      const targetCell = document.querySelector<HTMLElement>('[data-node-id="cell-2"]')!
+      const tableScrollSpy = vi.fn()
+      const rowScrollSpy = vi.fn()
+      const cellScrollSpy = vi.fn()
+      tableBlock.scrollIntoView = tableScrollSpy
+      targetRow.scrollIntoView = rowScrollSpy
+      targetCell.scrollIntoView = cellScrollSpy
+      const containerScrollSpy = vi.fn()
 
-    Object.defineProperty(container, 'clientHeight', {
-      configurable: true,
-      value: 260,
-    })
-    Object.defineProperty(container, 'scrollHeight', {
-      configurable: true,
-      value: 5000,
-    })
-    Object.defineProperty(container, 'scrollTop', {
-      configurable: true,
-      get: () => 0,
-      set: () => {},
-    })
-    container.scrollTo = containerScrollSpy as any
+      Object.defineProperty(container, 'clientHeight', {
+        configurable: true,
+        value: 260,
+      })
+      Object.defineProperty(container, 'scrollHeight', {
+        configurable: true,
+        value: 5000,
+      })
+      Object.defineProperty(container, 'scrollTop', {
+        configurable: true,
+        get: () => 0,
+        set: () => {},
+      })
+      container.scrollTo = containerScrollSpy as any
 
-    vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
-      bottom: 360,
-      height: 260,
-      left: 0,
-      right: 420,
-      toJSON: () => ({}),
-      top: 100,
-      width: 420,
-      x: 0,
-      y: 100,
-    })
-    vi.spyOn(targetRow, 'getBoundingClientRect').mockReturnValue({
-      bottom: 520,
-      height: 48,
-      left: 0,
-      right: 420,
-      toJSON: () => ({}),
-      top: 472,
-      width: 420,
-      x: 0,
-      y: 472,
-    })
-    vi.spyOn(targetCell, 'getBoundingClientRect').mockReturnValue({
-      bottom: 520,
-      height: 48,
-      left: 220,
-      right: 420,
-      toJSON: () => ({}),
-      top: 472,
-      width: 200,
-      x: 220,
-      y: 472,
+      vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
+        bottom: 360,
+        height: 260,
+        left: 0,
+        right: 420,
+        toJSON: () => ({}),
+        top: 100,
+        width: 420,
+        x: 0,
+        y: 100,
+      })
+      vi.spyOn(targetRow, 'getBoundingClientRect').mockReturnValue({
+        bottom: 520,
+        height: 48,
+        left: 0,
+        right: 420,
+        toJSON: () => ({}),
+        top: 472,
+        width: 420,
+        x: 0,
+        y: 472,
+      })
+      vi.spyOn(targetCell, 'getBoundingClientRect').mockReturnValue({
+        bottom: 520,
+        height: 48,
+        left: 220,
+        right: 420,
+        toJSON: () => ({}),
+        top: 472,
+        width: 200,
+        x: 220,
+        y: 472,
+      })
+
+      const result = scrollMatchIntoView(protyleContext(protyle), {
+        blockId: 'table-1',
+        blockIndex: 0,
+        blockType: 'NodeTable',
+        end: 104,
+        id: 'table-1:100:104',
+        matchedText: 'Beta',
+        previewText: 'Cell AlphaCell [Beta]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 100,
+        occ: 0,
+        table: {
+          cellEnd: 19,
+          cellId: 'cell-2',
+          cellStart: 10,
+          columnCount: 1,
+          columnIndex: 0,
+          rowCount: 2,
+          rowIndex: 1,
+        },
+      } as SearchMatch, 'if-needed')
+
+      expect(result).toBe('scrolled')
+      expect(rowScrollSpy).toHaveBeenCalledWith({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'nearest',
+      })
+      expect(cellScrollSpy).toHaveBeenCalledWith({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      })
+      expect(tableScrollSpy).not.toHaveBeenCalled()
     })
 
-    const result = scrollMatchIntoView(protyleContext(protyle), {
-      blockId: 'table-1',
-      blockIndex: 0,
-      blockType: 'NodeTable',
-      end: 104,
-      id: 'table-1:100:104',
-      matchedText: 'Beta',
-      previewText: 'Cell AlphaCell [Beta]',
-      replaceable: true,
-      rootId: 'root-1',
-      start: 100,
-      occ: 0,
-      table: {
-        cellEnd: 19,
-        cellId: 'cell-2',
-        cellStart: 10,
-        columnCount: 1,
-        columnIndex: 0,
-        rowCount: 2,
-        rowIndex: 1,
-      },
-    } as SearchMatch, 'if-needed')
-
-    expect(result).toBe('scrolled')
-    expect(rowScrollSpy).toHaveBeenCalledWith({
-      behavior: 'smooth',
-      block: 'center',
-      inline: 'nearest',
-    })
-    expect(cellScrollSpy).toHaveBeenCalledWith({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'center',
-    })
-    expect(tableScrollSpy).not.toHaveBeenCalled()
-  })
-
-  it('centers the matched row even when the row container has no table__row class', () => {
-    document.body.innerHTML = `
+    it('centers the matched row even when the row container has no table__row class', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-background" data-node-id="root-1"></div>
         <div class="protyle-title" data-node-id="root-1"></div>
@@ -851,91 +856,91 @@ describe('match scrolling', () => {
       </div>
     `
 
-    const protyle = document.querySelector<HTMLElement>('.protyle')!
-    const container = document.querySelector<HTMLElement>('.protyle-content')!
-    const tableBlock = document.querySelector<HTMLElement>('[data-node-id="table-1"]')!
-    const targetRow = document.querySelectorAll<HTMLElement>('.custom-row')[1]!
-    const targetCell = document.querySelector<HTMLElement>('[data-node-id="cell-2"]')!
-    const tableScrollSpy = vi.fn()
-    const rowScrollSpy = vi.fn()
-    const cellScrollSpy = vi.fn()
-    tableBlock.scrollIntoView = tableScrollSpy
-    targetRow.scrollIntoView = rowScrollSpy
-    targetCell.scrollIntoView = cellScrollSpy
+      const protyle = document.querySelector<HTMLElement>('.protyle')!
+      const container = document.querySelector<HTMLElement>('.protyle-content')!
+      const tableBlock = document.querySelector<HTMLElement>('[data-node-id="table-1"]')!
+      const targetRow = document.querySelectorAll<HTMLElement>('.custom-row')[1]!
+      const targetCell = document.querySelector<HTMLElement>('[data-node-id="cell-2"]')!
+      const tableScrollSpy = vi.fn()
+      const rowScrollSpy = vi.fn()
+      const cellScrollSpy = vi.fn()
+      tableBlock.scrollIntoView = tableScrollSpy
+      targetRow.scrollIntoView = rowScrollSpy
+      targetCell.scrollIntoView = cellScrollSpy
 
-    vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
-      bottom: 360,
-      height: 260,
-      left: 0,
-      right: 420,
-      toJSON: () => ({}),
-      top: 100,
-      width: 420,
-      x: 0,
-      y: 100,
-    })
-    vi.spyOn(targetRow, 'getBoundingClientRect').mockReturnValue({
-      bottom: 520,
-      height: 48,
-      left: 0,
-      right: 420,
-      toJSON: () => ({}),
-      top: 472,
-      width: 420,
-      x: 0,
-      y: 472,
-    })
-    vi.spyOn(targetCell, 'getBoundingClientRect').mockReturnValue({
-      bottom: 520,
-      height: 48,
-      left: 220,
-      right: 420,
-      toJSON: () => ({}),
-      top: 472,
-      width: 200,
-      x: 220,
-      y: 472,
+      vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
+        bottom: 360,
+        height: 260,
+        left: 0,
+        right: 420,
+        toJSON: () => ({}),
+        top: 100,
+        width: 420,
+        x: 0,
+        y: 100,
+      })
+      vi.spyOn(targetRow, 'getBoundingClientRect').mockReturnValue({
+        bottom: 520,
+        height: 48,
+        left: 0,
+        right: 420,
+        toJSON: () => ({}),
+        top: 472,
+        width: 420,
+        x: 0,
+        y: 472,
+      })
+      vi.spyOn(targetCell, 'getBoundingClientRect').mockReturnValue({
+        bottom: 520,
+        height: 48,
+        left: 220,
+        right: 420,
+        toJSON: () => ({}),
+        top: 472,
+        width: 200,
+        x: 220,
+        y: 472,
+      })
+
+      const result = scrollMatchIntoView(protyleContext(protyle), {
+        blockId: 'table-1',
+        blockIndex: 0,
+        blockType: 'NodeTable',
+        end: 104,
+        id: 'table-1:100:104',
+        matchedText: 'Beta',
+        previewText: 'Cell AlphaCell [Beta]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 100,
+        occ: 0,
+        table: {
+          cellEnd: 19,
+          cellId: 'cell-2',
+          cellStart: 10,
+          columnCount: 1,
+          columnIndex: 0,
+          rowCount: 2,
+          rowIndex: 1,
+        },
+      } as SearchMatch, 'if-needed')
+
+      expect(result).toBe('scrolled')
+      expect(rowScrollSpy).toHaveBeenCalledWith({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'nearest',
+      })
+      expect(cellScrollSpy).toHaveBeenCalledWith({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      })
+      expect(tableScrollSpy).not.toHaveBeenCalled()
     })
 
-    const result = scrollMatchIntoView(protyleContext(protyle), {
-      blockId: 'table-1',
-      blockIndex: 0,
-      blockType: 'NodeTable',
-      end: 104,
-      id: 'table-1:100:104',
-      matchedText: 'Beta',
-      previewText: 'Cell AlphaCell [Beta]',
-      replaceable: true,
-      rootId: 'root-1',
-      start: 100,
-      occ: 0,
-      table: {
-        cellEnd: 19,
-        cellId: 'cell-2',
-        cellStart: 10,
-        columnCount: 1,
-        columnIndex: 0,
-        rowCount: 2,
-        rowIndex: 1,
-      },
-    } as SearchMatch, 'if-needed')
-
-    expect(result).toBe('scrolled')
-    expect(rowScrollSpy).toHaveBeenCalledWith({
-      behavior: 'smooth',
-      block: 'center',
-      inline: 'nearest',
-    })
-    expect(cellScrollSpy).toHaveBeenCalledWith({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'center',
-    })
-    expect(tableScrollSpy).not.toHaveBeenCalled()
-  })
-
-  it('centers the matched native table row and cell in the actual SiYuan table DOM structure', () => {
-    document.body.innerHTML = `
+    it('centers the matched native table row and cell in the actual SiYuan table DOM structure', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-background" data-node-id="root-1"></div>
         <div class="protyle-title" data-node-id="root-1"></div>
@@ -972,107 +977,107 @@ describe('match scrolling', () => {
       </div>
     `
 
-    const protyle = document.querySelector<HTMLElement>('.protyle')!
-    const container = document.querySelector<HTMLElement>('.protyle-content')!
-    const tableBlock = document.querySelector<HTMLElement>('[data-node-id="table-1"]')!
-    const targetRow = document.querySelectorAll<HTMLTableRowElement>('tbody tr')[1]!
-    const targetCell = targetRow.querySelector<HTMLTableCellElement>('td')!
-    const tableScrollSpy = vi.fn()
-    const rowScrollSpy = vi.fn()
-    const cellScrollSpy = vi.fn()
-    const containerScrollSpy = vi.fn()
-    tableBlock.scrollIntoView = tableScrollSpy
-    targetRow.scrollIntoView = rowScrollSpy
-    targetCell.scrollIntoView = cellScrollSpy
-    Object.defineProperty(container, 'clientHeight', {
-      configurable: true,
-      value: 260,
-    })
-    Object.defineProperty(container, 'scrollHeight', {
-      configurable: true,
-      value: 5000,
-    })
-    Object.defineProperty(container, 'scrollTop', {
-      configurable: true,
-      get: () => 0,
-      set: () => {},
-    })
-    container.scrollTo = containerScrollSpy as any
+      const protyle = document.querySelector<HTMLElement>('.protyle')!
+      const container = document.querySelector<HTMLElement>('.protyle-content')!
+      const tableBlock = document.querySelector<HTMLElement>('[data-node-id="table-1"]')!
+      const targetRow = document.querySelectorAll<HTMLTableRowElement>('tbody tr')[1]!
+      const targetCell = targetRow.querySelector<HTMLTableCellElement>('td')!
+      const tableScrollSpy = vi.fn()
+      const rowScrollSpy = vi.fn()
+      const cellScrollSpy = vi.fn()
+      const containerScrollSpy = vi.fn()
+      tableBlock.scrollIntoView = tableScrollSpy
+      targetRow.scrollIntoView = rowScrollSpy
+      targetCell.scrollIntoView = cellScrollSpy
+      Object.defineProperty(container, 'clientHeight', {
+        configurable: true,
+        value: 260,
+      })
+      Object.defineProperty(container, 'scrollHeight', {
+        configurable: true,
+        value: 5000,
+      })
+      Object.defineProperty(container, 'scrollTop', {
+        configurable: true,
+        get: () => 0,
+        set: () => {},
+      })
+      container.scrollTo = containerScrollSpy as any
 
-    vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
-      bottom: 360,
-      height: 260,
-      left: 0,
-      right: 420,
-      toJSON: () => ({}),
-      top: 100,
-      width: 420,
-      x: 0,
-      y: 100,
-    })
-    vi.spyOn(targetRow, 'getBoundingClientRect').mockReturnValue({
-      bottom: 520,
-      height: 48,
-      left: 0,
-      right: 420,
-      toJSON: () => ({}),
-      top: 472,
-      width: 420,
-      x: 0,
-      y: 472,
-    })
-    vi.spyOn(targetCell, 'getBoundingClientRect').mockReturnValue({
-      bottom: 520,
-      height: 48,
-      left: 0,
-      right: 180,
-      toJSON: () => ({}),
-      top: 472,
-      width: 180,
-      x: 0,
-      y: 472,
+      vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
+        bottom: 360,
+        height: 260,
+        left: 0,
+        right: 420,
+        toJSON: () => ({}),
+        top: 100,
+        width: 420,
+        x: 0,
+        y: 100,
+      })
+      vi.spyOn(targetRow, 'getBoundingClientRect').mockReturnValue({
+        bottom: 520,
+        height: 48,
+        left: 0,
+        right: 420,
+        toJSON: () => ({}),
+        top: 472,
+        width: 420,
+        x: 0,
+        y: 472,
+      })
+      vi.spyOn(targetCell, 'getBoundingClientRect').mockReturnValue({
+        bottom: 520,
+        height: 48,
+        left: 0,
+        right: 180,
+        toJSON: () => ({}),
+        top: 472,
+        width: 180,
+        x: 0,
+        y: 472,
+      })
+
+      const result = scrollMatchIntoView(protyleContext(protyle), {
+        blockId: 'table-1',
+        blockIndex: 0,
+        blockType: 'NodeTable',
+        end: 500,
+        id: 'table-1:495:500',
+        matchedText: 'Codex',
+        previewText: '...[Codex]...',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 495,
+        occ: 0,
+        table: {
+          cellEnd: 63,
+          cellId: '',
+          cellStart: 58,
+          columnCount: 3,
+          columnIndex: 0,
+          rowCount: 3,
+          rowIndex: 2,
+        },
+      } as SearchMatch, 'if-needed')
+
+      expect(result).toBe('scrolled')
+      expect(rowScrollSpy).toHaveBeenCalledWith({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'nearest',
+      })
+      expect(cellScrollSpy).toHaveBeenCalledWith({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      })
+      expect(containerScrollSpy).toHaveBeenCalled()
+      expect(tableScrollSpy).not.toHaveBeenCalled()
     })
 
-    const result = scrollMatchIntoView(protyleContext(protyle), {
-      blockId: 'table-1',
-      blockIndex: 0,
-      blockType: 'NodeTable',
-      end: 500,
-      id: 'table-1:495:500',
-      matchedText: 'Codex',
-      previewText: '...[Codex]...',
-      replaceable: true,
-      rootId: 'root-1',
-      start: 495,
-      occ: 0,
-      table: {
-        cellEnd: 63,
-        cellId: '',
-        cellStart: 58,
-        columnCount: 3,
-        columnIndex: 0,
-        rowCount: 3,
-        rowIndex: 2,
-      },
-    } as SearchMatch, 'if-needed')
-
-    expect(result).toBe('scrolled')
-    expect(rowScrollSpy).toHaveBeenCalledWith({
-      behavior: 'smooth',
-      block: 'center',
-      inline: 'nearest',
-    })
-    expect(cellScrollSpy).toHaveBeenCalledWith({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'center',
-    })
-    expect(containerScrollSpy).toHaveBeenCalled()
-    expect(tableScrollSpy).not.toHaveBeenCalled()
-  })
-
-  it('correctly handles navigation and visibility in a very large table exceeding container viewport height', () => {
-    document.body.innerHTML = `
+    it('correctly handles navigation and visibility in a very large table exceeding container viewport height', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-background" data-node-id="root-1"></div>
         <div class="protyle-title" data-node-id="root-1"></div>
@@ -1094,83 +1099,83 @@ describe('match scrolling', () => {
       </div>
     `
 
-    const protyle = document.querySelector<HTMLElement>('.protyle')!
-    const container = document.querySelector<HTMLElement>('.protyle-content')!
-    const tableBlock = document.querySelector<HTMLElement>('[data-node-id="large-table-1"]')!
-    const targetRow = document.querySelector<HTMLElement>('.row-target')!
-    const targetCell = targetRow.querySelector<HTMLElement>('td')!
-    const cellScrollSpy = vi.fn()
-    const rowScrollSpy = vi.fn()
-    targetCell.scrollIntoView = cellScrollSpy
-    targetRow.scrollIntoView = rowScrollSpy
+      const protyle = document.querySelector<HTMLElement>('.protyle')!
+      const container = document.querySelector<HTMLElement>('.protyle-content')!
+      const tableBlock = document.querySelector<HTMLElement>('[data-node-id="large-table-1"]')!
+      const targetRow = document.querySelector<HTMLElement>('.row-target')!
+      const targetCell = targetRow.querySelector<HTMLElement>('td')!
+      const cellScrollSpy = vi.fn()
+      const rowScrollSpy = vi.fn()
+      targetCell.scrollIntoView = cellScrollSpy
+      targetRow.scrollIntoView = rowScrollSpy
 
-    // 模拟大表格高度为 3000px，远超容器 300px 的视口高度
-    vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
-      bottom: 400,
-      height: 300,
-      left: 0,
-      right: 500,
-      toJSON: () => ({}),
-      top: 100,
-      width: 500,
-      x: 0,
-      y: 100,
-    })
-    vi.spyOn(tableBlock, 'getBoundingClientRect').mockReturnValue({
-      bottom: 3100,
-      height: 3000,
-      left: 0,
-      right: 500,
-      toJSON: () => ({}),
-      top: 100,
-      width: 500,
-      x: 0,
-      y: 100,
-    })
-    // 目标单元格位于视口下方 1500px 处
-    vi.spyOn(targetCell, 'getBoundingClientRect').mockReturnValue({
-      bottom: 1640,
-      height: 40,
-      left: 10,
-      right: 300,
-      toJSON: () => ({}),
-      top: 1600,
-      width: 290,
-      x: 10,
-      y: 1600,
-    })
-    vi.spyOn(targetRow, 'getBoundingClientRect').mockReturnValue({
-      bottom: 1640,
-      height: 40,
-      left: 0,
-      right: 500,
-      toJSON: () => ({}),
-      top: 1600,
-      width: 500,
-      x: 0,
-      y: 1600,
+      // 模拟大表格高度为 3000px，远超容器 300px 的视口高度
+      vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
+        bottom: 400,
+        height: 300,
+        left: 0,
+        right: 500,
+        toJSON: () => ({}),
+        top: 100,
+        width: 500,
+        x: 0,
+        y: 100,
+      })
+      vi.spyOn(tableBlock, 'getBoundingClientRect').mockReturnValue({
+        bottom: 3100,
+        height: 3000,
+        left: 0,
+        right: 500,
+        toJSON: () => ({}),
+        top: 100,
+        width: 500,
+        x: 0,
+        y: 100,
+      })
+      // 目标单元格位于视口下方 1500px 处
+      vi.spyOn(targetCell, 'getBoundingClientRect').mockReturnValue({
+        bottom: 1640,
+        height: 40,
+        left: 10,
+        right: 300,
+        toJSON: () => ({}),
+        top: 1600,
+        width: 290,
+        x: 10,
+        y: 1600,
+      })
+      vi.spyOn(targetRow, 'getBoundingClientRect').mockReturnValue({
+        bottom: 1640,
+        height: 40,
+        left: 0,
+        right: 500,
+        toJSON: () => ({}),
+        top: 1600,
+        width: 500,
+        x: 0,
+        y: 1600,
+      })
+
+      const result = scrollMatchIntoView(protyleContext(protyle), {
+        blockId: 'large-table-1',
+        blockIndex: 0,
+        blockType: 'NodeTable',
+        end: 40,
+        id: 'large-table-1:10:40',
+        matchedText: 'Deep Table Target',
+        previewText: 'Complex [Deep Table Target] Content',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 10,
+        occ: 0,
+      }, 'if-needed')
+
+      expect(result).toBe('scrolled')
+      expect(cellScrollSpy).toHaveBeenCalled()
     })
 
-    const result = scrollMatchIntoView(protyleContext(protyle), {
-      blockId: 'large-table-1',
-      blockIndex: 0,
-      blockType: 'NodeTable',
-      end: 40,
-      id: 'large-table-1:10:40',
-      matchedText: 'Deep Table Target',
-      previewText: 'Complex [Deep Table Target] Content',
-      replaceable: true,
-      rootId: 'root-1',
-      start: 10,
-      occ: 0,
-    }, 'if-needed')
-
-    expect(result).toBe('scrolled')
-    expect(cellScrollSpy).toHaveBeenCalled()
-  })
-
-  it('successfully locates and scrolls to cell in complex table with merged cells (colspan/rowspan) via text fallback', () => {
-    document.body.innerHTML = `
+    it('successfully locates and scrolls to cell in complex table with merged cells (colspan/rowspan) via text fallback', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-background" data-node-id="root-1"></div>
         <div class="protyle-title" data-node-id="root-1"></div>
@@ -1201,63 +1206,64 @@ describe('match scrolling', () => {
       </div>
     `
 
-    const protyle = document.querySelector<HTMLElement>('.protyle')!
-    const targetCell = Array.from(document.querySelectorAll('td')).find(
-      (td) => td.textContent?.includes('Target In Merged Table'),
-    )!
-    const tableBlock = document.querySelector<HTMLElement>('[data-node-id="complex-table-1"]')!
-    const cellScrollSpy = vi.fn()
-    targetCell.scrollIntoView = cellScrollSpy
+      const protyle = document.querySelector<HTMLElement>('.protyle')!
+      const targetCell = Array.from(document.querySelectorAll('td')).find(
+        (td) => td.textContent?.includes('Target In Merged Table'),
+      )!
+      const tableBlock = document.querySelector<HTMLElement>('[data-node-id="complex-table-1"]')!
+      const cellScrollSpy = vi.fn()
+      targetCell.scrollIntoView = cellScrollSpy
 
-    vi.spyOn(tableBlock, 'getBoundingClientRect').mockReturnValue({
-      bottom: 500,
-      height: 300,
-      left: 0,
-      right: 400,
-      toJSON: () => ({}),
-      top: 200,
-      width: 400,
-      x: 0,
-      y: 200,
+      vi.spyOn(tableBlock, 'getBoundingClientRect').mockReturnValue({
+        bottom: 500,
+        height: 300,
+        left: 0,
+        right: 400,
+        toJSON: () => ({}),
+        top: 200,
+        width: 400,
+        x: 0,
+        y: 200,
+      })
+      vi.spyOn(targetCell, 'getBoundingClientRect').mockReturnValue({
+        bottom: 350,
+        height: 40,
+        left: 100,
+        right: 300,
+        toJSON: () => ({}),
+        top: 310,
+        width: 200,
+        x: 100,
+        y: 310,
+      })
+
+      // 模拟元数据索引错位（由于 colspan/rowspan 导致 columnIndex 不对）
+      const result = scrollMatchIntoView(protyleContext(protyle), {
+        blockId: 'complex-table-1',
+        blockIndex: 0,
+        blockType: 'NodeTable',
+        end: 50,
+        id: 'complex-table-1:30:50',
+        matchedText: 'Target In Merged Table',
+        previewText: '...[Target In Merged Table]...',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 30,
+        occ: 0,
+        table: {
+          cellEnd: 99,
+          cellId: '',
+          cellStart: 80,
+          columnCount: 3,
+          columnIndex: 99, // 故意错误的列索引，测试回退能力
+          rowCount: 3,
+          rowIndex: 99, // 故意错误的行索引，测试回退能力
+        },
+      } as SearchMatch, 'always')
+
+      expect(result).toBe('scrolled')
+      expect(cellScrollSpy).toHaveBeenCalled()
     })
-    vi.spyOn(targetCell, 'getBoundingClientRect').mockReturnValue({
-      bottom: 350,
-      height: 40,
-      left: 100,
-      right: 300,
-      toJSON: () => ({}),
-      top: 310,
-      width: 200,
-      x: 100,
-      y: 310,
-    })
-
-    // 模拟元数据索引错位（由于 colspan/rowspan 导致 columnIndex 不对）
-    const result = scrollMatchIntoView(protyleContext(protyle), {
-      blockId: 'complex-table-1',
-      blockIndex: 0,
-      blockType: 'NodeTable',
-      end: 50,
-      id: 'complex-table-1:30:50',
-      matchedText: 'Target In Merged Table',
-      previewText: '...[Target In Merged Table]...',
-      replaceable: true,
-      rootId: 'root-1',
-      start: 30,
-      occ: 0,
-      table: {
-        cellEnd: 99,
-        cellId: '',
-        cellStart: 80,
-        columnCount: 3,
-        columnIndex: 99, // 故意错误的列索引，测试回退能力
-        rowCount: 3,
-        rowIndex: 99, // 故意错误的行索引，测试回退能力
-      },
-    } as SearchMatch, 'always')
-
-    expect(result).toBe('scrolled')
-    expect(cellScrollSpy).toHaveBeenCalled()
   })
 })
 

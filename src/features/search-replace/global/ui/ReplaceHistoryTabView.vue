@@ -174,20 +174,12 @@
                 aria-label="点击在主编辑区定位该块"
                 @click="onNavigateToItem(item)"
               >
-                <div class="sfsr-diff-comparison">
-                  <div class="sfsr-diff-line sfsr-diff-line--before">
-                    <span class="sfsr-diff-badge sfsr-diff-badge--del">- 原文</span>
-                    <span class="sfsr-diff-text">
-                      {{ item.prefixText || '' }}<del class="sfsr-del-highlight">{{ item.matchedText || tx.query }}</del>{{ item.suffixText || '' }}
-                    </span>
-                  </div>
-                  <div class="sfsr-diff-line sfsr-diff-line--after">
-                    <span class="sfsr-diff-badge sfsr-diff-badge--ins">+ 替换</span>
-                    <span class="sfsr-diff-text">
-                      {{ item.prefixText || '' }}<ins class="sfsr-ins-highlight">{{ item.replacedText || tx.replacement }}</ins>{{ item.suffixText || '' }}
-                    </span>
-                  </div>
-                </div>
+                <DiffComparisonLines
+                  :prefix-text="item.prefixText || ''"
+                  :matched-text="item.matchedText || tx.query"
+                  :replaced-text="item.replacedText || tx.replacement"
+                  :suffix-text="item.suffixText || ''"
+                />
               </div>
             </div>
           </div>
@@ -214,6 +206,8 @@ import {
   navigateToBlock,
   revertTransaction,
 } from '../transaction-history'
+import DiffComparisonLines from './DiffComparisonLines.vue'
+import { useToggleSet } from './use-toggle-set'
 
 interface HistoryDocGroup {
   rootId: string
@@ -234,14 +228,11 @@ const props = withDefaults(
 const transactions = ref<ReplaceTransaction[]>(props.initialTransactions ?? [])
 const loading = ref(false)
 const revertingId = ref<string | null>(null)
-const expandedTxIds = ref<Set<string>>(new Set())
-const collapsedDocKeys = ref<Set<string>>(new Set())
+const expandedTxIds = useToggleSet()
+const collapsedDocKeys = useToggleSet()
 
 const isAllExpanded = computed(() => {
-  return (
-    transactions.value.length > 0
-    && transactions.value.every((t) => expandedTxIds.value.has(t.id))
-  )
+  return expandedTxIds.isAllSelected(transactions.value.map((t) => t.id))
 })
 
 async function refreshTransactions() {
@@ -263,40 +254,23 @@ onMounted(async () => {
 })
 
 function toggleTxExpand(txId: string) {
-  const next = new Set(expandedTxIds.value)
-  if (next.has(txId)) {
-    next.delete(txId)
-  } else {
-    next.add(txId)
-  }
-  expandedTxIds.value = next
+  expandedTxIds.toggle(txId)
 }
 
 function isTxExpanded(txId: string): boolean {
-  return expandedTxIds.value.has(txId)
+  return expandedTxIds.has(txId)
 }
 
 function toggleAllCards() {
-  if (isAllExpanded.value) {
-    expandedTxIds.value = new Set()
-  } else {
-    expandedTxIds.value = new Set(transactions.value.map((t) => t.id))
-  }
+  expandedTxIds.toggleAll(transactions.value.map((t) => t.id), !isAllExpanded.value)
 }
 
 function toggleDocCollapse(txId: string, rootId: string) {
-  const key = `${txId}:${rootId}`
-  const next = new Set(collapsedDocKeys.value)
-  if (next.has(key)) {
-    next.delete(key)
-  } else {
-    next.add(key)
-  }
-  collapsedDocKeys.value = next
+  collapsedDocKeys.toggle(`${txId}:${rootId}`)
 }
 
 function isDocCollapsed(txId: string, rootId: string): boolean {
-  return collapsedDocKeys.value.has(`${txId}:${rootId}`)
+  return collapsedDocKeys.has(`${txId}:${rootId}`)
 }
 
 function getTxDocGroups(tx: ReplaceTransaction): HistoryDocGroup[] {
@@ -653,61 +627,5 @@ function onNavigateToItem(item: ReplaceTransactionItem) {
   background: var(--b3-theme-surface-hover, var(--b3-list-hover, rgba(128, 128, 128, 0.08)));
 }
 
-.sfsr-diff-comparison {
-  flex: 1;
-}
 
-.sfsr-diff-line {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.sfsr-diff-line--before {
-  color: var(--b3-theme-on-surface);
-}
-
-.sfsr-diff-line--after {
-  color: var(--b3-theme-on-surface);
-  margin-top: 2px;
-}
-
-.sfsr-diff-badge {
-  font-size: 10px;
-  padding: 0 4px;
-  border-radius: 3px;
-  font-weight: bold;
-  flex-shrink: 0;
-}
-
-.sfsr-diff-badge--del {
-  background: var(--sfsr-diff-del-bg, rgba(245, 34, 45, 0.15));
-  color: var(--sfsr-diff-del-text, #f5222d);
-}
-
-.sfsr-diff-badge--ins {
-  background: var(--sfsr-diff-ins-bg, rgba(82, 196, 26, 0.15));
-  color: var(--sfsr-diff-ins-text, #52c41a);
-}
-
-.sfsr-diff-text {
-  word-break: break-all;
-}
-
-.sfsr-del-highlight {
-  background: var(--sfsr-diff-del-highlight, rgba(245, 34, 45, 0.25));
-  color: var(--sfsr-diff-del-text, #f5222d);
-  text-decoration: line-through;
-  padding: 0 2px;
-  border-radius: 2px;
-}
-
-.sfsr-ins-highlight {
-  background: var(--sfsr-diff-ins-highlight, rgba(82, 196, 26, 0.25));
-  color: var(--sfsr-diff-ins-text, #52c41a);
-  text-decoration: underline;
-  padding: 0 2px;
-  font-weight: 600;
-  border-radius: 2px;
-}
 </style>

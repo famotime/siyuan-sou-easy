@@ -89,7 +89,6 @@ export interface GlobalMatchSnippet {
 export interface DocAggregateNode {
   rootId: string
   boxId: string
-  boxName?: string
   hpath: string
   docTitle: string
   updated: string
@@ -119,10 +118,8 @@ export interface GlobalSearchStateModel {
   query: string
   searchedQuery: string
   replacement: string
-  visible: boolean
   replaceVisible: boolean
   searching: boolean
-  replacing: boolean
   error?: string
   statusMessage?: string
   options: {

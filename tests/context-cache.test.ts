@@ -1,5 +1,3 @@
-// @vitest-environment jsdom
-
 import type { EditorContext } from '@/features/search-replace/types'
 
 import {

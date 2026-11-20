@@ -22,13 +22,18 @@ import {
   getActiveEditorContext,
   getUniqueBlockElements,
 } from '@/features/search-replace/editor'
+import { scrollContainerTo } from '../editor/scroll-container'
+import { createBlockIndexByIdMap } from '../store/minimap-blocks'
+import {
+  clamp,
+  PANEL_MARGIN,
+} from './layout-constants'
 import {
   resolveMinimapContext,
   resolveMinimapScrollContainer,
 } from './minimap-context'
 import {
   buildMinimapDocLines,
-  clamp,
   computeMinimapViewport,
   createMinimapScrollTarget,
   MINIMAP_GAP,
@@ -36,11 +41,6 @@ import {
   MINIMAP_MAX_HEIGHT,
   MINIMAP_MIN_HEIGHT,
   MINIMAP_WIDTH,
-
-
-
-
-  PANEL_MARGIN,
   projectIndexedMinimapDocBlock,
   projectIndexedMinimapMarker,
   resolveMinimapDocVariant,
@@ -92,11 +92,10 @@ export function usePanelMinimap({
     },
   )
 
-  window.addEventListener('resize', handleViewportResize)
-
+  // resize 联动已由 use-panel-frame 统一监听并经 App.vue 的 onViewportResize 转发
+  // （RF-110：删除此处的独立 window resize 监听，避免每次 resize 刷新两次）
   onBeforeUnmount(() => {
     clearMinimap()
-    window.removeEventListener('resize', handleViewportResize)
   })
 
   return {
@@ -144,10 +143,6 @@ export function usePanelMinimap({
     scheduleMinimapRefresh()
   }
 
-  function handleViewportResize() {
-    refreshMinimap()
-  }
-
   function refreshMinimap() {
     if (!state.visible || !state.minimapVisible) {
       clearMinimap()
@@ -172,7 +167,10 @@ export function usePanelMinimap({
     const nextScrollTarget = syncMinimapScrollTarget(minimapScrollTarget, scrollHeight, clientHeight)
     if (nextScrollTarget && nextScrollTarget !== minimapScrollTarget) {
       minimapScrollTarget = nextScrollTarget
-      scrollTo(scrollContainer, nextScrollTarget.expectedScrollTop)
+      scrollContainerTo(scrollContainer, {
+        behavior: 'auto',
+        top: nextScrollTarget.expectedScrollTop,
+      })
     }
 
     const height = clamp(scrollRect.height - 16, MINIMAP_MIN_HEIGHT, MINIMAP_MAX_HEIGHT)
@@ -239,7 +237,10 @@ export function usePanelMinimap({
       trackTop,
     })
 
-    scrollTo(minimapScrollContainer, minimapScrollTarget.expectedScrollTop)
+    scrollContainerTo(minimapScrollContainer, {
+      behavior: 'auto',
+      top: minimapScrollTarget.expectedScrollTop,
+    })
     refreshMinimap()
   }
 
@@ -335,9 +336,7 @@ export function usePanelMinimap({
       return null
     }
 
-    const blockIndexById = new Map(
-      state.minimapBlocks.map((block) => [block.blockId, block.blockIndex] as const),
-    )
+    const blockIndexById = createBlockIndexByIdMap(state.minimapBlocks)
     const visibleBlocks = getUniqueBlockElements(context.protyle)
       .flatMap((blockElement) => {
         const blockId = blockElement.dataset.nodeId
@@ -392,17 +391,5 @@ export function usePanelMinimap({
         Math.max(0, minimapHeight - projectedHeight),
       ),
     }
-  }
-
-  function scrollTo(container: HTMLElement, top: number) {
-    if (typeof container.scrollTo === 'function') {
-      container.scrollTo({
-        behavior: 'auto',
-        top,
-      })
-      return
-    }
-
-    container.scrollTop = top
   }
 }

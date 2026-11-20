@@ -6,7 +6,7 @@ import type {
 } from '../types'
 import type { AttributeViewCellCandidate } from './search-types'
 import { debugLog } from '../debug'
-import { buildPreview } from '../editor'
+import { buildPreview } from '../match-utils'
 import { findMatches } from '../search-engine'
 import {
   collectAttributeViewBlocks,

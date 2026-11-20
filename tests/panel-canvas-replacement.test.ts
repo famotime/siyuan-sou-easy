@@ -1,5 +1,3 @@
-// @vitest-environment jsdom
-
 import {
   afterEach,
   beforeEach,
@@ -21,9 +19,9 @@ import {
 } from '@/features/search-replace/store'
 import { setPluginInstance } from '@/plugin-instance'
 import {
-  createSearchOptionsFromSettings,
   DEFAULT_SETTINGS,
 } from '@/settings'
+import { resetState } from './helpers/store-state'
 
 describe('search panel canvas replacement controls', () => {
   let host: HTMLDivElement | null = null
@@ -104,24 +102,4 @@ describe('search panel canvas replacement controls', () => {
       .find((button) => button.title === label || button.getAttribute('aria-label') === label || button.textContent?.trim() === label)
   }
 
-  function resetState() {
-    searchReplaceState.visible = false
-    searchReplaceState.replaceVisible = DEFAULT_SETTINGS.defaultReplaceVisible
-    searchReplaceState.minimapVisible = false
-    searchReplaceState.preserveCase = false
-    searchReplaceState.panelPosition = null
-    searchReplaceState.query = ''
-    searchReplaceState.replacement = ''
-    searchReplaceState.options = createSearchOptionsFromSettings(DEFAULT_SETTINGS)
-    searchReplaceState.currentRootId = ''
-    searchReplaceState.currentTitle = ''
-    searchReplaceState.navigationHint = ''
-    searchReplaceState.matches = []
-    searchReplaceState.currentIndex = 0
-    searchReplaceState.error = ''
-    searchReplaceState.busy = false
-    searchReplaceState.minimapBlocks = []
-    searchReplaceState.searchableBlockCount = 0
-    searchReplaceState.documentReadonly = false
-  }
 })

@@ -1,5 +1,3 @@
-// @vitest-environment jsdom
-
 import type {
   EditorContext,
   SearchMatch,
@@ -20,8 +18,9 @@ describe('current block highlight', () => {
     delete (globalThis as typeof globalThis & { CSS?: { highlights?: Map<string, unknown> } }).CSS
   })
 
-  it('keeps the current block class even when text highlights are supported', () => {
-    document.body.innerHTML = `
+  describe('基础块高亮', () => {
+    it('keeps the current block class even when text highlights are supported', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-wysiwyg">
           <div data-node-id="block-1" data-type="NodeParagraph" class="p">
@@ -31,41 +30,41 @@ describe('current block highlight', () => {
       </div>
     `
 
-    const protyle = document.querySelector('.protyle') as HTMLElement
-    const context: EditorContext = {
-      protyle,
-      rootId: 'root-1',
-      title: 'Doc 1',
-    }
-    const match: SearchMatch = {
-      blockId: 'block-1',
-      blockIndex: 0,
-      blockType: 'NodeParagraph',
-      end: 2,
-      id: 'block-1:0:2',
-      matchedText: '飞书',
-      previewText: '[飞书]配置飞书',
-      replaceable: true,
-      rootId: 'root-1',
-      start: 0,
-      occ: 0,
-    }
+      const protyle = document.querySelector('.protyle') as HTMLElement
+      const context: EditorContext = {
+        protyle,
+        rootId: 'root-1',
+        title: 'Doc 1',
+      }
+      const match: SearchMatch = {
+        blockId: 'block-1',
+        blockIndex: 0,
+        blockType: 'NodeParagraph',
+        end: 2,
+        id: 'block-1:0:2',
+        matchedText: '飞书',
+        previewText: '[飞书]配置飞书',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+        occ: 0,
+      }
 
     // lib.dom 已声明全局 Highlight/CSS，交叉断言会把属性类型并成 typeof Highlight & stub；经 unknown 双重断言用桩形状覆盖
     ;(globalThis as unknown as { Highlight?: new (...ranges: Range[]) => unknown }).Highlight = class {
-      constructor(..._ranges: Range[]) {}
-    }
-    ;(globalThis as unknown as { CSS?: { highlights?: Map<string, unknown> } }).CSS = {
-      highlights: new Map(),
-    }
+        constructor(..._ranges: Range[]) {}
+      }
+      ;(globalThis as unknown as { CSS?: { highlights?: Map<string, unknown> } }).CSS = {
+        highlights: new Map(),
+      }
 
-    syncSearchDecorations(context, [match], match)
+      syncSearchDecorations(context, [match], match)
 
-    expect(protyle.querySelector('[data-node-id="block-1"]')?.classList.contains('sfsr-block-current')).toBe(true)
-  })
+      expect(protyle.querySelector('[data-node-id="block-1"]')?.classList.contains('sfsr-block-current')).toBe(true)
+    })
 
-  it('highlights readonly block text when CSS highlights are supported', () => {
-    document.body.innerHTML = `
+    it('highlights readonly block text when CSS highlights are supported', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-wysiwyg">
           <div data-node-id="block-readonly" data-type="NodeParagraph" class="p">
@@ -77,48 +76,48 @@ describe('current block highlight', () => {
       </div>
     `
 
-    const protyle = document.querySelector('.protyle') as HTMLElement
-    const context: EditorContext = {
-      protyle,
-      rootId: 'root-1',
-      title: 'Doc 1',
-    }
-    const match: SearchMatch = {
-      blockId: 'block-readonly',
-      blockIndex: 0,
-      blockType: 'NodeParagraph',
-      end: 8,
-      id: 'block-readonly:6:8',
-      matchedText: '学生',
-      previewText: '本馆创编[学生]国学丛书',
-      replaceable: false,
-      rootId: 'root-1',
-      start: 6,
-      occ: 0,
-    }
+      const protyle = document.querySelector('.protyle') as HTMLElement
+      const context: EditorContext = {
+        protyle,
+        rootId: 'root-1',
+        title: 'Doc 1',
+      }
+      const match: SearchMatch = {
+        blockId: 'block-readonly',
+        blockIndex: 0,
+        blockType: 'NodeParagraph',
+        end: 8,
+        id: 'block-readonly:6:8',
+        matchedText: '学生',
+        previewText: '本馆创编[学生]国学丛书',
+        replaceable: false,
+        rootId: 'root-1',
+        start: 6,
+        occ: 0,
+      }
 
-    const highlights = new Map<string, { ranges: Range[] }>()
+      const highlights = new Map<string, { ranges: Range[] }>()
     // lib.dom 已声明全局 Highlight/CSS，交叉断言会把属性类型并成 typeof Highlight & stub；经 unknown 双重断言用桩形状覆盖
     ;(globalThis as unknown as { Highlight?: new (...ranges: Range[]) => { ranges: Range[] } }).Highlight = class {
-      ranges: Range[]
+        ranges: Range[]
 
-      constructor(...ranges: Range[]) {
-        this.ranges = ranges
+        constructor(...ranges: Range[]) {
+          this.ranges = ranges
+        }
       }
-    }
-    ;(globalThis as unknown as { CSS?: { highlights?: Map<string, { ranges: Range[] }> } }).CSS = {
-      highlights,
-    }
+      ;(globalThis as unknown as { CSS?: { highlights?: Map<string, { ranges: Range[] }> } }).CSS = {
+        highlights,
+      }
 
-    syncSearchDecorations(context, [match], match)
+      syncSearchDecorations(context, [match], match)
 
-    expect(protyle.querySelector('[data-node-id="block-readonly"]')?.classList.contains('sfsr-block-current')).toBe(true)
-    expect(highlights.get('sfsr-match')?.ranges.map((range) => range.toString())).toContain('学生')
-    expect(highlights.get('sfsr-current-match')?.ranges.map((range) => range.toString())).toContain('学生')
-  })
+      expect(protyle.querySelector('[data-node-id="block-readonly"]')?.classList.contains('sfsr-block-current')).toBe(true)
+      expect(highlights.get('sfsr-match')?.ranges.map((range) => range.toString())).toContain('学生')
+      expect(highlights.get('sfsr-current-match')?.ranges.map((range) => range.toString())).toContain('学生')
+    })
 
-  it('applies highlight classes to the actual heading block when metadata with the same node id exists', () => {
-    document.body.innerHTML = `
+    it('applies highlight classes to the actual heading block when metadata with the same node id exists', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-wysiwyg">
           <div class="protyle-attr" data-node-id="heading-1"></div>
@@ -129,35 +128,37 @@ describe('current block highlight', () => {
       </div>
     `
 
-    const protyle = document.querySelector('.protyle') as HTMLElement
-    const headingBlock = protyle.querySelector<HTMLElement>('[data-node-id="heading-1"][data-type="NodeHeading"]')
-    const context: EditorContext = {
-      protyle,
-      rootId: 'root-1',
-      title: 'Doc 1',
-    }
-    const match: SearchMatch = {
-      blockId: 'heading-1',
-      blockIndex: 0,
-      blockType: 'NodeHeading',
-      end: 2,
-      id: 'heading-1:0:2',
-      matchedText: '问题',
-      previewText: '[问题]标题',
-      replaceable: true,
-      rootId: 'root-1',
-      start: 0,
-      occ: 0,
-    }
+      const protyle = document.querySelector('.protyle') as HTMLElement
+      const headingBlock = protyle.querySelector<HTMLElement>('[data-node-id="heading-1"][data-type="NodeHeading"]')
+      const context: EditorContext = {
+        protyle,
+        rootId: 'root-1',
+        title: 'Doc 1',
+      }
+      const match: SearchMatch = {
+        blockId: 'heading-1',
+        blockIndex: 0,
+        blockType: 'NodeHeading',
+        end: 2,
+        id: 'heading-1:0:2',
+        matchedText: '问题',
+        previewText: '[问题]标题',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 0,
+        occ: 0,
+      }
 
-    syncSearchDecorations(context, [match], match)
+      syncSearchDecorations(context, [match], match)
 
-    expect(headingBlock?.classList.contains('sfsr-block-match')).toBe(true)
-    expect(headingBlock?.classList.contains('sfsr-block-current')).toBe(true)
+      expect(headingBlock?.classList.contains('sfsr-block-match')).toBe(true)
+      expect(headingBlock?.classList.contains('sfsr-block-current')).toBe(true)
+    })
   })
 
-  it('adds block and cell highlight classes for attribute view matches when the cell can be located', () => {
-    document.body.innerHTML = `
+  describe('属性视图单元格高亮', () => {
+    it('adds block and cell highlight classes for attribute view matches when the cell can be located', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-wysiwyg">
           <div data-node-id="av-block-1" data-type="NodeAttributeView" class="av" data-av-id="av-1" data-render="true">
@@ -178,61 +179,61 @@ describe('current block highlight', () => {
       </div>
     `
 
-    const protyle = document.querySelector('.protyle') as HTMLElement
-    const context: EditorContext = {
-      protyle,
-      rootId: 'root-1',
-      title: 'Doc 1',
-    }
-    const match: SearchMatch = {
-      attributeView: {
-        avBlockId: 'av-block-1',
-        avID: 'av-1',
-        columnName: '电影',
-        columnIndex: 0,
-        itemID: 'item-1',
-        keyID: 'col-1',
-        rowID: 'item-1',
-      },
-      blockId: 'av-block-1',
-      blockIndex: 0,
-      blockType: 'NodeAttributeView',
-      end: 4,
-      id: 'av:av-block-1:item-1:col-1:0:4',
-      matchedText: '热辣滚烫',
-      previewText: '电影: [热辣滚烫]',
-      replaceable: false,
-      rootId: 'root-1',
-      sourceKind: 'attribute-view',
-      start: 0,
-      occ: 0,
-    }
+      const protyle = document.querySelector('.protyle') as HTMLElement
+      const context: EditorContext = {
+        protyle,
+        rootId: 'root-1',
+        title: 'Doc 1',
+      }
+      const match: SearchMatch = {
+        attributeView: {
+          avBlockId: 'av-block-1',
+          avID: 'av-1',
+          columnName: '电影',
+          columnIndex: 0,
+          itemID: 'item-1',
+          keyID: 'col-1',
+          rowID: 'item-1',
+        },
+        blockId: 'av-block-1',
+        blockIndex: 0,
+        blockType: 'NodeAttributeView',
+        end: 4,
+        id: 'av:av-block-1:item-1:col-1:0:4',
+        matchedText: '热辣滚烫',
+        previewText: '电影: [热辣滚烫]',
+        replaceable: false,
+        rootId: 'root-1',
+        sourceKind: 'attribute-view',
+        start: 0,
+        occ: 0,
+      }
 
-    const highlights = new Map<string, { ranges: Range[] }>()
+      const highlights = new Map<string, { ranges: Range[] }>()
     // lib.dom 已声明全局 Highlight/CSS，交叉断言会把属性类型并成 typeof Highlight & stub；经 unknown 双重断言用桩形状覆盖
     ;(globalThis as unknown as { Highlight?: new (...ranges: Range[]) => { ranges: Range[] } }).Highlight = class {
-      ranges: Range[]
+        ranges: Range[]
 
-      constructor(...ranges: Range[]) {
-        this.ranges = ranges
+        constructor(...ranges: Range[]) {
+          this.ranges = ranges
+        }
       }
-    }
-    ;(globalThis as unknown as { CSS?: { highlights?: Map<string, { ranges: Range[] }> } }).CSS = {
-      highlights,
-    }
+      ;(globalThis as unknown as { CSS?: { highlights?: Map<string, { ranges: Range[] }> } }).CSS = {
+        highlights,
+      }
 
-    syncSearchDecorations(context, [match], match)
+      syncSearchDecorations(context, [match], match)
 
-    expect(protyle.querySelector('[data-node-id="av-block-1"]')?.classList.contains('sfsr-block-match')).toBe(true)
-    expect(protyle.querySelector('[data-node-id="av-block-1"]')?.classList.contains('sfsr-block-current')).toBe(true)
-    expect(protyle.querySelector('.av__row[data-id="item-1"] .av__body > .av__cell')?.classList.contains('sfsr-av-cell-match')).toBe(true)
-    expect(protyle.querySelector('.av__row[data-id="item-1"] .av__body > .av__cell')?.classList.contains('sfsr-av-cell-current')).toBe(true)
-    expect(highlights.get('sfsr-match')?.ranges.map((range) => range.toString())).toContain('热辣滚烫')
-    expect(highlights.get('sfsr-current-match')?.ranges.map((range) => range.toString())).toContain('热辣滚烫')
-  })
+      expect(protyle.querySelector('[data-node-id="av-block-1"]')?.classList.contains('sfsr-block-match')).toBe(true)
+      expect(protyle.querySelector('[data-node-id="av-block-1"]')?.classList.contains('sfsr-block-current')).toBe(true)
+      expect(protyle.querySelector('.av__row[data-id="item-1"] .av__body > .av__cell')?.classList.contains('sfsr-av-cell-match')).toBe(true)
+      expect(protyle.querySelector('.av__row[data-id="item-1"] .av__body > .av__cell')?.classList.contains('sfsr-av-cell-current')).toBe(true)
+      expect(highlights.get('sfsr-match')?.ranges.map((range) => range.toString())).toContain('热辣滚烫')
+      expect(highlights.get('sfsr-current-match')?.ranges.map((range) => range.toString())).toContain('热辣滚烫')
+    })
 
-  it('highlights the matched attribute view header cell when the match comes from a column title', () => {
-    document.body.innerHTML = `
+    it('highlights the matched attribute view header cell when the match comes from a column title', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-wysiwyg">
           <div data-node-id="av-block-header" data-type="NodeAttributeView" class="av" data-av-id="av-1" data-render="true">
@@ -247,45 +248,45 @@ describe('current block highlight', () => {
       </div>
     `
 
-    const protyle = document.querySelector('.protyle') as HTMLElement
-    const context: EditorContext = {
-      protyle,
-      rootId: 'root-1',
-      title: 'Doc 1',
-    }
-    const match: SearchMatch = {
-      attributeView: {
-        avBlockId: 'av-block-header',
-        avID: 'av-1',
-        columnName: '导演',
-        columnIndex: 1,
-        keyID: 'col-2',
-        targetKind: 'column-header',
-      },
-      blockId: 'av-block-header',
-      blockIndex: 0,
-      blockType: 'NodeAttributeView',
-      end: 2,
-      id: 'av:av-block-header:header:col-2:0:2',
-      matchedText: '导演',
-      previewText: '[导演]',
-      replaceable: false,
-      rootId: 'root-1',
-      sourceKind: 'attribute-view',
-      start: 0,
-      occ: 0,
-    }
+      const protyle = document.querySelector('.protyle') as HTMLElement
+      const context: EditorContext = {
+        protyle,
+        rootId: 'root-1',
+        title: 'Doc 1',
+      }
+      const match: SearchMatch = {
+        attributeView: {
+          avBlockId: 'av-block-header',
+          avID: 'av-1',
+          columnName: '导演',
+          columnIndex: 1,
+          keyID: 'col-2',
+          targetKind: 'column-header',
+        },
+        blockId: 'av-block-header',
+        blockIndex: 0,
+        blockType: 'NodeAttributeView',
+        end: 2,
+        id: 'av:av-block-header:header:col-2:0:2',
+        matchedText: '导演',
+        previewText: '[导演]',
+        replaceable: false,
+        rootId: 'root-1',
+        sourceKind: 'attribute-view',
+        start: 0,
+        occ: 0,
+      }
 
-    syncSearchDecorations(context, [match], match)
+      syncSearchDecorations(context, [match], match)
 
-    const headerCells = protyle.querySelectorAll<HTMLElement>('.av__row--header .av__cell')
-    expect(headerCells[0]?.classList.contains('sfsr-av-cell-match')).toBe(false)
-    expect(headerCells[1]?.classList.contains('sfsr-av-cell-match')).toBe(true)
-    expect(headerCells[1]?.classList.contains('sfsr-av-cell-current')).toBe(true)
-  })
+      const headerCells = protyle.querySelectorAll<HTMLElement>('.av__row--header .av__cell')
+      expect(headerCells[0]?.classList.contains('sfsr-av-cell-match')).toBe(false)
+      expect(headerCells[1]?.classList.contains('sfsr-av-cell-match')).toBe(true)
+      expect(headerCells[1]?.classList.contains('sfsr-av-cell-current')).toBe(true)
+    })
 
-  it('highlights the matched kanban card field when the row uses a card layout instead of table cells', () => {
-    document.body.innerHTML = `
+    it('highlights the matched kanban card field when the row uses a card layout instead of table cells', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-wysiwyg">
           <div data-node-id="av-block-card" data-type="NodeAttributeView" class="av" data-av-id="av-card" data-render="true">
@@ -301,45 +302,45 @@ describe('current block highlight', () => {
       </div>
     `
 
-    const protyle = document.querySelector('.protyle') as HTMLElement
-    const context: EditorContext = {
-      protyle,
-      rootId: 'root-1',
-      title: 'Doc 1',
-    }
-    const match: SearchMatch = {
-      attributeView: {
-        avBlockId: 'av-block-card',
-        avID: 'av-card',
-        columnName: '标题',
-        columnIndex: 0,
-        itemID: 'item-card-1',
-        keyID: 'col-title',
-        rowID: 'item-card-1',
-      },
-      blockId: 'av-block-card',
-      blockIndex: 0,
-      blockType: 'NodeAttributeView',
-      end: 4,
-      id: 'av:av-block-card:item-card-1:col-title:4:8',
-      matchedText: '传感器卡片',
-      previewText: '标题: 看板里的[传感器卡片]',
-      replaceable: false,
-      rootId: 'root-1',
-      sourceKind: 'attribute-view',
-      start: 4,
-      occ: 0,
-    }
+      const protyle = document.querySelector('.protyle') as HTMLElement
+      const context: EditorContext = {
+        protyle,
+        rootId: 'root-1',
+        title: 'Doc 1',
+      }
+      const match: SearchMatch = {
+        attributeView: {
+          avBlockId: 'av-block-card',
+          avID: 'av-card',
+          columnName: '标题',
+          columnIndex: 0,
+          itemID: 'item-card-1',
+          keyID: 'col-title',
+          rowID: 'item-card-1',
+        },
+        blockId: 'av-block-card',
+        blockIndex: 0,
+        blockType: 'NodeAttributeView',
+        end: 4,
+        id: 'av:av-block-card:item-card-1:col-title:4:8',
+        matchedText: '传感器卡片',
+        previewText: '标题: 看板里的[传感器卡片]',
+        replaceable: false,
+        rootId: 'root-1',
+        sourceKind: 'attribute-view',
+        start: 4,
+        occ: 0,
+      }
 
-    syncSearchDecorations(context, [match], match)
+      syncSearchDecorations(context, [match], match)
 
-    expect(protyle.querySelector('[data-node-id="av-block-card"]')?.classList.contains('sfsr-block-match')).toBe(true)
-    expect(protyle.querySelector('[data-key-id="col-title"]')?.classList.contains('sfsr-av-cell-match')).toBe(true)
-    expect(protyle.querySelector('[data-key-id="col-title"]')?.classList.contains('sfsr-av-cell-current')).toBe(true)
-  })
+      expect(protyle.querySelector('[data-node-id="av-block-card"]')?.classList.contains('sfsr-block-match')).toBe(true)
+      expect(protyle.querySelector('[data-key-id="col-title"]')?.classList.contains('sfsr-av-cell-match')).toBe(true)
+      expect(protyle.querySelector('[data-key-id="col-title"]')?.classList.contains('sfsr-av-cell-current')).toBe(true)
+    })
 
-  it('highlights the matched gallery block field by data-field-id when no column index is available', () => {
-    document.body.innerHTML = `
+    it('highlights the matched gallery block field by data-field-id when no column index is available', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-wysiwyg">
           <div data-node-id="av-block-gallery-real-dom" data-type="NodeAttributeView" class="av" data-av-id="av-gallery-real-dom" data-render="true">
@@ -365,46 +366,46 @@ describe('current block highlight', () => {
       </div>
     `
 
-    const protyle = document.querySelector('.protyle') as HTMLElement
-    const context: EditorContext = {
-      protyle,
-      rootId: 'root-1',
-      title: 'Doc 1',
-    }
-    const match: SearchMatch = {
-      attributeView: {
-        avBlockId: 'av-block-gallery-real-dom',
-        avID: 'av-gallery-real-dom',
-        columnName: '',
-        itemID: 'item-1',
-        keyID: 'col-block',
-        rowID: 'item-1',
-      },
-      blockId: 'av-block-gallery-real-dom',
-      blockIndex: 0,
-      blockType: 'NodeAttributeView',
-      end: 4,
-      id: 'av:av-block-gallery-real-dom:item-1:col-block:0:4',
-      matchedText: '传感器',
-      previewText: '[传感器]',
-      replaceable: false,
-      rootId: 'root-1',
-      sourceKind: 'attribute-view',
-      start: 0,
-      occ: 0,
-    }
+      const protyle = document.querySelector('.protyle') as HTMLElement
+      const context: EditorContext = {
+        protyle,
+        rootId: 'root-1',
+        title: 'Doc 1',
+      }
+      const match: SearchMatch = {
+        attributeView: {
+          avBlockId: 'av-block-gallery-real-dom',
+          avID: 'av-gallery-real-dom',
+          columnName: '',
+          itemID: 'item-1',
+          keyID: 'col-block',
+          rowID: 'item-1',
+        },
+        blockId: 'av-block-gallery-real-dom',
+        blockIndex: 0,
+        blockType: 'NodeAttributeView',
+        end: 4,
+        id: 'av:av-block-gallery-real-dom:item-1:col-block:0:4',
+        matchedText: '传感器',
+        previewText: '[传感器]',
+        replaceable: false,
+        rootId: 'root-1',
+        sourceKind: 'attribute-view',
+        start: 0,
+        occ: 0,
+      }
 
-    syncSearchDecorations(context, [match], match)
+      syncSearchDecorations(context, [match], match)
 
-    const blockCell = protyle.querySelector<HTMLElement>('[data-field-id="col-block"]')
-    const textCell = protyle.querySelector<HTMLElement>('[data-field-id="col-text"]')
+      const blockCell = protyle.querySelector<HTMLElement>('[data-field-id="col-block"]')
+      const textCell = protyle.querySelector<HTMLElement>('[data-field-id="col-text"]')
 
-    expect(blockCell?.classList.contains('sfsr-av-cell-current')).toBe(true)
-    expect(textCell?.classList.contains('sfsr-av-cell-current')).toBe(false)
-  })
+      expect(blockCell?.classList.contains('sfsr-av-cell-current')).toBe(true)
+      expect(textCell?.classList.contains('sfsr-av-cell-current')).toBe(false)
+    })
 
-  it('highlights the logical split-pane attribute view cell by global column index', () => {
-    document.body.innerHTML = `
+    it('highlights the logical split-pane attribute view cell by global column index', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-wysiwyg">
           <div data-node-id="av-block-split-pane" data-type="NodeAttributeView" class="av" data-av-id="av-split-pane" data-render="true">
@@ -435,49 +436,49 @@ describe('current block highlight', () => {
       </div>
     `
 
-    const protyle = document.querySelector('.protyle') as HTMLElement
-    const context: EditorContext = {
-      protyle,
-      rootId: 'root-1',
-      title: 'Doc 1',
-    }
-    const match: SearchMatch = {
-      attributeView: {
-        avBlockId: 'av-block-split-pane',
-        avID: 'av-split-pane',
-        columnName: '主列',
-        columnIndex: 1,
-        itemID: 'item-1',
-        keyID: 'col-main',
-        rowID: 'item-1',
-      },
-      blockId: 'av-block-split-pane',
-      blockIndex: 0,
-      blockType: 'NodeAttributeView',
-      end: 4,
-      id: 'av:av-block-split-pane:item-1:col-main:0:4',
-      matchedText: '传感器-main',
-      previewText: '主列: [传感器-main]',
-      replaceable: false,
-      rootId: 'root-1',
-      sourceKind: 'attribute-view',
-      start: 0,
-      occ: 0,
-    }
+      const protyle = document.querySelector('.protyle') as HTMLElement
+      const context: EditorContext = {
+        protyle,
+        rootId: 'root-1',
+        title: 'Doc 1',
+      }
+      const match: SearchMatch = {
+        attributeView: {
+          avBlockId: 'av-block-split-pane',
+          avID: 'av-split-pane',
+          columnName: '主列',
+          columnIndex: 1,
+          itemID: 'item-1',
+          keyID: 'col-main',
+          rowID: 'item-1',
+        },
+        blockId: 'av-block-split-pane',
+        blockIndex: 0,
+        blockType: 'NodeAttributeView',
+        end: 4,
+        id: 'av:av-block-split-pane:item-1:col-main:0:4',
+        matchedText: '传感器-main',
+        previewText: '主列: [传感器-main]',
+        replaceable: false,
+        rootId: 'root-1',
+        sourceKind: 'attribute-view',
+        start: 0,
+        occ: 0,
+      }
 
-    syncSearchDecorations(context, [match], match)
+      syncSearchDecorations(context, [match], match)
 
-    const fixedCell = protyle.querySelector<HTMLElement>('.av__table-pane--fixed .av__cell[data-key-id="col-fixed"]')
-    const mainCell = protyle.querySelector<HTMLElement>('.av__table-pane--scrollable .av__cell[data-key-id="col-main"]')
-    const tailCell = protyle.querySelector<HTMLElement>('.av__table-pane--scrollable .av__cell[data-key-id="col-tail"]')
+      const fixedCell = protyle.querySelector<HTMLElement>('.av__table-pane--fixed .av__cell[data-key-id="col-fixed"]')
+      const mainCell = protyle.querySelector<HTMLElement>('.av__table-pane--scrollable .av__cell[data-key-id="col-main"]')
+      const tailCell = protyle.querySelector<HTMLElement>('.av__table-pane--scrollable .av__cell[data-key-id="col-tail"]')
 
-    expect(fixedCell?.classList.contains('sfsr-av-cell-current')).toBe(false)
-    expect(mainCell?.classList.contains('sfsr-av-cell-current')).toBe(true)
-    expect(tailCell?.classList.contains('sfsr-av-cell-current')).toBe(false)
-  })
+      expect(fixedCell?.classList.contains('sfsr-av-cell-current')).toBe(false)
+      expect(mainCell?.classList.contains('sfsr-av-cell-current')).toBe(true)
+      expect(tailCell?.classList.contains('sfsr-av-cell-current')).toBe(false)
+    })
 
-  it('highlights only the matched kanban field when repeated text appears in multiple fields', () => {
-    document.body.innerHTML = `
+    it('highlights only the matched kanban field when repeated text appears in multiple fields', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-wysiwyg">
           <div data-node-id="av-block-kanban" data-type="NodeAttributeView" class="av" data-av-id="av-kanban" data-render="true">
@@ -492,45 +493,47 @@ describe('current block highlight', () => {
       </div>
     `
 
-    const protyle = document.querySelector('.protyle') as HTMLElement
-    const context: EditorContext = {
-      protyle,
-      rootId: 'root-1',
-      title: 'Doc 1',
-    }
-    const match: SearchMatch = {
-      attributeView: {
-        avBlockId: 'av-block-kanban',
-        avID: 'av-kanban',
-        columnName: '状态',
-        columnIndex: 1,
-        itemID: 'item-kanban-1',
-        keyID: '__dom-col-1__',
-        rowID: 'item-kanban-1',
-      },
-      blockId: 'av-block-kanban',
-      blockIndex: 0,
-      blockType: 'NodeAttributeView',
-      end: 4,
-      id: 'av:av-block-kanban:item-kanban-1:__dom-col-1__:0:4',
-      matchedText: '重复文本',
-      previewText: '状态: [重复文本]',
-      replaceable: false,
-      rootId: 'root-1',
-      sourceKind: 'attribute-view',
-      start: 0,
-      occ: 0,
-    }
+      const protyle = document.querySelector('.protyle') as HTMLElement
+      const context: EditorContext = {
+        protyle,
+        rootId: 'root-1',
+        title: 'Doc 1',
+      }
+      const match: SearchMatch = {
+        attributeView: {
+          avBlockId: 'av-block-kanban',
+          avID: 'av-kanban',
+          columnName: '状态',
+          columnIndex: 1,
+          itemID: 'item-kanban-1',
+          keyID: '__dom-col-1__',
+          rowID: 'item-kanban-1',
+        },
+        blockId: 'av-block-kanban',
+        blockIndex: 0,
+        blockType: 'NodeAttributeView',
+        end: 4,
+        id: 'av:av-block-kanban:item-kanban-1:__dom-col-1__:0:4',
+        matchedText: '重复文本',
+        previewText: '状态: [重复文本]',
+        replaceable: false,
+        rootId: 'root-1',
+        sourceKind: 'attribute-view',
+        start: 0,
+        occ: 0,
+      }
 
-    syncSearchDecorations(context, [match], match)
+      syncSearchDecorations(context, [match], match)
 
-    const cells = protyle.querySelectorAll<HTMLElement>('.av__kanban-item .av__cell')
-    expect(cells[0]?.classList.contains('sfsr-av-cell-current')).toBe(false)
-    expect(cells[1]?.classList.contains('sfsr-av-cell-current')).toBe(true)
+      const cells = protyle.querySelectorAll<HTMLElement>('.av__kanban-item .av__cell')
+      expect(cells[0]?.classList.contains('sfsr-av-cell-current')).toBe(false)
+      expect(cells[1]?.classList.contains('sfsr-av-cell-current')).toBe(true)
+    })
   })
 
-  it('highlights the matched table cell instead of the whole table when text highlights are unavailable', () => {
-    document.body.innerHTML = `
+  describe('表格单元格高亮', () => {
+    it('highlights the matched table cell instead of the whole table when text highlights are unavailable', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-wysiwyg">
           <div data-node-id="table-1" data-type="NodeTable" class="table">
@@ -547,38 +550,38 @@ describe('current block highlight', () => {
       </div>
     `
 
-    const protyle = document.querySelector('.protyle') as HTMLElement
-    const tableBlock = protyle.querySelector<HTMLElement>('[data-node-id="table-1"]')
-    const targetCell = protyle.querySelector<HTMLElement>('[data-node-id="cell-2"]')
-    const context: EditorContext = {
-      protyle,
-      rootId: 'root-1',
-      title: 'Doc 1',
-    }
-    const match: SearchMatch = {
-      blockId: 'table-1',
-      blockIndex: 0,
-      blockType: 'NodeTable',
-      end: 19,
-      id: 'table-1:15:19',
-      matchedText: 'Beta',
-      previewText: 'Cell AlphaCell [Beta]',
-      replaceable: true,
-      rootId: 'root-1',
-      start: 15,
-      occ: 0,
-    }
+      const protyle = document.querySelector('.protyle') as HTMLElement
+      const tableBlock = protyle.querySelector<HTMLElement>('[data-node-id="table-1"]')
+      const targetCell = protyle.querySelector<HTMLElement>('[data-node-id="cell-2"]')
+      const context: EditorContext = {
+        protyle,
+        rootId: 'root-1',
+        title: 'Doc 1',
+      }
+      const match: SearchMatch = {
+        blockId: 'table-1',
+        blockIndex: 0,
+        blockType: 'NodeTable',
+        end: 19,
+        id: 'table-1:15:19',
+        matchedText: 'Beta',
+        previewText: 'Cell AlphaCell [Beta]',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 15,
+        occ: 0,
+      }
 
-    syncSearchDecorations(context, [match], match)
+      syncSearchDecorations(context, [match], match)
 
-    expect(tableBlock?.classList.contains('sfsr-block-match')).toBe(false)
-    expect(tableBlock?.classList.contains('sfsr-block-current')).toBe(false)
-    expect(targetCell?.classList.contains('sfsr-av-cell-match')).toBe(true)
-    expect(targetCell?.classList.contains('sfsr-av-cell-current')).toBe(true)
-  })
+      expect(tableBlock?.classList.contains('sfsr-block-match')).toBe(false)
+      expect(tableBlock?.classList.contains('sfsr-block-current')).toBe(false)
+      expect(targetCell?.classList.contains('sfsr-av-cell-match')).toBe(true)
+      expect(targetCell?.classList.contains('sfsr-av-cell-current')).toBe(true)
+    })
 
-  it('highlights only the matched text in native SiYuan table cells when CSS highlights are available', () => {
-    document.body.innerHTML = `
+    it('highlights only the matched text in native SiYuan table cells when CSS highlights are available', () => {
+      document.body.innerHTML = `
       <div class="protyle">
         <div class="protyle-wysiwyg">
           <div data-node-id="table-1" data-type="NodeTable" class="table">
@@ -603,55 +606,56 @@ describe('current block highlight', () => {
       </div>
     `
 
-    const protyle = document.querySelector('.protyle') as HTMLElement
-    const targetCell = protyle.querySelectorAll<HTMLElement>('tbody td')[0]
-    const context: EditorContext = {
-      protyle,
-      rootId: 'root-1',
-      title: 'Doc 1',
-    }
-    const match: SearchMatch = {
-      blockId: 'table-1',
-      blockIndex: 0,
-      blockType: 'NodeTable',
-      end: 23,
-      id: 'table-1:18:23',
-      matchedText: 'Codex',
-      previewText: '...ChatGPT2、[Codex]...',
-      replaceable: true,
-      rootId: 'root-1',
-      start: 18,
-      occ: 0,
-      table: {
-        cellEnd: 23,
-        cellId: '',
-        cellStart: 0,
-        columnCount: 3,
-        columnIndex: 0,
-        rowCount: 2,
-        rowIndex: 0,
-      },
-    }
+      const protyle = document.querySelector('.protyle') as HTMLElement
+      const targetCell = protyle.querySelectorAll<HTMLElement>('tbody td')[0]
+      const context: EditorContext = {
+        protyle,
+        rootId: 'root-1',
+        title: 'Doc 1',
+      }
+      const match: SearchMatch = {
+        blockId: 'table-1',
+        blockIndex: 0,
+        blockType: 'NodeTable',
+        end: 23,
+        id: 'table-1:18:23',
+        matchedText: 'Codex',
+        previewText: '...ChatGPT2、[Codex]...',
+        replaceable: true,
+        rootId: 'root-1',
+        start: 18,
+        occ: 0,
+        table: {
+          cellEnd: 23,
+          cellId: '',
+          cellStart: 0,
+          columnCount: 3,
+          columnIndex: 0,
+          rowCount: 2,
+          rowIndex: 0,
+        },
+      }
 
-    const highlights = new Map<string, { ranges: Range[] }>()
+      const highlights = new Map<string, { ranges: Range[] }>()
     // lib.dom 已声明全局 Highlight/CSS，交叉断言会把属性类型并成 typeof Highlight & stub；经 unknown 双重断言用桩形状覆盖
     ;(globalThis as unknown as { Highlight?: new (...ranges: Range[]) => { ranges: Range[] } }).Highlight = class {
-      ranges: Range[]
+        ranges: Range[]
 
-      constructor(...ranges: Range[]) {
-        this.ranges = ranges
+        constructor(...ranges: Range[]) {
+          this.ranges = ranges
+        }
       }
-    }
-    ;(globalThis as unknown as { CSS?: { highlights?: Map<string, { ranges: Range[] }> } }).CSS = {
-      highlights,
-    }
+      ;(globalThis as unknown as { CSS?: { highlights?: Map<string, { ranges: Range[] }> } }).CSS = {
+        highlights,
+      }
 
-    syncSearchDecorations(context, [match], match)
+      syncSearchDecorations(context, [match], match)
 
-    expect(targetCell?.classList.contains('sfsr-av-cell-match')).toBe(false)
-    expect(targetCell?.classList.contains('sfsr-av-cell-current')).toBe(false)
-    expect(protyle.querySelector('[data-node-id="table-1"]')?.classList.contains('sfsr-block-current')).toBe(false)
-    expect(highlights.get('sfsr-match')?.ranges.map((range) => range.toString())).toContain('Codex')
-    expect(highlights.get('sfsr-current-match')?.ranges.map((range) => range.toString())).toContain('Codex')
+      expect(targetCell?.classList.contains('sfsr-av-cell-match')).toBe(false)
+      expect(targetCell?.classList.contains('sfsr-av-cell-current')).toBe(false)
+      expect(protyle.querySelector('[data-node-id="table-1"]')?.classList.contains('sfsr-block-current')).toBe(false)
+      expect(highlights.get('sfsr-match')?.ranges.map((range) => range.toString())).toContain('Codex')
+      expect(highlights.get('sfsr-current-match')?.ranges.map((range) => range.toString())).toContain('Codex')
+    })
   })
 })

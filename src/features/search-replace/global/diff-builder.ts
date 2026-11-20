@@ -169,3 +169,34 @@ export function buildVisualDiff(
     groups,
   }
 }
+
+/**
+ * 用户在 Diff 弹窗中切换排除项后，原地重算汇总计数与分组排除标记。
+ * 从 GlobalSearchDockView.vue 迁入（RF-107），使其可被单元测试覆盖。
+ */
+export function recalculateDiffSummary(summary: DiffSummary) {
+  let inc = 0
+  let exc = 0
+  let docCount = 0
+  for (const g of summary.groups) {
+    let groupHasInc = false
+    let groupAllExc = true
+    for (const item of g.items) {
+      if (item.excluded) {
+        exc++
+      } else {
+        inc++
+        groupHasInc = true
+        groupAllExc = false
+      }
+    }
+    g.allExcluded = groupAllExc
+    if (groupHasInc) {
+      docCount++
+    }
+  }
+  summary.includedCount = inc
+  summary.excludedCount = exc
+  summary.affectedDocCount = docCount
+  return summary
+}

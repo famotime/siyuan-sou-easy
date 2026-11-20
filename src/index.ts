@@ -15,7 +15,6 @@ import {
 } from 'siyuan'
 import PluginInfoString from '@/../plugin.json'
 import { createEditorContextFromProtyleLike } from '@/features/search-replace/editor'
-import { extractDocTitleFromHpath } from '@/features/search-replace/global/doc-aggregator'
 import {
   closeGlobalSearchDockAndReturnFocus,
   destroyGlobalSearchDock,
@@ -27,11 +26,10 @@ import {
   initReplaceHistoryTab,
   REPLACE_HISTORY_TAB_TYPE,
 } from '@/features/search-replace/global/history-tab-manager'
-import { executeGlobalBlockQuery } from '@/features/search-replace/global/kernel-query'
 import { PRESETS_STORAGE } from '@/features/search-replace/global/saved-presets'
-import { closeGlobalSearch } from '@/features/search-replace/global/store'
 import { TRANSACTION_STORAGE } from '@/features/search-replace/global/transaction-history'
 import { setKeymap } from '@/features/search-replace/kernel'
+import { buildLunariaBusRegistration } from '@/features/search-replace/lunaria-bus'
 import {
   createPanelCommands,
   resolveHotkeySettingsFromRuntime,
@@ -296,7 +294,6 @@ export default class FriendlySearchReplacePlugin extends Plugin {
       } catch {}
     }
     closeGlobalSearchDockAndReturnFocus()
-    closeGlobalSearch()
     destroyGlobalSearchDock()
     unbindEditorContextEvents(this.eventBus, this.handleEditorEvent)
     window.removeEventListener('keydown', this.handleDocumentKeydown, true)
@@ -522,77 +519,11 @@ export default class FriendlySearchReplacePlugin extends Plugin {
     const register = () => {
       const bus = (window as any).siyuanLunariaBus
       if (bus && typeof bus.register === 'function') {
-        bus.register({
+        bus.register(buildLunariaBusRegistration({
           id: this.name || 'siyuan-sou-easy',
           name: '搜 easy',
           version: this.version || '2.0.0',
-          category: 'editor',
-          tools: [
-            {
-              name: 'searchNotesByKeywords',
-              description: '根据关键词列表检索知识库相关笔记及段落片段',
-              parameters: {
-                type: 'object',
-                properties: {
-                  keywords: {
-                    type: 'array',
-                    items: { type: 'string' },
-                    description: '待检索的关键词列表',
-                  },
-                  limit: {
-                    type: 'number',
-                    description: '最大返回文档数量，默认 5',
-                  },
-                },
-                required: ['keywords'],
-              },
-            },
-          ],
-          execute: async (toolName: string, params: any) => {
-            if (toolName === 'searchNotesByKeywords') {
-              const keywords: string[] = Array.isArray(params?.keywords) ? params.keywords : []
-              const limit = typeof params?.limit === 'number' ? params.limit : 5
-              if (keywords.length === 0) {
-                return {
-                  success: true,
-                  code: 200,
-                  data: [],
-                }
-              }
-              const searchKeyword = keywords[0] || ''
-              const records = await executeGlobalBlockQuery(searchKeyword, {}, {
-                limit: 100,
-                parsedQuery: {
-                  mustInclude: keywords,
-                  orGroups: [],
-                  exclude: [],
-                },
-              })
-              const docMap = new Map<string, { docId: string, title: string, snippet: string, score: number }>()
-              for (const record of records) {
-                const docId = record.root_id || record.id
-                if (!docId) continue
-                const docTitle = extractDocTitleFromHpath(record.hpath || '') || '未命名笔记'
-                const content = (record.content || record.fcontent || '').trim()
-                if (!docMap.has(docId)) {
-                  docMap.set(docId, {
-                    docId,
-                    title: docTitle,
-                    snippet: content.slice(0, 120),
-                    score: 0.9,
-                  })
-                }
-                if (docMap.size >= limit) break
-              }
-              return {
-                success: true,
-                code: 200,
-                data: Array.from(docMap.values()),
-              }
-            }
-            throw new Error(`未知工具: ${toolName}`)
-          },
-        })
+        }))
       }
     }
 

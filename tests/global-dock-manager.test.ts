@@ -1,5 +1,3 @@
-// @vitest-environment jsdom
-
 import type { MockInstance } from 'vitest'
 import {
   afterEach,

@@ -32,7 +32,7 @@ const TYPE_ALIAS_MAP: Record<string, string> = {
 /**
  * 清除首尾配对的引号（支持英文双引号 "" 以及中文双引号 “”）
  */
-export function stripQuotes(str: string): string {
+function stripQuotes(str: string): string {
   const trimmed = str.trim()
   if (
     (trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length >= 2)
@@ -46,7 +46,7 @@ export function stripQuotes(str: string): string {
 /**
  * 分词工具：将 raw 字符串切分为 Tokens，保留双引号内的空格并支持各类修饰符
  */
-export function tokenizeGlobalQuery(raw: string): string[] {
+function tokenizeGlobalQuery(raw: string): string[] {
   const tokens: string[] = []
   // 1: 冒号带引号的属性过滤: [a-zA-Z]+:(".*?"|“.*?”)
   // 2: 减号带引号短语: -(".*?"|“.*?”)
@@ -87,6 +87,60 @@ export function parseGlobalQuery(raw: string): ParsedGlobalQuery {
   }
 
   const tokens = tokenizeGlobalQuery(trimmed)
+  const {
+    exclude,
+    notebook,
+    path,
+    rawTextTokens,
+    dateFilter,
+    tags,
+    types,
+  } = classifyQueryTokens(tokens)
+  const {
+    mustInclude,
+    orGroups,
+  } = assembleQueryTerms(rawTextTokens)
+
+  // 拼接规范的 textQuery（用于概览和回显）
+  const allTermsForDisplay = [
+    ...mustInclude,
+    ...orGroups.map((g) => g.join(' OR ')),
+  ]
+  const textQuery = allTermsForDisplay.join(' ')
+
+  // 判定是否为多关键词组合搜索
+  // 规则：只要有排除词、OR分组、或有 2 个及以上的普通词，就视为组合搜索
+  const isMultiTermQuery =
+    exclude.length > 0
+    || orGroups.length > 0
+    || mustInclude.length > 1
+
+  // 提取单一关键词（仅当只有 1 个 mustInclude 且无任何其他修饰符时生效）
+  const singleKeyword =
+    !isMultiTermQuery && mustInclude.length === 1 ? mustInclude[0] : undefined
+
+  return {
+    rawQuery: trimmed,
+    textQuery,
+    mustInclude,
+    orGroups,
+    exclude,
+    isMultiTermQuery,
+    singleKeyword,
+    notebook,
+    path,
+    tags,
+    types,
+    dateFilter,
+  }
+}
+
+/**
+ * 属性分词分类（RF-111 自 parseGlobalQuery 拆出）：
+ * 将 token 流分为行内过滤语法（notebook:/path:/tag:/type:/updated:/#tag/-排除）
+ * 与待组装的纯文本词。注释与判定顺序保持原实现不变。
+ */
+function classifyQueryTokens(tokens: string[]) {
   const tags: string[] = []
   const types: string[] = []
   const exclude: string[] = []
@@ -153,8 +207,22 @@ export function parseGlobalQuery(raw: string): ParsedGlobalQuery {
     rawTextTokens.push(token)
   }
 
-  // 处理 OR 操作符与常规必须词
-  // 规则：遇到大写 'OR' 或 '|' 时，将前一个词与后一个词合并为一组
+  return {
+    dateFilter,
+    exclude,
+    notebook,
+    path,
+    rawTextTokens,
+    tags,
+    types,
+  }
+}
+
+/**
+ * OR 组装（RF-111 自 parseGlobalQuery 拆出）。
+ * 规则：遇到大写 'OR' 或 '|' 时，将前一个词与后一个词合并为一组；孤立 OR 忽略。
+ */
+function assembleQueryTerms(rawTextTokens: string[]) {
   const orGroups: string[][] = []
   const mustInclude: string[] = []
 
@@ -197,37 +265,9 @@ export function parseGlobalQuery(raw: string): ParsedGlobalQuery {
     }
   }
 
-  // 拼接规范的 textQuery（用于概览和回显）
-  const allTermsForDisplay = [
-    ...mustInclude,
-    ...orGroups.map((g) => g.join(' OR ')),
-  ]
-  const textQuery = allTermsForDisplay.join(' ')
-
-  // 判定是否为多关键词组合搜索
-  // 规则：只要有排除词、OR分组、或有 2 个及以上的普通词，就视为组合搜索
-  const isMultiTermQuery =
-    exclude.length > 0
-    || orGroups.length > 0
-    || mustInclude.length > 1
-
-  // 提取单一关键词（仅当只有 1 个 mustInclude 且无任何其他修饰符时生效）
-  const singleKeyword =
-    !isMultiTermQuery && mustInclude.length === 1 ? mustInclude[0] : undefined
-
   return {
-    rawQuery: trimmed,
-    textQuery,
     mustInclude,
     orGroups,
-    exclude,
-    isMultiTermQuery,
-    singleKeyword,
-    notebook,
-    path,
-    tags,
-    types,
-    dateFilter,
   }
 }
 

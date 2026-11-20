@@ -164,55 +164,26 @@ export function createSearchController({
 
     state.searching = true
     try {
-      const {
-        blocks,
-        documentContent,
-      } = await resolveBlocksForSearch(context, state.options)
-      if (revision !== latestRefreshRevision) {
+      // 候选计算段（RF-111 抽出）：块解析、选区校验、匹配与属性视图合并，
+      // 状态写回与定位留在主函数
+      const outcome = await computeSearchOutcome(context, revision)
+      if (outcome.kind === 'stale') {
         return
       }
 
-      const selectionScope = state.options.selectionOnly
-        ? resolveSelectionScope(context)
-        : new Map()
-      if (state.options.selectionOnly && selectionScope.size === 0) {
-        const validation = findMatches([], state.query, state.options)
-        resetMatches(validation.error || t('selectionOnlyNoScope'))
+      if (outcome.kind === 'no-selection-scope') {
+        resetMatches(outcome.error)
         clearSearchDecorations(context)
         return
       }
 
-      const result = findMatches(blocks, state.query, state.options, selectionScope)
-      const minimapBlocks = blocks.map((block) => ({
-        blockId: block.blockId,
-        blockIndex: block.blockIndex,
-        blockType: block.blockType,
-      }))
-      let matches = result.matches
-      if (!result.error && context.sourceKind !== 'canvas') {
-        const attributeViewSearch = await searchAttributeViewMatches({
-          context,
-          documentContent,
-          isStale: () => revision !== latestRefreshRevision,
-          options: state.options,
-          query: state.query,
-          startingBlockIndex: minimapBlocks.length,
-        })
-        if (revision !== latestRefreshRevision) {
-          return
-        }
-
-        minimapBlocks.push(...attributeViewSearch.blocks)
-        matches = [...matches, ...attributeViewSearch.matches].sort(compareSearchMatches)
-      }
-
-      state.minimapBlocks = minimapBlocks
-      state.searchableBlockCount = minimapBlocks.length
-      state.error = result.error
-      state.matches = matches
+      state.minimapBlocks = outcome.minimapBlocks
+      state.searchableBlockCount = outcome.minimapBlocks.length
+      state.error = outcome.error
+      state.matches = outcome.matches
       debugLog('refresh-matches', {
-        error: result.error,
-        matchCount: matches.length,
+        error: outcome.error,
+        matchCount: outcome.matches.length,
         query: state.query,
         rootId: context.rootId,
       })
@@ -237,6 +208,73 @@ export function createSearchController({
       if (revision === latestRefreshRevision) {
         state.searching = false
       }
+    }
+  }
+
+  type SearchOutcome =
+    | { kind: 'stale' }
+    | { kind: 'no-selection-scope', error: string }
+    | {
+      error: string
+      kind: 'result'
+      matches: SearchMatch[]
+      minimapBlocks: Array<{ blockId: string, blockIndex: number, blockType: string }>
+    }
+
+  /**
+   * 候选计算段（RF-111 自 refreshMatches 拆出）：
+   * 解析搜索块 → 选区作用域校验 → 文本匹配 → 属性视图合并。
+   * 过期（revision 失效）返回 { kind: 'stale' }，主函数直接退出、不写任何状态。
+   */
+  async function computeSearchOutcome(context: EditorContext, revision: number): Promise<SearchOutcome> {
+    const {
+      blocks,
+      documentContent,
+    } = await resolveBlocksForSearch(context, state.options)
+    if (revision !== latestRefreshRevision) {
+      return { kind: 'stale' }
+    }
+
+    const selectionScope = state.options.selectionOnly
+      ? resolveSelectionScope(context)
+      : new Map()
+    if (state.options.selectionOnly && selectionScope.size === 0) {
+      const validation = findMatches([], state.query, state.options)
+      return {
+        error: validation.error || t('selectionOnlyNoScope'),
+        kind: 'no-selection-scope',
+      }
+    }
+
+    const result = findMatches(blocks, state.query, state.options, selectionScope)
+    const minimapBlocks = blocks.map((block) => ({
+      blockId: block.blockId,
+      blockIndex: block.blockIndex,
+      blockType: block.blockType,
+    }))
+    let matches = result.matches
+    if (!result.error && context.sourceKind !== 'canvas') {
+      const attributeViewSearch = await searchAttributeViewMatches({
+        context,
+        documentContent,
+        isStale: () => revision !== latestRefreshRevision,
+        options: state.options,
+        query: state.query,
+        startingBlockIndex: minimapBlocks.length,
+      })
+      if (revision !== latestRefreshRevision) {
+        return { kind: 'stale' }
+      }
+
+      minimapBlocks.push(...attributeViewSearch.blocks)
+      matches = [...matches, ...attributeViewSearch.matches].sort(compareSearchMatches)
+    }
+
+    return {
+      error: result.error,
+      kind: 'result',
+      matches,
+      minimapBlocks,
     }
   }
 

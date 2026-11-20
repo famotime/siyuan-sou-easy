@@ -15,12 +15,13 @@ export {
   getActiveEditorContext,
 } from './editor/context'
 export {
-  buildPreview,
   clearSearchDecorations,
-  isMatchVisible,
-  scrollMatchIntoView,
   syncSearchDecorations,
 } from './editor/decorations'
+export {
+  isMatchVisible,
+  scrollMatchIntoView,
+} from './editor/match-scroll'
 export {
   applyReplacementsToClone,
   isRangeReplaceable,
@@ -29,3 +30,4 @@ export {
   getCurrentSelectionScope,
   getCurrentSelectionText,
 } from './editor/selection'
+export { buildPreview } from './match-utils'

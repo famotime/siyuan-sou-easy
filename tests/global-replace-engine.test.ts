@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import type { DiffSummary } from '@/features/search-replace/global/diff-builder'
 import {
   describe,

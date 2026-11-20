@@ -1,5 +1,3 @@
-// @vitest-environment jsdom
-
 import type { SearchOptions } from '@/features/search-replace/types'
 
 import {

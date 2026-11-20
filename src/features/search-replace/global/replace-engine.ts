@@ -75,6 +75,62 @@ function isInsideTag(dom: string, index: number) {
 }
 
 /**
+ * 由替换项构造回退事务条目（RF-111 自 executeBatchReplace 拆出）
+ */
+function buildReplaceTransactionItem(
+  blockId: string,
+  originalDom: string,
+  it: DiffItem,
+): ReplaceTransactionItem {
+  return {
+    blockId,
+    rootId: it.rootId,
+    docTitle: it.docTitle,
+    hpath: it.hpath,
+    blockType: it.blockType,
+    originalSnippet: it.originalSnippet,
+    prefixText: it.prefixText,
+    matchedText: it.matchedText,
+    replacedText: it.replacedText,
+    suffixText: it.suffixText,
+    fullContent: it.fullContent,
+    newContent: it.newContent,
+    originalDom,
+  }
+}
+
+/**
+ * 收集未排除的替换项（RF-111 自 executeBatchReplace 拆出）
+ */
+function collectActiveDiffItems(diffSummary: DiffSummary): DiffItem[] {
+  const activeItems: DiffItem[] = []
+  for (const group of diffSummary.groups) {
+    for (const item of group.items) {
+      if (!item.excluded) {
+        activeItems.push(item)
+      }
+    }
+  }
+  return activeItems
+}
+
+/**
+ * 按块进行分组归并更新，避免对同一个块重复覆盖写入
+ */
+function groupDiffItemsByBlock(items: DiffItem[]) {
+  const blockGroups = new Map<string, DiffItem[]>()
+  for (const item of items) {
+    let list = blockGroups.get(item.blockId)
+    if (!list) {
+      list = []
+      blockGroups.set(item.blockId, list)
+    }
+    list.push(item)
+  }
+  return blockGroups
+}
+
+/**
  * 执行全库批量替换任务
  */
 export async function executeBatchReplace(
@@ -85,14 +141,7 @@ export async function executeBatchReplace(
 ): Promise<ReplaceExecutionResult> {
   const progressCb = onProgress
 
-  const activeItems: DiffItem[] = []
-  for (const group of diffSummary.groups) {
-    for (const item of group.items) {
-      if (!item.excluded) {
-        activeItems.push(item)
-      }
-    }
-  }
+  const activeItems = collectActiveDiffItems(diffSummary)
 
   // 新批次启动时重置取消标志（上一批次可能已被中止）
   batchReplaceCancelled = false
@@ -122,16 +171,7 @@ export async function executeBatchReplace(
     domMap = {}
   }
 
-  // 按块进行分组归并更新，避免对同一个块重复覆盖写入
-  const blockGroups = new Map<string, DiffItem[]>()
-  for (const item of activeItems) {
-    let list = blockGroups.get(item.blockId)
-    if (!list) {
-      list = []
-      blockGroups.set(item.blockId, list)
-    }
-    list.push(item)
-  }
+  const blockGroups = groupDiffItemsByBlock(activeItems)
 
   const allBlockIds = Array.from(blockGroups.keys())
   const totalBlocks = allBlockIds.length
@@ -189,21 +229,7 @@ export async function executeBatchReplace(
           replacedCount += appliedItems.length
 
           for (const it of appliedItems) {
-            transactionItems.push({
-              blockId,
-              rootId: it.rootId,
-              docTitle: it.docTitle,
-              hpath: it.hpath,
-              blockType: it.blockType,
-              originalSnippet: it.originalSnippet,
-              prefixText: it.prefixText,
-              matchedText: it.matchedText,
-              replacedText: it.replacedText,
-              suffixText: it.suffixText,
-              fullContent: it.fullContent,
-              newContent: it.newContent,
-              originalDom,
-            })
+            transactionItems.push(buildReplaceTransactionItem(blockId, originalDom, it))
           }
         } catch {
           skippedCount += appliedItems.length

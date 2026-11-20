@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import type { RawBlockRecord } from '@/features/search-replace/global/types'
 import {
   describe,
@@ -418,6 +420,83 @@ describe('doc-aggregator', () => {
       const sorted = sortDocAggregateNodes(docs, 'relevance', '思源 插件')
       expect(sorted[0].rootId).toBe('doc-1')
       expect(sorted[1].rootId).toBe('doc-2')
+    })
+  })
+
+  describe('aggregateBlocksToDocs 跨块多词校验（RF-111 现状钉住）', () => {
+    function makeBlock(id: string, content: string, updated = '20261005120000'): RawBlockRecord {
+      return {
+        id,
+        root_id: 'doc-1',
+        box: 'box-1',
+        path: '/d1.sy',
+        hpath: '/测试/文档1',
+        content,
+        type: 'p',
+        created: updated,
+        updated,
+        sort: 0,
+        subtype: '',
+      }
+    }
+
+    function makeParsed(mustInclude: string[], textQuery: string) {
+      return {
+        rawQuery: textQuery,
+        textQuery,
+        mustInclude,
+        orGroups: [],
+        exclude: [],
+        isMultiTermQuery: true,
+        tags: [],
+        types: [],
+      }
+    }
+
+    it('普通多词查询：不同块分别命中各词时按 cross-block 联合命中', () => {
+      const nodes = aggregateBlocksToDocs(
+        [
+          makeBlock('block-a', '深圳的天气很好'),
+          makeBlock('block-b', '电动车正在充电'),
+        ],
+        '深圳 电动车',
+        {
+          parsedQuery: makeParsed(['深圳', '电动车'], '深圳 电动车'),
+        },
+      )
+      expect(nodes).toHaveLength(1)
+      expect(nodes[0]!.matchType).toBe('cross-block')
+      expect(nodes[0]!.totalCount).toBe(2)
+    })
+
+    it('普通多词查询：所有词都在同一块内时按 exact-block 命中', () => {
+      const nodes = aggregateBlocksToDocs(
+        [makeBlock('block-a', '深圳的电动车很多')],
+        '深圳 电动车',
+        {
+          parsedQuery: makeParsed(['深圳', '电动车'], '深圳 电动车'),
+        },
+      )
+      expect(nodes).toHaveLength(1)
+      expect(nodes[0]!.matchType).toBe('exact-block')
+    })
+
+    it('已知缺陷钉住：多词含正则词时跨块校验用 occ.text.includes(词) 判定导致误杀', () => {
+      // occ.text 是命中的原文（如"深圳"），而 mustInclude 中的正则词"深\S+"
+      // 不可能是原文子串 → 跨块联合匹配恒失败，文档被丢弃。
+      // 修复属行为变更，需单独决策（见 refactor-plan.md 范围外备注 3）。
+      const nodes = aggregateBlocksToDocs(
+        [
+          makeBlock('block-a', '深圳的天气很好'),
+          makeBlock('block-b', '电动车正在充电'),
+        ],
+        '深\S+ 电动车',
+        {
+          useRegex: true,
+          parsedQuery: makeParsed(['深\S+', '电动车'], '深\S+ 电动车'),
+        },
+      )
+      expect(nodes).toEqual([])
     })
   })
 })

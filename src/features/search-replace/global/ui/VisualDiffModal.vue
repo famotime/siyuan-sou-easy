@@ -132,20 +132,12 @@
                 @change="onToggleItem(item)"
               >
 
-              <div class="sfsr-diff-comparison">
-                <div class="sfsr-diff-line sfsr-diff-line--before">
-                  <span class="sfsr-diff-badge sfsr-diff-badge--del">- 原文</span>
-                  <span class="sfsr-diff-text">
-                    {{ item.prefixText }}<del class="sfsr-del-highlight">{{ item.matchedText }}</del>{{ item.suffixText }}
-                  </span>
-                </div>
-                <div class="sfsr-diff-line sfsr-diff-line--after">
-                  <span class="sfsr-diff-badge sfsr-diff-badge--ins">+ 替换</span>
-                  <span class="sfsr-diff-text">
-                    {{ item.prefixText }}<ins class="sfsr-ins-highlight">{{ item.replacedText }}</ins>{{ item.suffixText }}
-                  </span>
-                </div>
-              </div>
+              <DiffComparisonLines
+                :prefix-text="item.prefixText"
+                :matched-text="item.matchedText"
+                :replaced-text="item.replacedText"
+                :suffix-text="item.suffixText"
+              />
             </div>
           </div>
         </div>
@@ -197,6 +189,8 @@ import {
   watch,
 } from 'vue'
 import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
+import DiffComparisonLines from './DiffComparisonLines.vue'
+import { useToggleSet } from './use-toggle-set'
 
 const props = defineProps<{
   visible: boolean
@@ -214,13 +208,13 @@ const emit = defineEmits<{
 const executing = ref(false)
 const processedBlocks = ref(0)
 const totalBlocks = ref(0)
-const collapsedDocIds = ref<Set<string>>(new Set())
+const collapsedDocIds = useToggleSet()
 
 watch(
   () => props.visible,
   (val) => {
     if (!val) {
-      collapsedDocIds.value = new Set()
+      collapsedDocIds.clear()
     } else {
       // 打开新弹窗时归零进度，避免上次替换的进度残留（本次未触发 setProgress 时尤为明显）
       processedBlocks.value = 0
@@ -230,25 +224,15 @@ watch(
 )
 
 function isGroupCollapsed(rootId: string): boolean {
-  return collapsedDocIds.value.has(rootId)
+  return collapsedDocIds.has(rootId)
 }
 
 function toggleGroupCollapse(rootId: string) {
-  const next = new Set(collapsedDocIds.value)
-  if (next.has(rootId)) {
-    next.delete(rootId)
-  } else {
-    next.add(rootId)
-  }
-  collapsedDocIds.value = next
+  collapsedDocIds.toggle(rootId)
 }
 
 function toggleCollapseAll(collapse: boolean) {
-  if (collapse) {
-    collapsedDocIds.value = new Set(props.diffSummary.groups.map((g) => g.rootId))
-  } else {
-    collapsedDocIds.value = new Set()
-  }
+  collapsedDocIds.toggleAll(props.diffSummary.groups.map((g) => g.rootId), collapse)
 }
 
 const progressPercent = computed(() => {
@@ -499,59 +483,6 @@ defineExpose({
 .sfsr-item-checkbox {
   margin-top: 4px;
   cursor: pointer;
-}
-
-.sfsr-diff-comparison {
-  flex: 1;
-}
-
-.sfsr-diff-line {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.sfsr-diff-line--before {
-  color: var(--b3-theme-on-surface);
-}
-
-.sfsr-diff-line--after {
-  color: var(--b3-theme-on-surface);
-  margin-top: 2px;
-}
-
-.sfsr-diff-badge {
-  font-size: 10px;
-  padding: 0 4px;
-  border-radius: 3px;
-  font-weight: bold;
-}
-
-.sfsr-diff-badge--del {
-  background: var(--sfsr-diff-del-bg, rgba(245, 34, 45, 0.15));
-  color: var(--sfsr-diff-del-text, #f5222d);
-}
-
-.sfsr-diff-badge--ins {
-  background: var(--sfsr-diff-ins-bg, rgba(82, 196, 26, 0.15));
-  color: var(--sfsr-diff-ins-text, #52c41a);
-}
-
-.sfsr-del-highlight {
-  background: var(--sfsr-diff-del-highlight, rgba(245, 34, 45, 0.25));
-  color: var(--sfsr-diff-del-text, #f5222d);
-  text-decoration: line-through;
-  padding: 0 2px;
-  border-radius: 2px;
-}
-
-.sfsr-ins-highlight {
-  background: var(--sfsr-diff-ins-highlight, rgba(82, 196, 26, 0.25));
-  color: var(--sfsr-diff-ins-text, #52c41a);
-  text-decoration: underline;
-  padding: 0 2px;
-  font-weight: 600;
-  border-radius: 2px;
 }
 
 .sfsr-diff-progress {

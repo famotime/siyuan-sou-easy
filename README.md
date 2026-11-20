@@ -34,6 +34,8 @@ pnpm dev
 pnpm build
 ```
 
+Module layout and responsibilities are documented in [docs/project-structure.md](docs/project-structure.md).
+
 ![Plugin preview](assets/preview_eng.png)
 
 ![Plugin preview](assets/preview_settings_eng.png)

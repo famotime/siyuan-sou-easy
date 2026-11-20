@@ -250,6 +250,8 @@ function resolveDomAttributeViewHeaderInfo(blockElement: HTMLElement): DomAttrib
   }
 }
 
+// 行归一化（RF-109 拆分）：主循环按行分组；单元格→候选的收集与"发现列"的
+// 分配逻辑分别抽为 collectRowGroupCandidates 与 createDomColumnAllocator。
 function normalizeDomAttributeViewRowGroups({
   blockElement,
   headerInfo,
@@ -257,6 +259,7 @@ function normalizeDomAttributeViewRowGroups({
   blockElement: HTMLElement
   headerInfo: DomAttributeViewHeaderInfo
 }) {
+  const allocator = createDomColumnAllocator(headerInfo)
   const groups: Array<DomAttributeViewNormalizedRowGroup & {
     dedupeKeys: Set<string>
     order: number
@@ -265,14 +268,6 @@ function normalizeDomAttributeViewRowGroups({
     dedupeKeys: Set<string>
     order: number
   }>()
-  const discoveredColumnIndexByKeyID = new Map<string, number>()
-  const reservedHeaderColumnIndices = headerInfo.keyedColumnIndexByKeyID.size > 0
-    ? new Set(headerInfo.headers.map((header) => header.columnIndex))
-    : new Set<number>()
-  let nextDiscoveredColumnIndex = Math.max(
-    0,
-    ...Array.from(reservedHeaderColumnIndices, (columnIndex) => columnIndex + 1),
-  )
 
   for (const [rowIndex, rowElement] of resolveDomAttributeViewRows(blockElement).entries()) {
     const stableRowID = resolveDomAttributeViewRowId(rowElement)
@@ -288,44 +283,7 @@ function normalizeDomAttributeViewRowGroups({
       groups.push(rowGroup)
     }
 
-    const rowCells = getDomAttributeViewRowCells(rowElement)
-    for (const [cellIndex, cell] of rowCells.entries()) {
-      const text = getAttributeViewDomText(cell)
-      if (!text) {
-        continue
-      }
-
-      rowGroup.rowLabel ||= text
-
-      const resolvedKeyID = resolveDomAttributeViewKeyId(cell, cellIndex)
-      const stableKeyID = getStableDomAttributeViewKeyID(resolvedKeyID)
-      const columnIndex = stableKeyID && headerInfo.keyedColumnIndexByKeyID.has(stableKeyID)
-        ? headerInfo.keyedColumnIndexByKeyID.get(stableKeyID)!
-        : stableKeyID
-          ? getOrCreateDiscoveredColumnIndex(discoveredColumnIndexByKeyID, stableKeyID, cellIndex)
-          : cellIndex
-      const columnName = stableKeyID
-        ? headerInfo.headerNameByKeyID.get(stableKeyID) ?? headerInfo.headerNameByColumnIndex.get(columnIndex) ?? ''
-        : headerInfo.headerNameByColumnIndex.get(columnIndex) ?? ''
-      const logicalColumnKey = stableKeyID ?? `index:${columnIndex}`
-      const dedupeKey = `${logicalColumnKey}::${text}`
-      if (rowGroup.dedupeKeys.has(dedupeKey)) {
-        continue
-      }
-
-      if (stableKeyID && !headerInfo.keyedColumnIndexByKeyID.has(stableKeyID) && !discoveredColumnIndexByKeyID.has(stableKeyID)) {
-        discoveredColumnIndexByKeyID.set(stableKeyID, columnIndex)
-        nextDiscoveredColumnIndex = Math.max(nextDiscoveredColumnIndex, columnIndex + 1)
-      }
-
-      rowGroup.dedupeKeys.add(dedupeKey)
-      rowGroup.candidates.push({
-        columnIndex,
-        columnName,
-        keyID: resolvedKeyID,
-        text,
-      })
-    }
+    collectRowGroupCandidates(rowGroup, getDomAttributeViewRowCells(rowElement), headerInfo, allocator)
   }
 
   return groups.map(({
@@ -346,20 +304,89 @@ function normalizeDomAttributeViewRowGroups({
         ...candidate
       }) => candidate),
   }))
+}
 
-  function getOrCreateDiscoveredColumnIndex(map: Map<string, number>, keyID: string, fallbackIndex: number) {
-    const existing = map.get(keyID)
+interface DomColumnAllocator {
+  getOrCreateDiscoveredColumnIndex: (keyID: string, fallbackIndex: number) => number
+}
+
+// "发现列"分配器：为表头未声明、行内新出现的 stable keyID 分配不冲突的列序。
+// 原实现为 normalizeDomAttributeViewRowGroups 内的闭包 + 三套索引状态（RF-109 收敛）。
+function createDomColumnAllocator(headerInfo: DomAttributeViewHeaderInfo): DomColumnAllocator {
+  const discoveredColumnIndexByKeyID = new Map<string, number>()
+  const reservedHeaderColumnIndices = headerInfo.keyedColumnIndexByKeyID.size > 0
+    ? new Set(headerInfo.headers.map((header) => header.columnIndex))
+    : new Set<number>()
+  let nextDiscoveredColumnIndex = Math.max(
+    0,
+    ...Array.from(reservedHeaderColumnIndices, (columnIndex) => columnIndex + 1),
+  )
+
+  function getOrCreateDiscoveredColumnIndex(keyID: string, fallbackIndex: number) {
+    const existing = discoveredColumnIndexByKeyID.get(keyID)
     if (existing !== undefined) {
       return existing
     }
 
     const discoveredIndex = !reservedHeaderColumnIndices.has(fallbackIndex)
-      && !Array.from(map.values()).includes(fallbackIndex)
+      && !Array.from(discoveredColumnIndexByKeyID.values()).includes(fallbackIndex)
       ? fallbackIndex
       : Math.max(nextDiscoveredColumnIndex, fallbackIndex)
-    map.set(keyID, discoveredIndex)
+    discoveredColumnIndexByKeyID.set(keyID, discoveredIndex)
     nextDiscoveredColumnIndex = Math.max(nextDiscoveredColumnIndex, discoveredIndex + 1)
     return discoveredIndex
+  }
+
+  return {
+    getOrCreateDiscoveredColumnIndex,
+  }
+}
+
+function collectRowGroupCandidates(
+  rowGroup: DomAttributeViewNormalizedRowGroup & {
+    dedupeKeys: Set<string>
+    order: number
+  },
+  rowCells: HTMLElement[],
+  headerInfo: DomAttributeViewHeaderInfo,
+  allocator: DomColumnAllocator,
+) {
+  for (const [cellIndex, cell] of rowCells.entries()) {
+    const text = getAttributeViewDomText(cell)
+    if (!text) {
+      continue
+    }
+
+    rowGroup.rowLabel ||= text
+
+    const resolvedKeyID = resolveDomAttributeViewKeyId(cell, cellIndex)
+    const stableKeyID = getStableDomAttributeViewKeyID(resolvedKeyID)
+    const columnIndex = stableKeyID && headerInfo.keyedColumnIndexByKeyID.has(stableKeyID)
+      ? headerInfo.keyedColumnIndexByKeyID.get(stableKeyID)!
+      : stableKeyID
+        ? allocator.getOrCreateDiscoveredColumnIndex(stableKeyID, cellIndex)
+        : cellIndex
+    const columnName = stableKeyID
+      ? headerInfo.headerNameByKeyID.get(stableKeyID) ?? headerInfo.headerNameByColumnIndex.get(columnIndex) ?? ''
+      : headerInfo.headerNameByColumnIndex.get(columnIndex) ?? ''
+    const logicalColumnKey = stableKeyID ?? `index:${columnIndex}`
+    const dedupeKey = `${logicalColumnKey}::${text}`
+    if (rowGroup.dedupeKeys.has(dedupeKey)) {
+      continue
+    }
+
+    // 注（RF-109）：原实现此处还有一段"登记发现列"的赋值，但其前置条件
+    // （stableKeyID 不在表头映射且不在发现映射中）在上面的
+    // getOrCreateDiscoveredColumnIndex 调用后恒为假（发现映射必然已登记），
+    // 属不可达死代码，特征测试钉住行为后移除。
+
+    rowGroup.dedupeKeys.add(dedupeKey)
+    rowGroup.candidates.push({
+      columnIndex,
+      columnName,
+      keyID: resolvedKeyID,
+      text,
+    })
   }
 }
 
@@ -499,11 +526,24 @@ function resolveDomAttributeViewRowId(rowElement: HTMLElement) {
     || undefined
 }
 
+// 以祖先链遍历实现 O(n·d) 顶层过滤（RF-109）：原实现为两两比较的 O(n²)
+// （findIndex 去重 + some(contains)），长文档行数多时是隐藏热点。
+// 行为等价：某元素被其他元素包含 ⇔ 其祖先链上存在另一个被选元素。
 function getTopLevelElements(elements: HTMLElement[]) {
-  return elements.filter((element, index) => (
-    elements.findIndex((candidate) => candidate === element) === index
-    && !elements.some((candidate) => candidate !== element && candidate.contains(element))
-  ))
+  const unique = Array.from(new Set(elements))
+  const selected = new Set(unique)
+  return unique.filter((element) => {
+    let current = element.parentElement
+    while (current) {
+      if (selected.has(current)) {
+        return false
+      }
+
+      current = current.parentElement
+    }
+
+    return true
+  })
 }
 
 function isVisibleAttributeViewElement(element: HTMLElement) {

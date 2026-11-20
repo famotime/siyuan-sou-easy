@@ -399,6 +399,79 @@ function collectOccurrencesForTerms(
 }
 
 /**
+ * 判定单块（或单行）是否已包含全部必需关键词并满足全部 OR 组
+ * （RF-111：原在 findMatchesInTableBlock 与 findMatchesInBlock 中逐字重复）
+ */
+function isFullMultiTermMatch(
+  matchedTerms: Set<string>,
+  mustInclude: string[],
+  orGroups: string[][],
+) {
+  return mustInclude.length > 0
+    && mustInclude.every((t) => matchedTerms.has(t))
+    && (orGroups.length === 0 || orGroups.every((g) => g.some((t) => matchedTerms.has(t))))
+}
+
+interface GlobalMatchSnippetCore {
+  matchedText: string
+  prefixText: string
+  suffixText: string
+  previewText: string
+  segments: ContextSnippetSegment[]
+}
+
+interface GlobalMatchSnippetTableExtras {
+  matchedCellText?: string
+  tableRowIndex?: number
+  tableRowText?: string
+}
+
+/**
+ * 组装 GlobalMatchSnippet 的公共字段（RF-111：表格/普通块两份 20+ 字段构造收敛，
+ * 表格路径通过 extras 追加行定位字段，普通块路径不含这些键）
+ */
+function buildGlobalMatchSnippet(
+  block: RawBlockRecord,
+  core: GlobalMatchSnippetCore,
+  occurrences: MatchOccurrence[],
+  isFullMatch: boolean,
+  matchId: string,
+  fullContent: string,
+  extras?: GlobalMatchSnippetTableExtras,
+): GlobalMatchSnippet {
+  return {
+    matchId,
+    blockId: block.id,
+    rootId: block.root_id,
+    blockType: block.type,
+    subType: block.subtype,
+    matchedText: core.matchedText,
+    prefixText: core.prefixText,
+    suffixText: core.suffixText,
+    previewText: core.previewText,
+    segments: core.segments,
+    fullContent,
+    sort: block.sort ?? 0,
+    updated: block.updated || '',
+    created: block.created || '',
+    hpath: block.hpath || '',
+    box: block.box || '',
+    selectedForReplace: true,
+    startOffset: occurrences[0].start,
+    endOffset: occurrences[occurrences.length - 1].end,
+    occurrences,
+    isFullBlockMatch: isFullMatch,
+    ...(extras?.tableRowIndex !== undefined || extras?.tableRowText !== undefined || extras?.matchedCellText !== undefined
+      ? {
+          matchedCellText: extras?.matchedCellText,
+          tableRowIndex: extras?.tableRowIndex,
+          tableRowText: extras?.tableRowText,
+        }
+      : {}),
+  }
+}
+
+/**
  * 针对表格块（type === 't'）按行检索并聚合生成各行的 MatchSnippet
  * compiledRegexes：可选的预编译正则表（由 aggregateBlocksToDocs 入口一次编译传入）；未提供时在函数入口编译一次
  */
@@ -447,10 +520,7 @@ export function findMatchesInTableBlock(
     }
 
     // 检查此表格单行是否达到“同块/同行完全包含”
-    const isFullMatch =
-      mustInclude.length > 0
-      && mustInclude.every((t) => matchedTerms.has(t))
-      && (orGroups.length === 0 || orGroups.every((g) => g.some((t) => matchedTerms.has(t))))
+    const isFullMatch = isFullMultiTermMatch(matchedTerms, mustInclude, orGroups)
 
     // 找出关键词命中了哪些单元格，提取第一个命中的单元格作为特征指纹
     const matchedCell = row.cells.find((cell) => {
@@ -468,32 +538,19 @@ export function findMatchesInTableBlock(
     }) || ''
 
     const snippet = extractTableRowSnippet(lineText, occurrences)
-    results.push({
-      matchId: `${block.id}:tr:${row.rowIndex}`,
-      blockId: block.id,
-      rootId: block.root_id,
-      blockType: block.type,
-      subType: block.subtype,
-      matchedText: snippet.matchedText,
-      prefixText: snippet.prefixText,
-      suffixText: snippet.suffixText,
-      previewText: snippet.previewText,
-      segments: snippet.segments,
-      fullContent: lineText,
-      sort: block.sort ?? 0,
-      updated: block.updated || '',
-      created: block.created || '',
-      hpath: block.hpath || '',
-      box: block.box || '',
-      selectedForReplace: true,
-      startOffset: occurrences[0].start,
-      endOffset: occurrences[occurrences.length - 1].end,
-      tableRowIndex: row.rowIndex,
-      tableRowText: lineText,
-      matchedCellText: matchedCell,
+    results.push(buildGlobalMatchSnippet(
+      block,
+      snippet,
       occurrences,
-      isFullBlockMatch: isFullMatch,
-    })
+      isFullMatch,
+      `${block.id}:tr:${row.rowIndex}`,
+      lineText,
+      {
+        matchedCellText: matchedCell,
+        tableRowIndex: row.rowIndex,
+        tableRowText: lineText,
+      },
+    ))
   }
 
   return results
@@ -551,36 +608,18 @@ export function findMatchesInBlock(
   }
 
   // 判定是否单块全包含所有必需关键词
-  const isFullMatch =
-    mustInclude.length > 0
-    && mustInclude.every((t) => matchedTerms.has(t))
-    && (orGroups.length === 0 || orGroups.every((g) => g.some((t) => matchedTerms.has(t))))
+  const isFullMatch = isFullMultiTermMatch(matchedTerms, mustInclude, orGroups)
 
   const snippet = extractMultiMatchSnippet(content, occurrences)
 
-  return [{
-    matchId: `${block.id}:${occurrences[0].start}`,
-    blockId: block.id,
-    rootId: block.root_id,
-    blockType: block.type,
-    subType: block.subtype,
-    matchedText: snippet.matchedText,
-    prefixText: snippet.prefixText,
-    suffixText: snippet.suffixText,
-    previewText: snippet.previewText,
-    segments: snippet.segments,
-    fullContent: content,
-    sort: block.sort ?? 0,
-    updated: block.updated || '',
-    created: block.created || '',
-    hpath: block.hpath || '',
-    box: block.box || '',
-    selectedForReplace: true,
-    startOffset: occurrences[0].start,
-    endOffset: occurrences[occurrences.length - 1].end,
+  return [buildGlobalMatchSnippet(
+    block,
+    snippet,
     occurrences,
-    isFullBlockMatch: isFullMatch,
-  }]
+    isFullMatch,
+    `${block.id}:${occurrences[0].start}`,
+    content,
+  )]
 }
 
 /**
@@ -664,47 +703,12 @@ export function aggregateBlocksToDocs(
       continue
     }
 
-    // 2. 智能双层匹配校验
-    let matchType: 'exact-block' | 'cross-block' = 'exact-block'
-
-    if (isMultiTerm) {
-      const hasExactBlockMatch = item.matches.some((m) => m.isFullBlockMatch)
-
-      if (hasExactBlockMatch) {
-        matchType = 'exact-block'
-      } else {
-        // 跨块联合匹配校验：收集该文档所有命中块涵盖的所有关键词
-        const allDocMatchedTerms = new Set<string>()
-        for (const m of item.matches) {
-          if (m.occurrences) {
-            for (const occ of m.occurrences) {
-              const text = occ.text.toLowerCase()
-              for (const must of mustInclude) {
-                if (text.includes(must.toLowerCase())) {
-                  allDocMatchedTerms.add(must)
-                }
-              }
-              for (const group of orGroups) {
-                for (const word of group) {
-                  if (text.includes(word.toLowerCase())) {
-                    allDocMatchedTerms.add(word)
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        const coversAllMust = mustInclude.every((t) => allDocMatchedTerms.has(t))
-        const coversAllOr = orGroups.length === 0 || orGroups.every((g) => g.some((t) => allDocMatchedTerms.has(t)))
-
-        if (coversAllMust && coversAllOr) {
-          matchType = 'cross-block'
-        } else {
-          // 不满足多词组合逻辑，丢弃该文档
-          continue
-        }
-      }
+    // 2. 智能双层匹配校验（RF-111：抽 verifyCrossBlockMatch）
+    const verified = isMultiTerm
+      ? verifyCrossBlockMatch(item.matches, mustInclude, orGroups)
+      : 'exact-block'
+    if (verified === 'drop') {
+      continue
     }
 
     // 块内部按 reading order (sort) 排序
@@ -714,11 +718,60 @@ export function aggregateBlocksToDocs(
       ...item,
       collapsed: false,
       totalCount: item.matches.length,
-      matchType,
+      matchType: verified,
     })
   }
 
   return nodes
+}
+
+/**
+ * 智能双层匹配校验（RF-111 自 aggregateBlocksToDocs 拆出的纯函数段）。
+ * 返回 'drop' 表示不满足多词组合逻辑，文档应被丢弃。
+ *
+ * 已知缺陷（现状钉住于 tests/global-search-aggregator.test.ts，修复需单独决策）：
+ * 跨块校验用 occ.text.includes(词) 判定——occ.text 是命中的原文而非查询词本身，
+ * 对正则词（如 `深\S+`）或拼音词（如 `sz` 命中"深圳"）includes 恒为 false，
+ * 会导致跨块联合匹配被误杀。与 collectOccurrencesForTerms（走 regex/pinyin
+ * 真实匹配）的语义不一致。
+ */
+function verifyCrossBlockMatch(
+  matches: GlobalMatchSnippet[],
+  mustInclude: string[],
+  orGroups: string[][],
+): 'exact-block' | 'cross-block' | 'drop' {
+  const hasExactBlockMatch = matches.some((m) => m.isFullBlockMatch)
+
+  if (hasExactBlockMatch) {
+    return 'exact-block'
+  }
+
+  // 跨块联合匹配校验：收集该文档所有命中块涵盖的所有关键词
+  const allDocMatchedTerms = new Set<string>()
+  for (const m of matches) {
+    if (m.occurrences) {
+      for (const occ of m.occurrences) {
+        const text = occ.text.toLowerCase()
+        for (const must of mustInclude) {
+          if (text.includes(must.toLowerCase())) {
+            allDocMatchedTerms.add(must)
+          }
+        }
+        for (const group of orGroups) {
+          for (const word of group) {
+            if (text.includes(word.toLowerCase())) {
+              allDocMatchedTerms.add(word)
+            }
+          }
+        }
+      }
+    }
+  }
+
+  const coversAllMust = mustInclude.every((t) => allDocMatchedTerms.has(t))
+  const coversAllOr = orGroups.length === 0 || orGroups.every((g) => g.some((t) => allDocMatchedTerms.has(t)))
+
+  return coversAllMust && coversAllOr ? 'cross-block' : 'drop'
 }
 
 /**

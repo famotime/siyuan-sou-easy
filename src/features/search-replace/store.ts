@@ -7,11 +7,6 @@ import type {
 } from './types'
 import type { PluginSettings } from '@/settings'
 import {
-
-  showMessage,
-} from 'siyuan'
-import { t } from '@/i18n/runtime'
-import {
   debugLog,
   setDebugLoggingEnabled,
 } from './debug'
@@ -25,7 +20,6 @@ import {
 } from './editor'
 import {
   getBlockDoms,
-  querySql,
   updateDomBlock,
 } from './kernel'
 import {
@@ -47,9 +41,9 @@ import {
   resolveNextPanelVisibility,
 } from './store/search-session-state'
 import {
-
   searchReplaceState,
 } from './store/state'
+import { createTerminalSession } from './store/terminal-session'
 import {
   bindUiStatePlugin,
   loadStoredUiState,
@@ -59,18 +53,21 @@ import {
   schedulePersistUiState,
   unbindUiStatePlugin,
 } from './store/ui-state'
-import { mapTerminalSearchResult } from './terminal/adapter'
 
+export { extractAll } from './store/extraction'
 export {
   createInitialSearchReplaceState,
   resetSearchReplaceState,
   searchReplaceState,
 } from './store/state'
+
 const searchController = createSearchController({
   getCurrentMatch: () => getCurrentMatch(),
   state: searchReplaceState,
 })
-let activeTerminalSurface: TerminalSearchSurface | null = null
+
+// 终端搜索会话（RF-108）：终端分支收敛后，主动作只判一次 sourceMode
+const terminalSession = createTerminalSession(searchReplaceState)
 
 export function bindPlugin(plugin: Plugin) {
   bindUiStatePlugin(plugin)
@@ -150,7 +147,7 @@ export function resetStoredPanelPosition() {
 }
 
 export function openPanel(forceVisible?: boolean, replaceVisible?: boolean) {
-  resetTerminalMode()
+  terminalSession.reset()
   searchReplaceState.visible = resolveNextPanelVisibility(searchReplaceState.visible, forceVisible)
   if (!searchReplaceState.visible) {
     closePanel()
@@ -194,10 +191,8 @@ export function openPanel(forceVisible?: boolean, replaceVisible?: boolean) {
 export function closePanel() {
   if (searchReplaceState.sourceMode === 'terminal') {
     applyClosePanelState(searchReplaceState)
-    resetTerminalMode()
-    searchReplaceState.matches = []
-    searchReplaceState.currentIndex = 0
-    searchReplaceState.error = ''
+    terminalSession.reset()
+    terminalSession.clearMatches()
     return
   }
 
@@ -208,16 +203,7 @@ export function closePanel() {
 
 export function setQuery(value: string) {
   if (searchReplaceState.sourceMode === 'terminal') {
-    searchReplaceState.query = value
-    if (searchReplaceState.settings.searchOnEnter) {
-      if (value !== searchReplaceState.committedQuery) {
-        searchReplaceState.matches = []
-        searchReplaceState.currentIndex = 0
-        searchReplaceState.error = ''
-      }
-      return
-    }
-    refreshTerminalMatches()
+    terminalSession.handleQueryEdit(value)
     return
   }
 
@@ -244,9 +230,7 @@ export function commitQueryAndSearch(value?: string) {
   if (!nextQuery.trim()) {
     searchReplaceState.committedQuery = ''
     if (searchReplaceState.sourceMode === 'terminal') {
-      searchReplaceState.matches = []
-      searchReplaceState.currentIndex = 0
-      searchReplaceState.error = ''
+      terminalSession.clearMatches()
       return
     }
     searchController.clearQueryDraftState()
@@ -256,7 +240,7 @@ export function commitQueryAndSearch(value?: string) {
   searchReplaceState.committedQuery = nextQuery
 
   if (searchReplaceState.sourceMode === 'terminal') {
-    refreshTerminalMatches()
+    terminalSession.refresh()
     return
   }
 
@@ -294,18 +278,7 @@ export function captureCurrentSelectionScope() {
 
 export function toggleOption(option: keyof SearchOptions) {
   if (searchReplaceState.sourceMode === 'terminal') {
-    if (option === 'selectionOnly') {
-      searchReplaceState.options.selectionOnly = false
-      return
-    }
-    searchReplaceState.options[option] = !searchReplaceState.options[option]
-    if (searchReplaceState.settings.searchOnEnter) {
-      if (searchReplaceState.committedQuery && searchReplaceState.query === searchReplaceState.committedQuery) {
-        refreshTerminalMatches()
-      }
-      return
-    }
-    refreshTerminalMatches()
+    terminalSession.toggleOption(option)
     return
   }
 
@@ -336,13 +309,10 @@ export function getCurrentMatch() {
   return searchReplaceState.matches[searchReplaceState.currentIndex] ?? null
 }
 
-export function goNext() {
+// goNext/goPrev 原为仅 ±1 之差的镜像实现（RF-108 合并）
+function stepCurrent(delta: number) {
   if (searchReplaceState.sourceMode === 'terminal') {
-    if (!searchReplaceState.matches.length) {
-      return
-    }
-    searchReplaceState.currentIndex = (searchReplaceState.currentIndex + 1) % searchReplaceState.matches.length
-    activeTerminalSurface?.goTo(searchReplaceState.currentIndex)
+    terminalSession.step(delta)
     return
   }
 
@@ -350,26 +320,16 @@ export function goNext() {
     return
   }
 
-  searchReplaceState.currentIndex = (searchReplaceState.currentIndex + 1) % searchReplaceState.matches.length
+  searchReplaceState.currentIndex = (searchReplaceState.currentIndex + delta + searchReplaceState.matches.length) % searchReplaceState.matches.length
   searchController.revealCurrentMatch(undefined, 'if-needed')
 }
 
+export function goNext() {
+  stepCurrent(1)
+}
+
 export function goPrev() {
-  if (searchReplaceState.sourceMode === 'terminal') {
-    if (!searchReplaceState.matches.length) {
-      return
-    }
-    searchReplaceState.currentIndex = (searchReplaceState.currentIndex - 1 + searchReplaceState.matches.length) % searchReplaceState.matches.length
-    activeTerminalSurface?.goTo(searchReplaceState.currentIndex)
-    return
-  }
-
-  if (!searchReplaceState.matches.length) {
-    return
-  }
-
-  searchReplaceState.currentIndex = (searchReplaceState.currentIndex - 1 + searchReplaceState.matches.length) % searchReplaceState.matches.length
-  searchController.revealCurrentMatch(undefined, 'if-needed')
+  stepCurrent(-1)
 }
 
 export function jumpToMatchIndex(oneBasedIndex: number) {
@@ -382,13 +342,12 @@ export function jumpToMatchIndex(oneBasedIndex: number) {
     return
   }
 
-  searchReplaceState.currentIndex = targetIndex
-
   if (searchReplaceState.sourceMode === 'terminal') {
-    activeTerminalSurface?.goTo(searchReplaceState.currentIndex)
+    terminalSession.goTo(targetIndex)
     return
   }
 
+  searchReplaceState.currentIndex = targetIndex
   searchController.revealCurrentMatch(undefined, 'if-needed')
 }
 
@@ -437,121 +396,5 @@ export async function replaceAll() {
 }
 
 export function openTerminalPanel(surface: TerminalSearchSurface, replaceVisible?: boolean) {
-  activeTerminalSurface = surface
-  searchReplaceState.sourceMode = 'terminal'
-  searchReplaceState.terminalSurfaceId = surface.id
-  searchReplaceState.currentRootId = surface.id
-  searchReplaceState.currentTitle = surface.title
-  searchReplaceState.documentReadonly = true
-  searchReplaceState.options.selectionOnly = false
-  searchReplaceState.visible = true
-  searchReplaceState.replaceVisible = Boolean(replaceVisible)
-  searchReplaceState.error = ''
-  searchReplaceState.navigationHint = ''
-  searchReplaceState.matches = []
-  searchReplaceState.currentIndex = 0
-  searchReplaceState.searchableBlockCount = 0
-  searchReplaceState.minimapBlocks = []
-  surface.focus()
-  if (searchReplaceState.query.trim()) {
-    if (searchReplaceState.settings.searchOnEnter) {
-      if (searchReplaceState.committedQuery && searchReplaceState.query === searchReplaceState.committedQuery) {
-        refreshTerminalMatches()
-      }
-    } else {
-      refreshTerminalMatches()
-    }
-  }
-}
-
-function refreshTerminalMatches() {
-  if (!activeTerminalSurface || searchReplaceState.sourceMode !== 'terminal') {
-    return false
-  }
-
-  const result = activeTerminalSurface.search({
-    matchCase: searchReplaceState.options.matchCase,
-    query: searchReplaceState.query,
-    useRegex: searchReplaceState.options.useRegex,
-    wholeWord: searchReplaceState.options.wholeWord,
-  })
-  const mapped = mapTerminalSearchResult(result, activeTerminalSurface.id)
-  searchReplaceState.matches = mapped.matches
-  searchReplaceState.currentIndex = mapped.matches.length ? Math.max(0, mapped.currentIndex) : 0
-  searchReplaceState.error = mapped.error
-  searchReplaceState.searchableBlockCount = mapped.matches.length ? 1 : 0
-  searchReplaceState.minimapBlocks = []
-  return true
-}
-
-function resetTerminalMode() {
-  const wasTerminalMode = searchReplaceState.sourceMode === 'terminal' || Boolean(activeTerminalSurface)
-  activeTerminalSurface?.clear()
-  activeTerminalSurface = null
-  searchReplaceState.sourceMode = 'editor'
-  searchReplaceState.terminalSurfaceId = undefined
-  if (wasTerminalMode) {
-    searchReplaceState.documentReadonly = false
-  }
-}
-
-export async function extractAll() {
-  if (searchReplaceState.sourceMode === 'terminal' || !searchReplaceState.matches.length) {
-    return
-  }
-
-  const uniqueBlockIds = Array.from(new Set(searchReplaceState.matches.map((m) => m.blockId)))
-
-  const limit = 1000
-  const isLimited = uniqueBlockIds.length > limit
-  const targetIds = uniqueBlockIds.slice(0, limit)
-  let resultText = ''
-
-  if (searchReplaceState.settings.extractAsBlockRef) {
-    const textLimit = 30
-    const matchByBlockId = new Map(searchReplaceState.matches.map((m) => [m.blockId, m]))
-    resultText = targetIds.map((id) => {
-      const match = matchByBlockId.get(id)
-      let anchorText = match?.previewText?.trim() || ''
-      if (match?.matchedText) {
-        anchorText = anchorText.replace(`[${match.matchedText}]`, match.matchedText)
-      }
-      if (anchorText.length > textLimit) {
-        anchorText = `${anchorText.substring(0, textLimit)}...`
-      }
-      anchorText = anchorText.replace(/"/g, "'").replace(/[\r\n]+/g, ' ') // Prevent breaking syntax
-      return `* ((${id} "${anchorText}"))`
-    }).join('\n')
-  } else {
-    try {
-      // Build a SQL query to get markdown for all targeted blocks
-      const idListStr = targetIds.map((id) => `'${id}'`).join(',')
-      const results = await querySql(`SELECT id, markdown FROM blocks WHERE id IN (${idListStr})`)
-      const markdownMap = new Map<string, string>()
-      for (const row of results) {
-        if (row?.id && typeof row.markdown === 'string') {
-          markdownMap.set(row.id, row.markdown)
-        }
-      }
-      resultText = targetIds
-        .map((id) => markdownMap.get(id))
-        .filter((md): md is string => typeof md === 'string')
-        .join('\n\n')
-    } catch (e) {
-      console.error('Failed to extract plain text', e)
-      showMessage(t('extractFailed'), 3000, 'error')
-      return
-    }
-  }
-
-  try {
-    await navigator.clipboard.writeText(resultText)
-    if (isLimited) {
-      showMessage(t('extractLimitWarning', { 0: String(limit) }), 5000, 'info')
-    } else {
-      showMessage(t('extractSuccess', { 0: String(targetIds.length) }), 3000, 'info')
-    }
-  } catch (e) {
-    console.error('Clipboard write failed', e)
-  }
+  terminalSession.open(surface, replaceVisible)
 }

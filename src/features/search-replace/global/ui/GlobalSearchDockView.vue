@@ -145,7 +145,7 @@
         @mouseenter="onHelpMouseEnter"
         @mouseleave="onHelpMouseLeave"
         @select-example="onSelectHelpExample"
-        @close="showHelpPopover = false"
+        @close="closeHelpPopover"
       />
 
       <!-- 替换输入行 (折叠展开) -->
@@ -375,161 +375,21 @@
 
 
     <!-- 批量导出弹窗 -->
-    <Teleport to="body">
-      <div
-        v-if="showExportModal"
-        class="sfsr-popup-backdrop"
-        @click.self="showExportModal = false"
-      >
-        <div class="sfsr-popup-modal">
-          <div class="sfsr-popup-header">
-            <span class="sfsr-popup-title-wrap">
-              <WireframeIcon
-                name="export"
-                :size="14"
-              />
-              <span>批量导出搜索结果</span>
-            </span>
-            <button
-              class="sfsr-popup-close"
-              type="button"
-              aria-label="关闭弹窗"
-              @click="showExportModal = false"
-            >
-              <WireframeIcon
-                name="close"
-                :size="13"
-              />
-            </button>
-          </div>
-          <div class="sfsr-popup-body">
-            <button
-              class="sfsr-popup-btn"
-              type="button"
-              @click="onExportMarkdown"
-            >
-              <WireframeIcon
-                name="document"
-                :size="13"
-              />
-              <span>复制为 Markdown 链接列表</span>
-            </button>
-            <button
-              class="sfsr-popup-btn"
-              type="button"
-              @click="onExportBlockRefs"
-            >
-              <WireframeIcon
-                name="link"
-                :size="13"
-              />
-              <span>复制为思源块引用列表 ((id '锚文本'))</span>
-            </button>
-            <button
-              class="sfsr-popup-btn"
-              type="button"
-              @click="onExportEmbedSql"
-            >
-              <WireframeIcon
-                name="code"
-                :size="13"
-              />
-              <span>复制为思源 SQL 嵌入块</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+    <ExportResultsModal
+      :visible="showExportModal"
+      @close="showExportModal = false"
+    />
 
     <!-- 常用预设管理弹窗 -->
-    <Teleport to="body">
-      <div
-        v-if="showPresetsModal"
-        class="sfsr-popup-backdrop"
-        @click.self="showPresetsModal = false"
-      >
-        <div class="sfsr-popup-modal sfsr-popup-modal--presets">
-          <div class="sfsr-popup-header">
-            <span class="sfsr-popup-title-wrap">
-              <WireframeIcon
-                name="star"
-                :size="14"
-              />
-              <span>常用搜索预设</span>
-            </span>
-            <button
-              class="sfsr-popup-close"
-              type="button"
-              aria-label="关闭弹窗"
-              @click="showPresetsModal = false"
-            >
-              <WireframeIcon
-                name="close"
-                :size="13"
-              />
-            </button>
-          </div>
-          <div class="sfsr-popup-body">
-            <div class="sfsr-preset-create-row">
-              <input
-                v-model="newPresetName"
-                class="sfsr-preset-input"
-                type="text"
-                placeholder="输入新预设名称..."
-                @keydown.enter="onSaveCurrentAsPreset"
-              >
-              <button
-                class="sfsr-btn sfsr-btn--primary"
-                type="button"
-                @click="onSaveCurrentAsPreset"
-              >
-                保存当前条件
-              </button>
-            </div>
-            <div class="sfsr-preset-list">
-              <div
-                v-if="presetList.length === 0"
-                class="sfsr-empty-tip"
-              >
-                暂无保存的预设
-              </div>
-              <div
-                v-for="p in presetList"
-                :key="p.id"
-                class="sfsr-preset-item"
-              >
-                <span
-                  class="sfsr-preset-name"
-                  @click="onApplyPreset(p)"
-                >
-                  <strong>{{ p.name }}</strong> ({{ p.query }})
-                </span>
-                <button
-                  class="sfsr-preset-del"
-                  type="button"
-                  aria-label="删除预设"
-                  @click="onDeletePreset(p.id)"
-                >
-                  <WireframeIcon
-                    name="close"
-                    :size="12"
-                  />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+    <PresetsModal
+      :visible="showPresetsModal"
+      @close="showPresetsModal = false"
+      @apply="onApplyPreset"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import type {
-  DiffDocumentGroup,
-  DiffItem,
-  DiffSummary,
-} from '../diff-builder'
 import type { NotebookInfo } from '../kernel-query'
 import type { SavedSearchPreset } from '../saved-presets'
 import type {
@@ -546,28 +406,14 @@ import {
 } from 'vue'
 import WireframeIcon from '@/components/SiyuanTheme/WireframeIcon.vue'
 import { t } from '@/i18n/runtime'
-import { buildVisualDiff } from '../diff-builder'
 import {
   closeGlobalSearchDockAndReturnFocus,
   registerGlobalSearchInput,
 } from '../dock-manager'
-import {
-  copyToClipboard,
-  exportAsBlockRefs,
-  exportAsEmbedQuery,
-  exportAsMarkdownLinks,
-} from '../export-utils'
+import { hasActiveGlobalFilters } from '../filter-utils'
 import { openReplaceHistoryTab } from '../history-tab-manager'
 import { fetchNotebooks } from '../kernel-query'
 import { parseGlobalQuery } from '../query-parser'
-import { executeBatchReplace } from '../replace-engine'
-import {
-  deletePreset,
-  getSavedPresets,
-  loadSavedPresets,
-
-  savePreset,
-} from '../saved-presets'
 import {
   clearGlobalSearchResults,
   executeGlobalSearch,
@@ -581,9 +427,16 @@ import {
 
 
 import DocAggregateItem from './DocAggregateItem.vue'
+import ExportResultsModal from './ExportResultsModal.vue'
 import FilterPillsBar from './FilterPillsBar.vue'
+import PresetsModal from './PresetsModal.vue'
 import RegexHelpPopover from './RegexHelpPopover.vue'
 import SearchHelpPopover from './SearchHelpPopover.vue'
+import {
+  useBatchReplaceDiff,
+  useCanBatchReplace,
+} from './use-batch-replace-diff'
+import { useHoverPopover } from './use-hover-popover'
 import VisualDiffModal from './VisualDiffModal.vue'
 
 const inputRef = ref<HTMLInputElement>()
@@ -591,15 +444,6 @@ const diffModalRef = ref<InstanceType<typeof VisualDiffModal>>()
 
 const notebooks = ref<NotebookInfo[]>([])
 const showAdvancedDrawer = ref(false)
-const showDiffModal = ref(false)
-
-const currentDiffSummary = ref<DiffSummary>({
-  totalCount: 0,
-  includedCount: 0,
-  excludedCount: 0,
-  affectedDocCount: 0,
-  groups: [],
-})
 
 const isDraftQuery = computed(() => {
   const trimmed = state.query.trim()
@@ -619,6 +463,8 @@ watch(
   (newVal) => {
     // 与 setGlobalQuery 的语义保持单一实现：query 变化后按需清空过期结果。
     // 此处 state.query 已是 newVal，setGlobalQuery 内的同值赋值不会再次触发响应。
+    // 注意（RF-107）：测试 global-search-dock 直接改写 state.query 并依赖本 watch
+    // 立即清空旧结果，因此输入框保持 v-model + watch 机制而非改为单写路径。
     setGlobalQuery(newVal)
   },
 )
@@ -627,110 +473,65 @@ const isAllCollapsed = computed(() => {
   return state.results.length > 0 && state.results.every((d) => d.collapsed)
 })
 
-const hasActiveFilters = computed(() => {
-  return Boolean(
-    state.filters.notebookId
-    || state.filters.pathPrefix
-    || (state.filters.tags && state.filters.tags.length > 0)
-    || (state.filters.types && state.filters.types.length > 0)
-    || state.filters.dateRange?.start,
-  )
-})
+const hasActiveFilters = computed(() => hasActiveGlobalFilters(state.filters))
 
 const parsedCurrentQuery = computed(() => parseGlobalQuery(state.query))
-const isMultiTermQuery = computed(() => parsedCurrentQuery.value.isMultiTermQuery)
 
-const canBatchReplace = computed(() => {
-  return (
-    state.query.trim().length > 0
-    && state.results.length > 0
-    && !state.searching
-    && !isMultiTermQuery.value
-  )
-})
+const canBatchReplace = useCanBatchReplace(parsedCurrentQuery)
 
 const replaceBtnTooltip = computed(() => {
-  if (isMultiTermQuery.value) {
+  if (parsedCurrentQuery.value.isMultiTermQuery) {
     return t('multiTermReplaceDisabled')
   }
   return '差异预览与替换'
 })
 
-const showHelpPopover = ref(false)
-let hideHelpTimer: ReturnType<typeof setTimeout> | null = null
+// 搜索语法 / 正则两个 hover 弹窗（RF-107：抽离共用的延迟开启/关闭计时器逻辑）
+const {
+  isOpen: showHelpPopover,
+  close: closeHelpPopover,
+  open: openHelpPopover,
+  scheduleClose: scheduleHelpPopoverClose,
+} = useHoverPopover()
 
-const showRegexHelpPopover = ref(false)
-let hoverRegexTimer: ReturnType<typeof setTimeout> | null = null
-let hideRegexTimer: ReturnType<typeof setTimeout> | null = null
-
-function clearRegexTimers() {
-  if (hoverRegexTimer) {
-    clearTimeout(hoverRegexTimer)
-    hoverRegexTimer = null
-  }
-  if (hideRegexTimer) {
-    clearTimeout(hideRegexTimer)
-    hideRegexTimer = null
-  }
-}
+const {
+  isOpen: showRegexHelpPopover,
+  close: closeRegexHelpPopover,
+  open: openRegexHelpPopover,
+  scheduleOpen: scheduleRegexHelpPopoverOpen,
+  scheduleClose: scheduleRegexHelpPopoverClose,
+  cancelOpenTimer: cancelRegexOpenTimer,
+} = useHoverPopover({
+  openDelay: 250,
+  closeDelay: 160,
+  // 正则弹窗实际开启时互斥关闭搜索语法弹窗（与原 onRegexBtnMouseEnter 时序一致）
+  onOpen: () => closeHelpPopover(),
+})
 
 function onRegexBtnMouseEnter() {
   if (!state.options.useRegex) {
     return
   }
-  if (hideRegexTimer) {
-    clearTimeout(hideRegexTimer)
-    hideRegexTimer = null
-  }
-  if (showRegexHelpPopover.value) {
-    return
-  }
-  if (hoverRegexTimer) {
-    clearTimeout(hoverRegexTimer)
-  }
-  hoverRegexTimer = setTimeout(() => {
-    showHelpPopover.value = false
-    showRegexHelpPopover.value = true
-    hoverRegexTimer = null
-  }, 250)
+  scheduleRegexHelpPopoverOpen()
 }
 
 function onRegexBtnMouseLeave() {
-  if (hoverRegexTimer) {
-    clearTimeout(hoverRegexTimer)
-    hoverRegexTimer = null
-  }
+  cancelRegexOpenTimer()
   if (showRegexHelpPopover.value) {
-    hideRegexTimer = setTimeout(() => {
-      showRegexHelpPopover.value = false
-      hideRegexTimer = null
-    }, 160)
+    scheduleRegexHelpPopoverClose()
   }
 }
 
 function onRegexHelpMouseEnter() {
-  if (hideRegexTimer) {
-    clearTimeout(hideRegexTimer)
-    hideRegexTimer = null
-  }
-  showRegexHelpPopover.value = true
+  openRegexHelpPopover()
 }
 
 function onRegexHelpMouseLeave() {
-  hideRegexTimer = setTimeout(() => {
-    showRegexHelpPopover.value = false
-    hideRegexTimer = null
-  }, 160)
-}
-
-function closeRegexHelpPopover() {
-  clearRegexTimers()
-  showRegexHelpPopover.value = false
+  scheduleRegexHelpPopoverClose()
 }
 
 function onToggleRegexOption() {
-  clearRegexTimers()
-  showRegexHelpPopover.value = false
+  closeRegexHelpPopover()
   toggleGlobalOption('useRegex')
 }
 
@@ -744,35 +545,27 @@ function onSelectRegexHelpExample(example: string) {
 }
 
 function onHelpMouseEnter() {
-  if (hideHelpTimer) {
-    clearTimeout(hideHelpTimer)
-    hideHelpTimer = null
-  }
+  // 打开搜索语法弹窗时互斥关闭正则弹窗（原行为）
   closeRegexHelpPopover()
-  showHelpPopover.value = true
+  openHelpPopover()
 }
 
 function onHelpMouseLeave() {
-  hideHelpTimer = setTimeout(() => {
-    showHelpPopover.value = false
-  }, 160)
-}
-
-function clearHelpTimers() {
-  if (hideHelpTimer) {
-    clearTimeout(hideHelpTimer)
-    hideHelpTimer = null
-  }
+  scheduleHelpPopoverClose()
 }
 
 function toggleHelpPopover() {
   closeRegexHelpPopover()
-  showHelpPopover.value = !showHelpPopover.value
+  if (showHelpPopover.value) {
+    closeHelpPopover()
+  } else {
+    openHelpPopover()
+  }
 }
 
 function onSelectHelpExample(example: string) {
   state.query = example
-  showHelpPopover.value = false
+  closeHelpPopover()
   nextTick(() => {
     inputRef.value?.focus()
     executeGlobalSearch()
@@ -788,7 +581,7 @@ function onEnterSearch(event?: KeyboardEvent | MouseEvent) {
 
 function onInputEsc() {
   if (showHelpPopover.value || showRegexHelpPopover.value) {
-    showHelpPopover.value = false
+    closeHelpPopover()
     closeRegexHelpPopover()
     return
   }
@@ -826,156 +619,37 @@ function onSortChange(e: Event) {
   setGlobalSortMode(mode)
 }
 
-function openBatchReplaceDiff() {
-  if (!canBatchReplace.value) {
-    return
-  }
-  const keywordForReplace = parsedCurrentQuery.value.singleKeyword || state.query
-  const summary = buildVisualDiff(state.results, state.replacement, {
-    query: keywordForReplace,
-    useRegex: state.options.useRegex,
-    matchCase: state.options.matchCase,
-    wholeWord: state.options.wholeWord,
-  })
-  currentDiffSummary.value = summary
-  showDiffModal.value = true
-}
-
-function closeDiffModal() {
-  showDiffModal.value = false
-}
-
-function onToggleDiffItem(item: DiffItem) {
-  item.excluded = !item.excluded
-  recalculateDiffSummary()
-}
-
-function onToggleDiffGroup(group: DiffDocumentGroup) {
-  const targetExcluded = !group.allExcluded
-  for (const item of group.items) {
-    item.excluded = targetExcluded
-  }
-  recalculateDiffSummary()
-}
-
-function onToggleDiffAll(included: boolean) {
-  for (const group of currentDiffSummary.value.groups) {
-    for (const item of group.items) {
-      item.excluded = !included
-    }
-  }
-  recalculateDiffSummary()
-}
-
-function recalculateDiffSummary() {
-  let inc = 0
-  let exc = 0
-  let docCount = 0
-  for (const g of currentDiffSummary.value.groups) {
-    let groupHasInc = false
-    let groupAllExc = true
-    for (const item of g.items) {
-      if (item.excluded) {
-        exc++
-      } else {
-        inc++
-        groupHasInc = true
-        groupAllExc = false
-      }
-    }
-    g.allExcluded = groupAllExc
-    if (groupHasInc) {
-      docCount++
-    }
-  }
-  currentDiffSummary.value.includedCount = inc
-  currentDiffSummary.value.excludedCount = exc
-  currentDiffSummary.value.affectedDocCount = docCount
-}
-
-async function onConfirmExecuteReplace() {
-  diffModalRef.value?.setExecuting(true)
-  try {
-    const result = await executeBatchReplace(
-      currentDiffSummary.value,
-      state.query,
-      state.replacement,
-      (processed, total) => {
-        diffModalRef.value?.setProgress(processed, total)
-      },
-    )
-    if (result.success) {
-      showDiffModal.value = false
-      await executeGlobalSearch()
-    }
-  } finally {
-    diffModalRef.value?.setExecuting(false)
-  }
-}
+// 批量替换 Diff 弹窗编排（RF-107：抽离至 use-batch-replace-diff.ts）
+const keywordForReplace = computed(() => parsedCurrentQuery.value.singleKeyword || state.query)
+const {
+  closeDiffModal,
+  currentDiffSummary,
+  onConfirmExecuteReplace,
+  onToggleDiffAll,
+  onToggleDiffGroup,
+  onToggleDiffItem,
+  openBatchReplaceDiff,
+  showDiffModal,
+} = useBatchReplaceDiff({
+  canBatchReplace,
+  diffModalRef,
+  singleKeywordForReplace: keywordForReplace,
+})
 
 async function openHistoryTab() {
   await openReplaceHistoryTab('right')
 }
 
-// 导出与预设弹窗
+// 导出与预设弹窗的可见性（内容与动作在各自组件内闭环）
 const showExportModal = ref(false)
 const showPresetsModal = ref(false)
-const newPresetName = ref('')
-const presetList = ref<SavedSearchPreset[]>([])
 
 function toggleExportMenu() {
   showExportModal.value = !showExportModal.value
 }
 
-async function onExportMarkdown() {
-  const content = exportAsMarkdownLinks(state.results)
-  const ok = await copyToClipboard(content)
-  showExportModal.value = false
-  if (ok) {
-    state.statusMessage = '已复制 Markdown 链接列表到剪贴板'
-  }
-}
-
-async function onExportBlockRefs() {
-  const content = exportAsBlockRefs(state.results)
-  const ok = await copyToClipboard(content)
-  showExportModal.value = false
-  if (ok) {
-    state.statusMessage = '已复制思源块引用列表到剪贴板'
-  }
-}
-
-async function onExportEmbedSql() {
-  const content = exportAsEmbedQuery(state.results)
-  const ok = await copyToClipboard(content)
-  showExportModal.value = false
-  if (ok) {
-    state.statusMessage = '已复制思源 SQL 嵌入块到剪贴板'
-  }
-}
-
-async function togglePresetsMenu() {
-  if (!showPresetsModal.value) {
-    await loadSavedPresets()
-    presetList.value = getSavedPresets()
-  }
+function togglePresetsMenu() {
   showPresetsModal.value = !showPresetsModal.value
-}
-
-async function onSaveCurrentAsPreset() {
-  if (!newPresetName.value.trim()) {
-    alert('请输入预设名称')
-    return
-  }
-  await savePreset(newPresetName.value, {
-    query: state.query,
-    replacement: state.replacement,
-    options: state.options,
-    filters: state.filters,
-  })
-  newPresetName.value = ''
-  presetList.value = getSavedPresets()
-  alert('预设保存成功！')
 }
 
 function onApplyPreset(preset: SavedSearchPreset) {
@@ -985,11 +659,6 @@ function onApplyPreset(preset: SavedSearchPreset) {
   state.filters = { ...preset.filters }
   showPresetsModal.value = false
   executeGlobalSearch()
-}
-
-async function onDeletePreset(id: string) {
-  await deletePreset(id)
-  presetList.value = getSavedPresets()
 }
 
 onMounted(async () => {
@@ -1010,8 +679,6 @@ watch(
 )
 
 onUnmounted(() => {
-  clearRegexTimers()
-  clearHelpTimers()
   registerGlobalSearchInput(null)
 })
 </script>
@@ -1461,173 +1128,4 @@ onUnmounted(() => {
   flex-direction: column;
 }
 
-/* 弹窗遮罩与弹窗卡片 (预设/导出) */
-.sfsr-popup-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: var(--b3-mask-background, rgba(0, 0, 0, 0.48));
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 10003;
-}
-
-.sfsr-popup-modal {
-  width: 340px;
-  max-width: 90vw;
-  background: var(--b3-theme-background);
-  color: var(--b3-theme-on-background);
-  border: 1px solid var(--b3-border-color);
-  border-radius: 8px;
-  box-shadow: var(--b3-dialog-shadow, 0 8px 24px rgba(0, 0, 0, 0.2));
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.sfsr-popup-modal--presets {
-  width: 400px;
-}
-
-.sfsr-popup-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--b3-border-color, rgba(128, 128, 128, 0.15));
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.sfsr-popup-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--b3-theme-primary);
-}
-
-.sfsr-popup-close {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 2px;
-  color: var(--b3-theme-on-surface-light);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.sfsr-popup-close:hover {
-  color: var(--b3-theme-on-background);
-}
-
-.sfsr-popup-body {
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.sfsr-popup-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-align: left;
-  padding: 8px 12px;
-  border-radius: 4px;
-  border: 1px solid var(--b3-border-color, rgba(128, 128, 128, 0.15));
-  background: var(--b3-theme-surface, transparent);
-  color: var(--b3-theme-on-surface);
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.15s ease;
-}
-
-.sfsr-popup-btn:hover {
-  background: var(--b3-theme-surface-hover, var(--b3-list-hover, rgba(128, 128, 128, 0.08)));
-  border-color: var(--b3-theme-primary);
-  color: var(--b3-theme-on-background);
-}
-
-.sfsr-preset-create-row {
-  display: flex;
-  gap: 6px;
-}
-
-.sfsr-preset-input {
-  flex: 1;
-  height: 28px;
-  padding: 0 8px;
-  border: 1px solid var(--b3-border-color, rgba(128, 128, 128, 0.25));
-  background: var(--b3-theme-surface, transparent);
-  color: inherit;
-  border-radius: 4px;
-  font-size: 12px;
-  outline: none;
-}
-
-.sfsr-preset-input:focus {
-  border-color: var(--b3-theme-primary);
-}
-
-.sfsr-btn--primary {
-  height: 28px;
-  padding: 0 10px;
-  background: var(--b3-theme-primary);
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 11px;
-}
-
-.sfsr-preset-list {
-  max-height: 200px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.sfsr-empty-tip {
-  text-align: center;
-  color: var(--b3-theme-on-surface-light);
-  font-size: 12px;
-  padding: 16px 0;
-}
-
-.sfsr-preset-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 10px;
-  background: var(--b3-theme-surface, transparent);
-  border: 1px solid var(--b3-border-color, rgba(128, 128, 128, 0.1));
-  border-radius: 4px;
-  font-size: 12px;
-}
-
-.sfsr-preset-name {
-  cursor: pointer;
-  color: var(--b3-theme-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 320px;
-}
-
-.sfsr-preset-del {
-  background: none;
-  border: none;
-  color: var(--b3-theme-error);
-  cursor: pointer;
-  font-size: 12px;
-  padding: 2px;
-  display: inline-flex;
-  align-items: center;
-}
 </style>

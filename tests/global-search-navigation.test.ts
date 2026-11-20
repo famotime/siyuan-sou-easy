@@ -1,5 +1,3 @@
-// @vitest-environment jsdom
-
 import type { GlobalMatchSnippet } from '@/features/search-replace/global/types'
 import { openTab } from 'siyuan'
 import {

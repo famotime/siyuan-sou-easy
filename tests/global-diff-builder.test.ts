@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import type { DocAggregateNode } from '@/features/search-replace/global/types'
 import {
   describe,
@@ -7,6 +9,7 @@ import {
 import {
   buildVisualDiff,
   computeReplacement,
+  recalculateDiffSummary,
 } from '@/features/search-replace/global/diff-builder'
 
 describe('diff-builder', () => {
@@ -202,6 +205,97 @@ describe('diff-builder', () => {
       expect(item.matchedText).toBe('深圳')
       expect(item.replacedText).toBe('广州')
       expect(item.newContent).toBe('被低估的广州地铁6号线')
+    })
+  })
+
+  describe('recalculateDiffSummary', () => {
+    function makeSummary() {
+      return buildVisualDiff([
+        {
+          rootId: 'doc-1',
+          boxId: 'b1',
+          hpath: '/d1',
+          docTitle: 'Doc 1',
+          updated: '',
+          created: '',
+          collapsed: false,
+          totalCount: 2,
+          matches: [
+            {
+              matchId: 'm1',
+              blockId: 'b1',
+              rootId: 'doc-1',
+              blockType: 'p',
+              matchedText: 'foo',
+              prefixText: '',
+              suffixText: '',
+              previewText: '[foo] bar',
+              segments: [],
+              fullContent: 'foo bar',
+              sort: 0,
+              updated: '',
+              created: '',
+              hpath: '/d1',
+              box: 'b1',
+              selectedForReplace: true,
+              startOffset: 0,
+              endOffset: 3,
+            },
+            {
+              matchId: 'm2',
+              blockId: 'b2',
+              rootId: 'doc-1',
+              blockType: 'p',
+              matchedText: 'foo',
+              prefixText: '',
+              suffixText: '',
+              previewText: 'baz [foo]',
+              segments: [],
+              fullContent: 'baz foo',
+              sort: 1,
+              updated: '',
+              created: '',
+              hpath: '/d1',
+              box: 'b1',
+              selectedForReplace: true,
+              startOffset: 4,
+              endOffset: 7,
+            },
+          ],
+        },
+      ], '新文本')
+    }
+
+    it('排除单项后原地重算计数与分组标记', () => {
+      const summary = makeSummary()
+      expect(summary.includedCount).toBe(2)
+      expect(summary.excludedCount).toBe(0)
+      expect(summary.affectedDocCount).toBe(1)
+      expect(summary.groups[0]!.allExcluded).toBe(false)
+
+      const item = summary.groups[0]!.items[0]!
+      item.excluded = true
+      recalculateDiffSummary(summary)
+
+      expect(summary.includedCount).toBe(1)
+      expect(summary.excludedCount).toBe(1)
+      expect(summary.affectedDocCount).toBe(1)
+      expect(summary.groups[0]!.allExcluded).toBe(false)
+    })
+
+    it('全部排除后 affectedDocCount 归零且分组标记 allExcluded', () => {
+      const summary = makeSummary()
+      for (const group of summary.groups) {
+        for (const item of group.items) {
+          item.excluded = true
+        }
+      }
+      recalculateDiffSummary(summary)
+
+      expect(summary.includedCount).toBe(0)
+      expect(summary.excludedCount).toBe(2)
+      expect(summary.affectedDocCount).toBe(0)
+      expect(summary.groups[0]!.allExcluded).toBe(true)
     })
   })
 })

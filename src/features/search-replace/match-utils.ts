@@ -1,5 +1,18 @@
 import type { SearchMatch } from './types'
 
+// 从 editor/decorations.ts 迁入（RF-105）：纯文本预览构造工具，
+// 消除 search-engine / attribute-view 对 editor 模块的反向依赖。
+export function buildPreview(text: string, start: number, end: number, windowSize = 18) {
+  const rawBefore = text.slice(Math.max(0, start - windowSize), start)
+  const rawAfter = text.slice(end, Math.min(text.length, end + windowSize))
+  const before = rawBefore.replace(/\s+/g, ' ')
+  const match = text.slice(start, end).replace(/\s+/g, ' ')
+  const after = rawAfter.replace(/\s+/g, ' ')
+  const prefix = start > windowSize ? '…' : ''
+  const suffix = end + windowSize < text.length ? '…' : ''
+  return `${prefix}${before}[${match}]${after}${suffix}`
+}
+
 export function isAttributeViewMatch(match: SearchMatch | null | undefined) {
   return match?.sourceKind === 'attribute-view'
 }

@@ -1,5 +1,3 @@
-// @vitest-environment jsdom
-
 import type { DiffSummary } from '@/features/search-replace/global/diff-builder'
 import type { ReplaceTransaction } from '@/features/search-replace/global/transaction-history'
 import {

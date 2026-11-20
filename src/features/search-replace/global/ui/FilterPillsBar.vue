@@ -70,6 +70,7 @@
 import type { NotebookInfo } from '../kernel-query'
 import type { GlobalSearchFilters } from '../types'
 import { computed } from 'vue'
+import { hasActiveGlobalFilters } from '../filter-utils'
 
 const props = defineProps<{
   filters: GlobalSearchFilters
@@ -185,14 +186,7 @@ function onNotebookChange(e: Event) {
   })
 }
 
-const hasActiveFilters = computed(() => {
-  return Boolean(
-    (props.filters.types && props.filters.types.length > 0)
-    || props.filters.notebookId
-    || props.filters.dateRange?.start
-    || (props.filters.tags && props.filters.tags.length > 0),
-  )
-})
+const hasActiveFilters = computed(() => hasActiveGlobalFilters(props.filters))
 
 function resetFilters() {
   emit('change', {

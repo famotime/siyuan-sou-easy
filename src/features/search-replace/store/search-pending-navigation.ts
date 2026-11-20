@@ -10,17 +10,20 @@ import type {
 import type { SearchReplaceState } from './state'
 import { t } from '@/i18n/runtime'
 import {
-  debugElement,
   debugLog,
-  debugLogLazy,
 } from '../debug'
-import { resolveEditorSearchRoot } from '../editor/blocks'
 import { resolveEditorScrollContainer } from '../editor/scroll-container'
 import { unfoldBlock } from '../kernel'
 import {
   canTriggerNativeMatchNavigation,
   triggerNativeMatchNavigation,
 } from '../native-navigation'
+import { scrollApproximateMatchIntoView } from './approximate-scroll'
+import {
+  createLoadedBlockRangeResolver,
+  resolveNativeNavigationDistance,
+  serializeLoadedBlockRange,
+} from './loaded-block-range'
 import {
   advanceApproximateNavigationProgress,
 
@@ -32,30 +35,6 @@ import {
   resolveApproximateNavigationTimeoutReason,
   resolveDirectNavigationAction,
 } from './search-pending-navigation-state'
-
-interface LoadedBlockRange {
-  loadedIndexes: number[]
-  max: number
-  min: number
-  source: 'all' | 'visible-segment'
-  visibleIndexes: number[]
-}
-
-interface ApproximateScrollState {
-  clientHeight: number
-  loadedBlockRange: LoadedBlockRange | null
-  maxScrollTop: number
-  nextScrollTop: number
-  previousScrollTop: number
-  scrollContainer: HTMLElement
-  scrollHeight: number
-}
-
-interface ApproximateScrollApplication {
-  appliedScrollTop: number
-  appliedWith: 'scroll-to' | 'scroll-top'
-  nudgedBoundary: 'lower' | 'upper' | null
-}
 
 interface PendingNavigationControllerOptions {
   getCurrentMatch: () => SearchMatch | null
@@ -91,13 +70,10 @@ export function createPendingNavigationController({
   let directNavigationProgress: DirectNavigationProgress<EditorContext['protyleRef']> = createDirectNavigationProgress()
   let nativeNavigationAttemptedMatchId = ''
   let nativeNavigationWaitDeadline = 0
-  // 单轮重试内的 loadedBlockRange 缓存（key 为滚动容器，null 表示未解析到容器）。
-  // 同一轮内、applyApproximateScroll 首次执行之前，minimapBlocks、搜索根 DOM 与滚动位置
-  // 均不会合法变化（轮内无 await、无派发事件、updateIndex/原生导航触发后立即结束本轮），
-  // 因此直接导航判定、原生导航距离与首个近似滚动容器对同一容器的重复全量扫描可安全复用。
-  // 生命周期：每轮 retryPendingNavigation 入口清空；applyApproximateScroll 改动滚动位置后
-  // 整体清空（视口相对矩形随滚动变化，后续候选容器必须重新解析）。
-  const loadedBlockRangeCache = new Map<HTMLElement | null, LoadedBlockRange | null>()
+  const {
+    clearLoadedBlockRangeCache,
+    resolveLoadedBlockRange,
+  } = createLoadedBlockRangeResolver(state)
 
   function beginPendingNavigation(match: SearchMatch) {
     // 先终止可能仍在等待的旧重试链，避免旧定时器与新导航交错递增计数
@@ -133,7 +109,7 @@ export function createPendingNavigationController({
 
   function retryPendingNavigation() {
     // 轮次边界：上一轮结束后异步加载可能已更新 DOM/滚动位置，缓存一律作废
-    loadedBlockRangeCache.clear()
+    clearLoadedBlockRangeCache()
     const currentMatch = getCurrentMatch()
     const context = resolveEditorContext()
     if (!state.visible || !currentMatch || currentMatch.id !== pendingNavigationMatchId) {
@@ -194,7 +170,16 @@ export function createPendingNavigationController({
       return
     }
 
-    const approximateNavigationState = scrollApproximateMatchIntoView(context, currentMatch)
+    const approximateNavigationState = scrollApproximateMatchIntoView(
+      {
+        getAttempt: () => pendingNavigationRetryCount,
+        getSearchableBlockCount: () => state.searchableBlockCount,
+        onScrollApplied: clearLoadedBlockRangeCache,
+        resolveLoadedBlockRange,
+      },
+      context,
+      currentMatch,
+    )
     if (!approximateNavigationState) {
       clearPendingNavigation('approximate-unavailable')
       return
@@ -361,7 +346,7 @@ export function createPendingNavigationController({
     }
 
     const loadedBlockRange = resolveLoadedBlockRange(context, resolveEditorScrollContainer(context))
-    const boundaryDistance = resolveNativeNavigationDistance(match, loadedBlockRange)
+    const boundaryDistance = resolveNativeNavigationDistance(match.blockIndex, loadedBlockRange)
     if (boundaryDistance < NATIVE_NAVIGATION_DISTANCE_THRESHOLD && pendingNavigationRetryCount <= 1) {
       debugLog('pending-navigation:native-skip', {
         attempt: pendingNavigationRetryCount,
@@ -459,450 +444,10 @@ export function createPendingNavigationController({
         return
       }
 
-      window.clearTimeout(pendingNavigationTimer)
-      pendingNavigationTimer = window.setTimeout(() => {
-        retryPendingNavigation()
-      }, 120)
+      schedulePendingNavigationRetry()
     })
 
     return true
   }
 
-  function scrollApproximateMatchIntoView(context: EditorContext, match: SearchMatch) {
-    const scrollContainers = resolveApproximateScrollContainers(context)
-    if (!scrollContainers.length || state.searchableBlockCount <= 0) {
-      return null
-    }
-
-    let activeState = resolveApproximateScrollState(context, match, scrollContainers[0]!)
-    if (!activeState) {
-      return null
-    }
-
-    let activeScrollApplication = applyApproximateScroll(activeState)
-    let appliedScrollTop = activeScrollApplication.appliedScrollTop
-    if (
-      Math.abs(activeState.nextScrollTop - activeState.previousScrollTop) > 1
-      && Math.abs(appliedScrollTop - activeState.nextScrollTop) > 1
-    ) {
-      for (const candidate of scrollContainers.slice(1)) {
-        const fallbackState = resolveApproximateScrollState(context, match, candidate)
-        if (!fallbackState) {
-          continue
-        }
-
-        const fallbackScrollApplication = applyApproximateScroll(fallbackState)
-        const fallbackAppliedScrollTop = fallbackScrollApplication.appliedScrollTop
-        if (Math.abs(fallbackAppliedScrollTop - fallbackState.nextScrollTop) <= 1) {
-          activeState = fallbackState
-          activeScrollApplication = fallbackScrollApplication
-          appliedScrollTop = fallbackAppliedScrollTop
-          break
-        }
-      }
-    }
-
-    debugLogLazy('pending-navigation:approximate-scroll', () => ({
-      attempt: pendingNavigationRetryCount,
-      blockIndex: match.blockIndex,
-      clientHeight: activeState.clientHeight,
-      container: debugElement(activeState.scrollContainer),
-      currentScrollTop: activeState.previousScrollTop,
-      loadedBlockRange: activeState.loadedBlockRange,
-      matchId: match.id,
-      maxScrollTop: activeState.maxScrollTop,
-      nextScrollTop: activeState.nextScrollTop,
-      appliedWith: activeScrollApplication.appliedWith,
-      nudgedBoundary: activeScrollApplication.nudgedBoundary,
-      scrollHeight: activeState.scrollHeight,
-      appliedScrollTop,
-    }))
-
-    return {
-      key: [
-        activeState.loadedBlockRange?.min ?? -1,
-        activeState.loadedBlockRange?.max ?? -1,
-        activeState.nextScrollTop,
-        activeState.scrollHeight,
-        activeState.scrollContainer.className,
-      ].join(':'),
-      waitingAtLowerBoundary: Boolean(
-        activeState.loadedBlockRange
-        && match.blockIndex > activeState.loadedBlockRange.max
-        && activeState.nextScrollTop >= (activeState.maxScrollTop - 1)
-        && (match.blockIndex - activeState.loadedBlockRange.max) >= 20,
-      ),
-      waitingAtUpperBoundary: Boolean(
-        activeState.loadedBlockRange
-        && match.blockIndex < activeState.loadedBlockRange.min
-        && activeState.nextScrollTop <= 1,
-      ),
-    }
-  }
-
-  function resolveApproximateScrollState(
-    context: EditorContext,
-    match: SearchMatch,
-    scrollContainer: HTMLElement,
-  ): ApproximateScrollState | null {
-    const scrollHeight = Math.max(scrollContainer.scrollHeight || 0, scrollContainer.clientHeight || 0, 1)
-    const clientHeight = Math.max(scrollContainer.clientHeight || 0, 1)
-    const maxScrollTop = Math.max(0, scrollHeight - clientHeight)
-    const loadedBlockRange = resolveLoadedBlockRange(context, scrollContainer)
-    const previousScrollTop = scrollContainer.scrollTop || 0
-    const nextScrollTop = resolveApproximateScrollTop(match, {
-      clientHeight,
-      loadedBlockRange,
-      maxScrollTop,
-      scrollHeight,
-    })
-
-    return {
-      clientHeight,
-      loadedBlockRange,
-      maxScrollTop,
-      nextScrollTop,
-      previousScrollTop,
-      scrollContainer,
-      scrollHeight,
-    }
-  }
-
-  function applyApproximateScroll(state: ApproximateScrollState): ApproximateScrollApplication {
-    const application = computeApproximateScrollApplication(state)
-    // 本轮内唯一改动滚动位置/DOM 的入口（含边界 nudge 及其同步派发的 scroll/wheel 事件）。
-    // 滚动会改变所有内容的视口相对矩形，更早缓存的 loadedBlockRange 一律作废，
-    // 后续候选容器（含 defer 场景下被推迟的主容器）必须重新解析。
-    loadedBlockRangeCache.clear()
-    return application
-  }
-
-  function computeApproximateScrollApplication(state: ApproximateScrollState): ApproximateScrollApplication {
-    if (typeof state.scrollContainer.scrollTo === 'function') {
-      state.scrollContainer.scrollTo({
-        behavior: 'auto',
-        top: state.nextScrollTop,
-      })
-      const scrolledWithScrollTo = state.scrollContainer.scrollTop || 0
-      if (Math.abs(scrolledWithScrollTo - state.nextScrollTop) <= 1) {
-        const nudgedBoundary = nudgeApproximateBoundaryIfNeeded(state, scrolledWithScrollTo)
-        return {
-          appliedScrollTop: scrolledWithScrollTo,
-          appliedWith: 'scroll-to',
-          nudgedBoundary,
-        }
-      }
-    }
-
-    state.scrollContainer.scrollTop = state.nextScrollTop
-    const scrolledWithScrollTop = state.scrollContainer.scrollTop || 0
-    const nudgedBoundary = nudgeApproximateBoundaryIfNeeded(state, scrolledWithScrollTop)
-    return {
-      appliedScrollTop: scrolledWithScrollTop,
-      appliedWith: 'scroll-top',
-      nudgedBoundary,
-    }
-  }
-
-  function nudgeApproximateBoundaryIfNeeded(
-    state: ApproximateScrollState,
-    appliedScrollTop: number,
-  ): 'lower' | 'upper' | null {
-    if (state.maxScrollTop <= 1) {
-      return null
-    }
-
-    if (state.nextScrollTop <= 1 && state.previousScrollTop <= 1) {
-      triggerBoundaryNudge(state.scrollContainer, 1, 0, 'up')
-      return 'upper'
-    }
-
-    if (
-      state.nextScrollTop >= (state.maxScrollTop - 1)
-      && appliedScrollTop >= (state.maxScrollTop - 1)
-    ) {
-      triggerBoundaryNudge(
-        state.scrollContainer,
-        Math.max(0, state.maxScrollTop - 1),
-        state.maxScrollTop,
-        'down',
-      )
-      return 'lower'
-    }
-
-    return null
-  }
-
-  function triggerBoundaryNudge(
-    scrollContainer: HTMLElement,
-    awayFromBoundary: number,
-    boundaryScrollTop: number,
-    direction: 'up' | 'down',
-  ) {
-    if (Math.abs(awayFromBoundary - boundaryScrollTop) <= 0.5) {
-      return
-    }
-
-    scrollContainer.scrollTop = awayFromBoundary
-    dispatchBoundaryScrollEvent(scrollContainer, direction)
-    scrollContainer.scrollTop = boundaryScrollTop
-    dispatchBoundaryScrollEvent(scrollContainer, direction)
-  }
-
-  function dispatchBoundaryScrollEvent(scrollContainer: HTMLElement, direction: 'up' | 'down') {
-    scrollContainer.dispatchEvent(new Event('scroll', { bubbles: true }))
-
-    const WheelEventConstructor = scrollContainer.ownerDocument.defaultView?.WheelEvent
-      ?? globalThis.WheelEvent
-    if (typeof WheelEventConstructor !== 'function') {
-      return
-    }
-
-    scrollContainer.dispatchEvent(new WheelEventConstructor('wheel', {
-      bubbles: true,
-      cancelable: true,
-      deltaY: direction === 'down' ? 120 : -120,
-    }))
-  }
-
-  function resolveApproximateScrollTop(
-    match: SearchMatch,
-    {
-      clientHeight,
-      loadedBlockRange,
-      maxScrollTop,
-      scrollHeight,
-    }: {
-      clientHeight: number
-      loadedBlockRange: LoadedBlockRange | null
-      maxScrollTop: number
-      scrollHeight: number
-    },
-  ) {
-    if (loadedBlockRange) {
-      if (match.blockIndex > loadedBlockRange.max) {
-        return maxScrollTop
-      }
-
-      if (match.blockIndex < loadedBlockRange.min) {
-        return 0
-      }
-    }
-
-    const ratio = (match.blockIndex + 0.5) / state.searchableBlockCount
-    return Math.max(
-      0,
-      Math.min(
-        maxScrollTop,
-        (ratio * scrollHeight) - (clientHeight / 2),
-      ),
-    )
-  }
-
-  function resolveLoadedBlockRange(context: EditorContext, scrollContainer?: HTMLElement | null): LoadedBlockRange | null {
-    const cacheKey = scrollContainer ?? null
-    if (loadedBlockRangeCache.has(cacheKey)) {
-      return loadedBlockRangeCache.get(cacheKey) ?? null
-    }
-
-    const loadedBlockRange = computeLoadedBlockRange(context, scrollContainer)
-    loadedBlockRangeCache.set(cacheKey, loadedBlockRange)
-    return loadedBlockRange
-  }
-
-  function computeLoadedBlockRange(context: EditorContext, scrollContainer?: HTMLElement | null): LoadedBlockRange | null {
-    const blockIndexById = new Map(state.minimapBlocks.map((block) => [block.blockId, block.blockIndex]))
-    if (!blockIndexById.size) {
-      return null
-    }
-
-    const searchRoot = resolveEditorSearchRoot(context, scrollContainer ?? null)
-    const loadedElements = Array.from(
-      searchRoot.querySelectorAll<HTMLElement>('[data-node-id][data-type]'),
-    )
-    const loadedEntries = loadedElements
-      .map((element) => {
-        const blockId = element.dataset.nodeId
-        const blockIndex = blockId ? blockIndexById.get(blockId) : undefined
-        if (typeof blockIndex !== 'number') {
-          return null
-        }
-
-        return {
-          blockIndex,
-          element,
-        }
-      })
-      .filter((entry): entry is { blockIndex: number, element: HTMLElement } => Boolean(entry))
-
-    if (!loadedEntries.length) {
-      return null
-    }
-
-    const containerRect = scrollContainer?.getBoundingClientRect()
-    const hasViewport = Boolean(containerRect && containerRect.bottom > containerRect.top)
-    const loadedIndexes = loadedEntries.map(({ blockIndex }) => blockIndex)
-    if (hasViewport && containerRect) {
-      const visibleEntries = loadedEntries
-        .filter(({ element }) => {
-          const rect = element.getBoundingClientRect()
-          return rect.bottom > containerRect.top && rect.top < containerRect.bottom
-        })
-      const visibleIndexes = visibleEntries.map(({ blockIndex }) => blockIndex)
-
-      if (visibleIndexes.length) {
-        const centeredVisibleSegment = resolveCenteredVisibleSegment(visibleEntries, containerRect)
-        return {
-          loadedIndexes,
-          max: centeredVisibleSegment.max,
-          min: centeredVisibleSegment.min,
-          source: 'visible-segment' as const,
-          visibleIndexes: centeredVisibleSegment.indexes,
-        }
-      }
-    }
-
-    return {
-      loadedIndexes,
-      max: Math.max(...loadedIndexes),
-      min: Math.min(...loadedIndexes),
-      source: 'all' as const,
-      visibleIndexes: [],
-    }
-  }
-
-  function resolveApproximateScrollContainers(context: EditorContext) {
-    const containers: HTMLElement[] = []
-    const primaryContainer = resolveEditorScrollContainer(context)
-    const deferPrimaryContainer = isTransitionScrollContainer(primaryContainer)
-    if (primaryContainer && !deferPrimaryContainer) {
-      containers.push(primaryContainer)
-    }
-
-    let current = primaryContainer?.parentElement ?? context.protyle.parentElement
-    while (current) {
-      if (isVerticallyScrollable(current) && !containers.includes(current)) {
-        containers.push(current)
-      }
-      current = current.parentElement
-    }
-
-    const scrollingElement = document.scrollingElement
-    if (
-      scrollingElement instanceof HTMLElement
-      && scrollingElement.contains(context.protyle)
-      && isVerticallyScrollable(scrollingElement)
-      && !containers.includes(scrollingElement)
-    ) {
-      containers.push(scrollingElement)
-    }
-
-    if (primaryContainer && deferPrimaryContainer && !containers.includes(primaryContainer)) {
-      containers.push(primaryContainer)
-    }
-
-    return containers
-  }
-
-  function resolveCenteredVisibleSegment(
-    visibleEntries: Array<{ blockIndex: number, element: HTMLElement }>,
-    containerRect: DOMRect | DOMRectReadOnly,
-  ) {
-    const sortedEntries = visibleEntries
-      .slice()
-      .sort((left, right) => left.blockIndex - right.blockIndex)
-    const segments: Array<{
-      entries: Array<{ blockIndex: number, element: HTMLElement }>
-      indexes: number[]
-      max: number
-      min: number
-    }> = []
-
-    sortedEntries.forEach((entry) => {
-      const previousSegment = segments[segments.length - 1]
-      const previousEntry = previousSegment?.entries[previousSegment.entries.length - 1]
-      if (!previousSegment || !previousEntry || entry.blockIndex !== previousEntry.blockIndex + 1) {
-        segments.push({
-          entries: [entry],
-          indexes: [entry.blockIndex],
-          max: entry.blockIndex,
-          min: entry.blockIndex,
-        })
-        return
-      }
-
-      previousSegment.entries.push(entry)
-      previousSegment.indexes.push(entry.blockIndex)
-      previousSegment.max = entry.blockIndex
-    })
-
-    const containerCenter = (containerRect.top + containerRect.bottom) / 2
-    return segments
-      .slice()
-      .sort((left, right) => {
-        const leftDistance = resolveSegmentViewportDistance(left.entries, containerCenter)
-        const rightDistance = resolveSegmentViewportDistance(right.entries, containerCenter)
-        if (leftDistance !== rightDistance) {
-          return leftDistance - rightDistance
-        }
-
-        return left.min - right.min
-      })[0]!
-  }
-
-  function resolveSegmentViewportDistance(
-    entries: Array<{ blockIndex: number, element: HTMLElement }>,
-    containerCenter: number,
-  ) {
-    return Math.min(
-      ...entries.map(({ element }) => {
-        const rect = element.getBoundingClientRect()
-        const elementCenter = (rect.top + rect.bottom) / 2
-        return Math.abs(elementCenter - containerCenter)
-      }),
-    )
-  }
-
-  function isVerticallyScrollable(element: HTMLElement) {
-    if ((element.scrollHeight || 0) <= (element.clientHeight || 0)) {
-      return false
-    }
-
-    const style = globalThis.getComputedStyle?.(element)
-    const overflowY = style?.overflowY || element.style.overflowY || element.style.overflow || ''
-    return /auto|scroll|overlay|hidden/.test(overflowY)
-  }
-
-  function isTransitionScrollContainer(element: HTMLElement | null | undefined) {
-    return element?.classList.contains('protyle-content--transition') ?? false
-  }
-}
-
-function resolveNativeNavigationDistance(match: SearchMatch, loadedBlockRange: LoadedBlockRange | null) {
-  if (!loadedBlockRange) {
-    return 0
-  }
-
-  if (match.blockIndex < loadedBlockRange.min) {
-    return loadedBlockRange.min - match.blockIndex
-  }
-
-  if (match.blockIndex > loadedBlockRange.max) {
-    return match.blockIndex - loadedBlockRange.max
-  }
-
-  return 0
-}
-
-function serializeLoadedBlockRange(loadedBlockRange: LoadedBlockRange | null) {
-  if (!loadedBlockRange) {
-    return 'missing'
-  }
-
-  return [
-    loadedBlockRange.min,
-    loadedBlockRange.max,
-    loadedBlockRange.loadedIndexes.length,
-    loadedBlockRange.source,
-  ].join(':')
 }

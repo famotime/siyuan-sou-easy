@@ -1,5 +1,3 @@
-// @vitest-environment jsdom
-
 import type { RawBlockRecord } from '@/features/search-replace/global/types'
 import {
   describe,

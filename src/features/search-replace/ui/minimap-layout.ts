@@ -2,8 +2,10 @@ import type {
   SearchableBlockSummary,
   SearchMatch,
 } from '../types'
+import {
+  clamp,
+} from './layout-constants'
 
-export const PANEL_MARGIN = 8
 export const MINIMAP_GAP = 12
 export const MINIMAP_WIDTH = 84
 export const MINIMAP_MIN_HEIGHT = 140
@@ -58,9 +60,6 @@ export interface ViewportProjection {
   viewportTop: number
 }
 
-export function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max)
-}
 
 export function computeMinimapViewport({
   clientHeight,

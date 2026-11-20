@@ -1,5 +1,3 @@
-// @vitest-environment jsdom
-
 import {
   afterEach,
   beforeEach,
@@ -15,10 +13,9 @@ import {
 
 import App from '@/App.vue'
 import { searchReplaceState } from '@/features/search-replace/store'
-import {
-  createSearchOptionsFromSettings,
-  DEFAULT_SETTINGS,
-} from '@/settings'
+
+
+import { resetState } from './helpers/store-state'
 
 describe('search panel minimap', () => {
   let host: HTMLDivElement | null = null
@@ -350,23 +347,4 @@ describe('search panel minimap', () => {
     app.mount(host)
   }
 
-  function resetState() {
-    searchReplaceState.visible = false
-    searchReplaceState.replaceVisible = DEFAULT_SETTINGS.defaultReplaceVisible
-    searchReplaceState.minimapVisible = false
-    searchReplaceState.preserveCase = false
-    searchReplaceState.panelPosition = null
-    searchReplaceState.query = ''
-    searchReplaceState.replacement = ''
-    searchReplaceState.options = createSearchOptionsFromSettings(DEFAULT_SETTINGS)
-    searchReplaceState.currentRootId = ''
-    searchReplaceState.currentTitle = ''
-    searchReplaceState.navigationHint = ''
-    searchReplaceState.matches = []
-    searchReplaceState.currentIndex = 0
-    searchReplaceState.error = ''
-    searchReplaceState.busy = false
-    searchReplaceState.minimapBlocks = []
-    searchReplaceState.searchableBlockCount = 0
-  }
 })

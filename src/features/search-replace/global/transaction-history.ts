@@ -35,7 +35,7 @@ const MAX_TRANSACTION_HISTORY = 50
 
 let transactionsMemoryCache: ReplaceTransaction[] = []
 
-export function formatDateTime(ts: number): string {
+function formatDateTime(ts: number): string {
   const date = new Date(ts)
   const Y = date.getFullYear()
   const M = String(date.getMonth() + 1).padStart(2, '0')

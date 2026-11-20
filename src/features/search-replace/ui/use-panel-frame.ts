@@ -10,7 +10,7 @@ import {
 import {
   clamp,
   PANEL_MARGIN,
-} from './minimap-layout'
+} from './layout-constants'
 
 const DEFAULT_PANEL_WIDTH = 480
 const MIN_PANEL_WIDTH = 360

@@ -7,10 +7,8 @@ import type {
   TableMatchMetadata,
   TextOffsetRange,
 } from './types'
-import {
-  buildPreview,
-  isRangeReplaceable,
-} from './editor'
+import { isRangeReplaceable } from './editor'
+import { buildPreview } from './match-utils'
 
 const ASCII_WORD_CHAR = /\w/
 

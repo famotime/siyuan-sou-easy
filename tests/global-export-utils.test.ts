@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import type { DocAggregateNode } from '@/features/search-replace/global/types'
 import {
   describe,

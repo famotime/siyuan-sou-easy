@@ -1,5 +1,3 @@
-// @vitest-environment jsdom
-
 import type { DocAggregateNode } from '@/features/search-replace/global/types'
 import {
   describe,

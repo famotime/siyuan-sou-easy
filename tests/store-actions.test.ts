@@ -1,5 +1,3 @@
-// @vitest-environment jsdom
-
 import { showMessage } from 'siyuan'
 
 import {
@@ -23,9 +21,9 @@ import {
 } from '@/features/search-replace/store'
 
 import {
-  createSearchOptionsFromSettings,
   DEFAULT_SETTINGS,
 } from '@/settings'
+import { resetState } from './helpers/store-state'
 
 const editorMocks = vi.hoisted(() => {
   const state = {
@@ -373,18 +371,3 @@ function createMatch(blockId: string, start: number, end: number) {
   }
 }
 
-function resetState() {
-  searchReplaceState.visible = false
-  searchReplaceState.replaceVisible = DEFAULT_SETTINGS.defaultReplaceVisible
-  searchReplaceState.panelPosition = null
-  searchReplaceState.settings = { ...DEFAULT_SETTINGS }
-  searchReplaceState.query = ''
-  searchReplaceState.replacement = ''
-  searchReplaceState.options = createSearchOptionsFromSettings(DEFAULT_SETTINGS)
-  searchReplaceState.currentRootId = ''
-  searchReplaceState.currentTitle = ''
-  searchReplaceState.matches = []
-  searchReplaceState.currentIndex = 0
-  searchReplaceState.error = ''
-  searchReplaceState.busy = false
-}

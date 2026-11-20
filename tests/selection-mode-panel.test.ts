@@ -1,5 +1,3 @@
-// @vitest-environment jsdom
-
 import {
   afterEach,
   beforeEach,
@@ -23,9 +21,9 @@ import {
   unbindPlugin,
 } from '@/features/search-replace/store'
 import {
-  createSearchOptionsFromSettings,
   DEFAULT_SETTINGS,
 } from '@/settings'
+import { resetState } from './helpers/store-state'
 
 describe('selection mode from panel interaction', () => {
   let host: HTMLDivElement | null = null
@@ -330,25 +328,6 @@ describe('selection mode from panel interaction', () => {
     expect(createRangeSpy).not.toHaveBeenCalled()
   })
 
-  function resetState() {
-    searchReplaceState.visible = false
-    searchReplaceState.replaceVisible = DEFAULT_SETTINGS.defaultReplaceVisible
-    searchReplaceState.minimapVisible = false
-    searchReplaceState.preserveCase = false
-    searchReplaceState.panelPosition = null
-    searchReplaceState.query = ''
-    searchReplaceState.replacement = ''
-    searchReplaceState.options = createSearchOptionsFromSettings(DEFAULT_SETTINGS)
-    searchReplaceState.currentRootId = ''
-    searchReplaceState.currentTitle = ''
-    searchReplaceState.navigationHint = ''
-    searchReplaceState.minimapBlocks = []
-    searchReplaceState.matches = []
-    searchReplaceState.currentIndex = 0
-    searchReplaceState.error = ''
-    searchReplaceState.busy = false
-    searchReplaceState.searchableBlockCount = 0
-  }
 })
 
 async function flushPanel() {
