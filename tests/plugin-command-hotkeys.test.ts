@@ -3,6 +3,7 @@ import type {
   IProtyle,
 } from 'siyuan'
 import {
+  afterEach,
   beforeEach,
   describe,
   expect,
@@ -84,6 +85,21 @@ vi.mock('@/settings', () => ({
 }))
 
 describe('plugin command hotkeys', () => {
+  const activePlugins: any[] = []
+  const trackPlugin = <T>(plugin: T): T => {
+    activePlugins.push(plugin)
+    return plugin
+  }
+
+  afterEach(() => {
+    while (activePlugins.length > 0) {
+      const plugin = activePlugins.pop()
+      try {
+        plugin?.onunload()
+      } catch {}
+    }
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
     vi.resetModules()
@@ -95,7 +111,7 @@ describe('plugin command hotkeys', () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
     const siyuan = await import('siyuan')
 
-    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
+    const plugin = trackPlugin(new FriendlySearchReplacePlugin(pluginOptions))
     plugin.i18n = {
       addTopBarIcon: 'Friendly Search Replace',
     }
@@ -123,7 +139,7 @@ describe('plugin command hotkeys', () => {
   it('registers an editor callback that opens the panel with the current protyle context', async () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
 
-    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
+    const plugin = trackPlugin(new FriendlySearchReplacePlugin(pluginOptions))
     plugin.i18n = {
       addTopBarIcon: 'Friendly Search Replace',
     }
@@ -152,7 +168,7 @@ describe('plugin command hotkeys', () => {
   it('opens the panel from a saved hotkey even when command routing does not provide a context callback', async () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
 
-    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
+    const plugin = trackPlugin(new FriendlySearchReplacePlugin(pluginOptions))
     plugin.i18n = {
       addTopBarIcon: 'Friendly Search Replace',
     }
@@ -203,7 +219,7 @@ describe('plugin command hotkeys', () => {
       },
     } as any
 
-    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
+    const plugin = trackPlugin(new FriendlySearchReplacePlugin(pluginOptions))
     plugin.i18n = {
       addTopBarIcon: 'Friendly Search Replace',
       settingSaved: 'Saved',
@@ -241,7 +257,7 @@ describe('plugin command hotkeys', () => {
   it('keeps the panel open when the active mode hotkey is pressed again', async () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
 
-    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
+    const plugin = trackPlugin(new FriendlySearchReplacePlugin(pluginOptions))
     plugin.i18n = {
       addTopBarIcon: 'Friendly Search Replace',
     }
@@ -267,7 +283,7 @@ describe('plugin command hotkeys', () => {
   it('closes the panel from Escape even when focus stays outside the panel', async () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
 
-    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
+    const plugin = trackPlugin(new FriendlySearchReplacePlugin(pluginOptions))
     plugin.i18n = {
       addTopBarIcon: 'Friendly Search Replace',
     }
@@ -288,7 +304,7 @@ describe('plugin command hotkeys', () => {
   it('lets the hotkey capture input handle Escape without closing the panel', async () => {
     const { default: FriendlySearchReplacePlugin } = await import('@/index')
 
-    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
+    const plugin = trackPlugin(new FriendlySearchReplacePlugin(pluginOptions))
     plugin.i18n = {
       addTopBarIcon: 'Friendly Search Replace',
     }
@@ -312,5 +328,95 @@ describe('plugin command hotkeys', () => {
 
     captureInput.remove()
     storeState.searchReplaceState.visible = false
+  })
+
+  it('does not prevent or stop events when globalSearchHotkey is cleared', async () => {
+    const { default: FriendlySearchReplacePlugin } = await import('@/index')
+
+    const plugin = trackPlugin(new FriendlySearchReplacePlugin(pluginOptions))
+    plugin.i18n = {
+      addTopBarIcon: 'Friendly Search Replace',
+    }
+
+    await plugin.onload()
+    await (plugin as any).applySettings({
+      debugLog: false,
+      defaultReplaceVisible: false,
+      globalSearchHotkey: '',
+      includeCodeBlock: false,
+      minimapVisible: false,
+      panelHotkey: 'Ctrl+F11',
+      preserveCase: false,
+      preloadSelection: true,
+      rememberPanelPosition: true,
+      replacePanelHotkey: 'Ctrl+F12',
+    }, false)
+
+    const event = new KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      code: 'KeyF',
+      ctrlKey: true,
+      key: 'f',
+      shiftKey: true,
+    })
+
+    const preventDefaultSpy = vi.spyOn(event, 'preventDefault')
+    const stopPropagationSpy = vi.spyOn(event, 'stopPropagation')
+
+    document.body.dispatchEvent(event)
+
+    expect(preventDefaultSpy).not.toHaveBeenCalled()
+    expect(stopPropagationSpy).not.toHaveBeenCalled()
+  })
+
+  it('bypasses panel hotkeys when typing in a code editor like Monaco', async () => {
+    const { default: FriendlySearchReplacePlugin } = await import('@/index')
+
+    const plugin = trackPlugin(new FriendlySearchReplacePlugin(pluginOptions))
+    plugin.i18n = {
+      addTopBarIcon: 'Friendly Search Replace',
+    }
+
+    await plugin.onload()
+    await (plugin as any).applySettings({
+      debugLog: false,
+      defaultReplaceVisible: false,
+      globalSearchHotkey: 'Ctrl+Shift+F',
+      includeCodeBlock: false,
+      minimapVisible: false,
+      panelHotkey: 'Ctrl+F',
+      preserveCase: false,
+      preloadSelection: true,
+      rememberPanelPosition: true,
+      replacePanelHotkey: 'Ctrl+H',
+    }, false)
+
+    openPanel.mockClear()
+
+    const monacoContainer = document.createElement('div')
+    monacoContainer.className = 'monaco-editor'
+    const monacoInput = document.createElement('textarea')
+    monacoInput.className = 'inputarea'
+    monacoContainer.appendChild(monacoInput)
+    document.body.appendChild(monacoContainer)
+
+    const event = new KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      code: 'KeyF',
+      ctrlKey: true,
+      key: 'f',
+    })
+    const preventDefaultSpy = vi.spyOn(event, 'preventDefault')
+    const stopPropagationSpy = vi.spyOn(event, 'stopPropagation')
+
+    monacoInput.dispatchEvent(event)
+
+    expect(preventDefaultSpy).not.toHaveBeenCalled()
+    expect(stopPropagationSpy).not.toHaveBeenCalled()
+    expect(openPanel).not.toHaveBeenCalled()
+
+    monacoContainer.remove()
   })
 })

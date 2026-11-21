@@ -75,6 +75,18 @@ describe('normalizeSettings', () => {
       searchHighlightColor: 'definitely-not-a-color',
     }).searchHighlightColor).toBe(DEFAULT_SETTINGS.searchHighlightColor)
   })
+
+  it('preserves empty string hotkeys when user explicitly disables them', () => {
+    const settings = normalizeSettings({
+      globalSearchHotkey: '',
+      panelHotkey: '',
+      replacePanelHotkey: '',
+    })
+
+    expect(settings.globalSearchHotkey).toBe('')
+    expect(settings.panelHotkey).toBe('')
+    expect(settings.replacePanelHotkey).toBe('')
+  })
 })
 
 describe('createSearchOptionsFromSettings', () => {

@@ -130,7 +130,12 @@ function normalizeHotkey(value: string | undefined, fallback: string) {
     return normalizedFallback
   }
 
-  const normalized = normalizeCommandHotkey(value.trim())
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return ''
+  }
+
+  const normalized = normalizeCommandHotkey(trimmed)
   return normalized || normalizedFallback
 }
 

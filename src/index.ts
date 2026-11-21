@@ -48,6 +48,7 @@ import {
 import {
 
   isHotkeyCaptureTarget,
+  shouldIgnorePanelHotkeyEvent,
   openSearchReplacePanelFromCommand,
   openSearchReplacePanelFromKeyboardEvent,
 } from '@/features/search-replace/plugin-panel-launch'
@@ -164,7 +165,7 @@ export default class FriendlySearchReplacePlugin extends Plugin {
 
     const runtimeHotkeySettings = this.getRuntimeHotkeySettings()
 
-    if (normalizedHotkey === runtimeHotkeySettings.globalSearchHotkey) {
+    if (runtimeHotkeySettings.globalSearchHotkey && normalizedHotkey === runtimeHotkeySettings.globalSearchHotkey) {
       if (this.isMobile) {
         return
       }
@@ -174,17 +175,19 @@ export default class FriendlySearchReplacePlugin extends Plugin {
       return
     }
 
-    if (normalizedHotkey === runtimeHotkeySettings.panelHotkey) {
-      event.preventDefault()
-      event.stopPropagation()
-      openSearchReplacePanelFromKeyboardEvent(event, false)
-      return
-    }
+    if (
+      (runtimeHotkeySettings.panelHotkey && normalizedHotkey === runtimeHotkeySettings.panelHotkey) ||
+      (runtimeHotkeySettings.replacePanelHotkey && normalizedHotkey === runtimeHotkeySettings.replacePanelHotkey)
+    ) {
+      if (shouldIgnorePanelHotkeyEvent(target)) {
+        return
+      }
 
-    if (normalizedHotkey === runtimeHotkeySettings.replacePanelHotkey) {
+      const isReplace = normalizedHotkey === runtimeHotkeySettings.replacePanelHotkey
       event.preventDefault()
       event.stopPropagation()
-      openSearchReplacePanelFromKeyboardEvent(event, true)
+      openSearchReplacePanelFromKeyboardEvent(event, isReplace)
+      return
     }
   }
 
@@ -374,7 +377,22 @@ export default class FriendlySearchReplacePlugin extends Plugin {
   }
 
   private async updateHotkeySetting(settingKey: HotkeySettingKey, value: string) {
-    const normalizedHotkey = normalizeHotkey(value)
+    const trimmed = value.trim()
+    if (!trimmed) {
+      try {
+        await this.syncHotkeySettingToKeymap(settingKey, '')
+      } catch {
+        return false
+      }
+
+      await this.applySettings({
+        ...this.settingsData,
+        [settingKey]: '',
+      })
+      return true
+    }
+
+    const normalizedHotkey = normalizeHotkey(trimmed)
     if (!normalizedHotkey) {
       return false
     }

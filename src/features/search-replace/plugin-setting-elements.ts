@@ -114,6 +114,26 @@ export function createHotkeyInputElement(
       return
     }
 
+    if (
+      (event.key === 'Backspace' || event.key === 'Delete') &&
+      !event.ctrlKey &&
+      !event.altKey &&
+      !event.metaKey &&
+      !event.shiftKey
+    ) {
+      event.preventDefault()
+      event.stopPropagation()
+      input.value = ''
+      const accepted = await onChange('')
+      if (accepted) {
+        currentValue = ''
+      } else {
+        input.value = currentValue
+      }
+      input.blur()
+      return
+    }
+
     const hotkey = formatHotkeyFromEvent(event)
     if (!hotkey) {
       return

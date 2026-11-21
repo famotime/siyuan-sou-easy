@@ -97,4 +97,60 @@ describe('plugin panel launch helpers', () => {
     expect(openTerminalPanel).toHaveBeenCalledWith(surface, true)
     expect(openPanel).not.toHaveBeenCalled()
   })
+
+  it('determines whether panel hotkey events should be ignored based on focus context', async () => {
+    const { shouldIgnorePanelHotkeyEvent } = await import('@/features/search-replace/plugin-panel-launch')
+
+    expect(shouldIgnorePanelHotkeyEvent(null)).toBe(false)
+
+    const normalDiv = document.createElement('div')
+    expect(shouldIgnorePanelHotkeyEvent(normalDiv)).toBe(false)
+
+    // 代码编辑器内放行（Monaco / CodeMirror / ACE / data-prevent）
+    const monacoContainer = document.createElement('div')
+    monacoContainer.className = 'monaco-editor'
+    const monacoInput = document.createElement('textarea')
+    monacoInput.className = 'inputarea'
+    monacoContainer.appendChild(monacoInput)
+    expect(shouldIgnorePanelHotkeyEvent(monacoInput)).toBe(true)
+
+    const cmContainer = document.createElement('div')
+    cmContainer.className = 'cm-editor'
+    const cmContent = document.createElement('div')
+    cmContent.className = 'cm-content'
+    cmContainer.appendChild(cmContent)
+    expect(shouldIgnorePanelHotkeyEvent(cmContent)).toBe(true)
+
+    const preventCustom = document.createElement('div')
+    preventCustom.setAttribute('data-prevent-sou-easy', 'true')
+    const innerChild = document.createElement('span')
+    preventCustom.appendChild(innerChild)
+    expect(shouldIgnorePanelHotkeyEvent(innerChild)).toBe(true)
+
+    // Dialog 弹窗内（无 Protyle）放行
+    const dialog = document.createElement('div')
+    dialog.className = 'b3-dialog'
+    const dialogInput = document.createElement('input')
+    dialog.appendChild(dialogInput)
+    expect(shouldIgnorePanelHotkeyEvent(dialogInput)).toBe(true)
+
+    // Dialog 弹窗内含有 Protyle（如块预览）则不忽略
+    const protyleInsideDialog = document.createElement('div')
+    protyleInsideDialog.className = 'protyle'
+    const protyleContent = document.createElement('div')
+    protyleInsideDialog.appendChild(protyleContent)
+    dialog.appendChild(protyleInsideDialog)
+    expect(shouldIgnorePanelHotkeyEvent(protyleContent)).toBe(false)
+
+    // 外部独立 input/textarea 放行
+    const externalInput = document.createElement('input')
+    expect(shouldIgnorePanelHotkeyEvent(externalInput)).toBe(true)
+
+    // 搜 easy 自有面板内的 input 不由外部忽略规则拦截
+    const souEasyApp = document.createElement('div')
+    souEasyApp.id = 'friendly-search-replace-app'
+    const panelInput = document.createElement('input')
+    souEasyApp.appendChild(panelInput)
+    expect(shouldIgnorePanelHotkeyEvent(panelInput)).toBe(false)
+  })
 })

@@ -109,7 +109,7 @@ export function syncPanelCommandHotkeys({
   const globalSearchCommand = commands.find((candidate) => candidate.langKey === 'openGlobalSearch')
   if (globalSearchCommand) {
     globalSearchCommand.hotkey = toRegisteredHotkey(DEFAULT_SETTINGS.globalSearchHotkey || 'Ctrl+Shift+F')
-    globalSearchCommand.customHotkey = toRegisteredHotkey(settings.globalSearchHotkey || 'Ctrl+Shift+F')
+    globalSearchCommand.customHotkey = toRegisteredHotkey(settings.globalSearchHotkey || '')
   }
 }
 
@@ -162,45 +162,91 @@ export function resolveHotkeySettingsFromRuntime({
 }) {
   return {
     ...settings,
-    panelHotkey: resolvePanelCommandHotkey({
+    panelHotkey: resolveCommandHotkey({
       commands,
+      defaultHotkey: DEFAULT_SETTINGS.panelHotkey,
       keymapSources,
-      settingKey: 'panelHotkey',
-      settings,
+      langKey: 'togglePanel',
+      settingHotkey: settings.panelHotkey,
     }),
-    replacePanelHotkey: resolvePanelCommandHotkey({
+    replacePanelHotkey: resolveCommandHotkey({
       commands,
+      defaultHotkey: DEFAULT_SETTINGS.replacePanelHotkey,
       keymapSources,
-      settingKey: 'replacePanelHotkey',
-      settings,
+      langKey: 'toggleReplacePanel',
+      settingHotkey: settings.replacePanelHotkey,
+    }),
+    globalSearchHotkey: resolveCommandHotkey({
+      commands,
+      defaultHotkey: DEFAULT_SETTINGS.globalSearchHotkey,
+      keymapSources,
+      langKey: 'openGlobalSearch',
+      settingHotkey: settings.globalSearchHotkey,
     }),
   }
 }
 
-function resolvePanelCommandHotkey({
+function resolveCommandHotkey({
   commands,
+  defaultHotkey,
   keymapSources,
-  settingKey,
-  settings,
+  langKey,
+  settingHotkey,
 }: {
   commands: CommandHotkeyShape[]
+  defaultHotkey: string
   keymapSources: HotkeySource[]
-  settingKey: HotkeySettingKey
-  settings: PluginSettings
+  langKey: string
+  settingHotkey: string
 }) {
-  const command = commands.find((candidate) => candidate.langKey === getPanelCommandLangKey(settingKey))
-  const normalizedCommandHotkey = normalizeHotkey(command?.customHotkey)
-  if (normalizedCommandHotkey) {
-    return normalizedCommandHotkey
+  const command = commands.find((candidate) => candidate.langKey === langKey)
+  if (command && typeof command.customHotkey === 'string') {
+    const trimmed = command.customHotkey.trim()
+    if (!trimmed) {
+      return ''
+    }
+    const normalized = normalizeHotkey(trimmed)
+    if (normalized) {
+      return normalized
+    }
   }
 
-  const keymapHotkey = keymapSources.find((source) => isPanelCommandKeymapSource(source, settingKey))?.hotkey
-  const normalizedKeymapHotkey = normalizeHotkey(keymapHotkey)
-  if (normalizedKeymapHotkey) {
-    return normalizedKeymapHotkey
+  if (typeof window !== 'undefined') {
+    const pluginKeymap = (window as any).siyuan?.config?.keymap?.plugin?.[pluginName]
+    const keymapLeaf = pluginKeymap?.[langKey]
+    if (keymapLeaf && typeof keymapLeaf.custom === 'string') {
+      const trimmed = keymapLeaf.custom.trim()
+      if (!trimmed) {
+        return ''
+      }
+      const normalized = normalizeHotkey(trimmed)
+      if (normalized) {
+        return normalized
+      }
+    }
   }
 
-  return settings[settingKey]
+  const keymapSource = keymapSources.find((source) => source.label.split('.').at(-1) === langKey)
+  if (keymapSource && typeof keymapSource.hotkey === 'string') {
+    const trimmed = keymapSource.hotkey.trim()
+    if (!trimmed) {
+      return ''
+    }
+    const normalized = normalizeHotkey(trimmed)
+    if (normalized) {
+      return normalized
+    }
+  }
+
+  if (typeof settingHotkey === 'string') {
+    const trimmed = settingHotkey.trim()
+    if (!trimmed) {
+      return ''
+    }
+    return normalizeHotkey(trimmed) || defaultHotkey
+  }
+
+  return defaultHotkey
 }
 
 function getPanelCommandDefinition(settingKey: HotkeySettingKey) {

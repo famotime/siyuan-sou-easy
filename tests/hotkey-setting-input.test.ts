@@ -165,4 +165,27 @@ describe('hotkey setting input', () => {
       replacePanelHotkey: 'Ctrl+H',
     }))
   })
+
+  it('clears shortcut on Backspace or Delete without modifiers', async () => {
+    const { default: FriendlySearchReplacePlugin } = await import('@/index')
+
+    const plugin = new FriendlySearchReplacePlugin(pluginOptions)
+    const applySettingsSpy = vi.spyOn(plugin as any, 'applySettings').mockResolvedValue(undefined)
+    ;(plugin as any).settingsData = await loadSettings()
+
+    const input = (plugin as any).createHotkeyInput('Ctrl+Shift+F', async (value: string) => {
+      return await (plugin as any).updateHotkeySetting('panelHotkey', value)
+    }) as HTMLInputElement
+
+    input.dispatchEvent(new KeyboardEvent('keydown', {
+      bubbles: true,
+      key: 'Backspace',
+    }))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(applySettingsSpy).toHaveBeenCalledWith(expect.objectContaining({
+      panelHotkey: '',
+    }))
+    expect(input.value).toBe('')
+  })
 })
