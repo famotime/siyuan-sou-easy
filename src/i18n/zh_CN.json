@@ -141,6 +141,7 @@
   "globalExportCopiedMarkdown": "已复制 Markdown 链接列表到剪贴板",
   "globalExportCopiedBlockRefs": "已复制思源块引用列表到剪贴板",
   "globalExportCopiedEmbedSql": "已复制思源 SQL 嵌入块到剪贴板",
+  "globalExportSearchHeader": "## 搜索结果：{query}",
   "globalPresetsModalTitle": "常用搜索预设",
   "globalPresetsNamePlaceholder": "输入新预设名称...",
   "globalPresetsSaveBtn": "保存当前条件",

@@ -141,6 +141,7 @@
   "globalExportCopiedMarkdown": "Markdown link list copied to clipboard",
   "globalExportCopiedBlockRefs": "Block reference list copied to clipboard",
   "globalExportCopiedEmbedSql": "Embed SQL block copied to clipboard",
+  "globalExportSearchHeader": "## Search results: {query}",
   "globalPresetsModalTitle": "Saved search presets",
   "globalPresetsNamePlaceholder": "Enter a preset name...",
   "globalPresetsSaveBtn": "Save current conditions",

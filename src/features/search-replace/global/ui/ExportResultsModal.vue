@@ -63,8 +63,12 @@ const emit = defineEmits<{
   (e: 'close'): void
 }>()
 
+function getActiveExportQuery(): string {
+  return globalSearchState.searchedQuery.trim() || globalSearchState.query.trim()
+}
+
 async function onExportMarkdown() {
-  const content = exportAsMarkdownLinks(globalSearchState.results)
+  const content = exportAsMarkdownLinks(globalSearchState.results, getActiveExportQuery())
   const ok = await copyToClipboard(content)
   emit('close')
   if (ok) {
@@ -73,7 +77,7 @@ async function onExportMarkdown() {
 }
 
 async function onExportBlockRefs() {
-  const content = exportAsBlockRefs(globalSearchState.results)
+  const content = exportAsBlockRefs(globalSearchState.results, getActiveExportQuery())
   const ok = await copyToClipboard(content)
   emit('close')
   if (ok) {
